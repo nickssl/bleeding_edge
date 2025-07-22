@@ -1,7 +1,27 @@
 ;+
-;WIDGET Procedure:
+;Procedure:
 ;  socket_reader
 ;PURPOSE:
+; This tool is a generic multi purpose object that can read data from:
+;    1)  regular files
+;    2)  data streams (a socket)
+;    3)  array of bytes
+;  It will optionally record data to a file
+;    
+;  It is typically used by a higher level object which inherits the methods and possibly overload some of the methods.
+;  In particular the following object all call this object:
+;    cmblk_reader()   ; reads common block data (files or sockets) that typically contain all of the following data types
+;    ccsds_reader()   ; reads ccsds packet data (files or sockets)
+;    ccsds_frame_reader()  ; reads ccsds frame data  (still in development)
+;    json_reader()         ; reads json files
+;    gsemsg_reader()       ; reads SSL "silver box" (swemulator or swifulator output)
+;    ascii_reader()        ; ascii text files with each line of text ending with a newline character.
+;    
+;    It is very common for a hierarchy of nested streams to exist in a single file or stream. 
+;    
+;  
+;    
+;  
 ; Widget tool that opens a socket and reads streaming data from a server (host) and can save it to a file
 ; or send to a user specified routine. This tool runs in the background.
 ; Keywords:
@@ -11,9 +31,9 @@
 ;    Davin Larson - January 2023
 ;    proprietary - D. Larson UC Berkeley/SSL
 ;
-; $LastChangedBy: davin-mac $
-; $LastChangedDate: 2023-05-01 13:47:45 -0700 (Mon, 01 May 2023) $
-; $LastChangedRevision: 31815 $
+; $LastChangedBy: rjolitz $
+; $LastChangedDate: 2025-03-04 10:57:07 -0800 (Tue, 04 Mar 2025) $
+; $LastChangedRevision: 33161 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/misc/file_stuff/socket_reader__define.pro $
 ;
 ;-
@@ -26,6 +46,33 @@ pro socket_reader::handleTimerEvent,id,data
     dprint,verbose=self.verbose,dlevel=2,id
     printdat,self.msg,data
 end
+
+
+pro socket_reader::check_connection,nbytes
+  if self.isasocket then begin
+    if self.input_lun then begin
+      period = self.pollinterval+30 > self.reconnect_period
+      if nbytes eq 0 then begin
+        if self.reconnect && current_time gt self.reconnect_time then begin
+          ;  try to reconnect
+          dprint,dlevel=1,verbose=self.verbose,'Attempting reconnection to HOST: '+self.host+':'+self.port
+          self.host_button_event  ; close
+          ;wait,2.   ; 
+          self.host_button_event  ; reopen
+        endif
+
+      endif
+      self.reconnect_time = systime(1) + period
+    endif
+  endif
+
+end
+
+
+
+
+
+
 
 
 function socket_reader::read_nbytes,nbytes,source,pos=pos,eofile=eofile
@@ -85,7 +132,7 @@ function socket_reader::read_nbytes,nbytes,source,pos=pos,eofile=eofile
   if n eq 0 then buf = !null else  buf = buf[0:n-1]
   pos = pos + n
   self.write,buf
-  dprint,verbose=self.verbose,dlevel=1,'IO warning: '+ !error_state.msg  +strtrim(n_elements(buf)) 
+  dprint,verbose=self.verbose,dlevel=3,'IO warning: '+ !error_state.msg  +strtrim(n_elements(buf)) 
   eofile = eof(self.input_lun)
   return,buf
 end
@@ -123,7 +170,7 @@ function socket_reader::read_line,source,pos=pos ,eofile=eofile ;,nbytes=nb    ;
           buf = [buf,b]
           if b[0] eq self.eol then break
         endif else begin
-          dprint,verbose=self.verbose,dlevel=1,'End of file
+          dprint,verbose=self.verbose,dlevel=1,'End of file'
         endelse
         pos = pos+n
         if ~self.isasocket then eofile = eof(self.input_lun)
@@ -140,6 +187,17 @@ function socket_reader::read_line,source,pos=pos ,eofile=eofile ;,nbytes=nb    ;
   return,buf
 end
 
+
+; this routine writes a common block (cmblk) header before each segment of data  (should be 32 bytes long!;;;;;
+pro socket_reader::write_header, buffer
+  cmblk = self.cmblk
+  cmblk.time = systime(1)
+  cmblk.psize = ulong(n_elements(buffer))  
+  self.cmblk.seqn++
+  
+  writeu,self.output_lun, cmblk
+
+end
 
 
 pro socket_reader::write ,buffer
@@ -159,6 +217,9 @@ pro socket_reader::write ,buffer
       self.next_filechange = self.file_timeres * ceil(self.time_received / self.file_timeres)
     endif
     if keyword_set(buffer) && self.output_lun gt 0 then begin
+      if self.add_cmblk_header then begin
+        self.write_header,buffer
+      endif
       writeu,self.output_lun, buffer
     endif    else flush,self.output_lun
   endif
@@ -168,10 +229,186 @@ end
 
 
 
+;+
+; :Description:
+;    Describe the procedure.
+;
+; :Params:
+;    source
+;
+;
+;
+; :Author: davin
+;-
+pro socket_reader::read,source
+
+  ;dwait = 10.
+
+  dict = self.source_dict
+  if dict.haskey('parent_dict') then parent_dict = dict.parent_dict
+
+
+  ;  if isa(parent_dict,'dictionary') &&  parent_dict.haskey('headerstr') then begin
+  ;    header = parent_dict.headerstr
+  ;    ;   dprint,dlevel=4,verbose=self.verbose,header.description,'  ',header.size
+  ;  endif else begin
+  ;    dprint,verbose=self.verbose,dlevel=4,'No headerstr'
+  ;    header = {time: !values.d_nan , gap:0 }
+  ;  endelse
+
+
+  if ~dict.haskey('fifo') then begin
+    dict.fifo = !null    ; this contains the unused bytes from a previous call
+    dict.flag = 0
+    ;self.verbose=3
+  endif
+
+
+  on_ioerror, nextfile
+  time = systime(1)
+  dict.time_received = time
+
+  msg = '' ;time_string(dict.time_received,tformat='hh:mm:ss.fff -',local=localtime)
+
+  nbytes = 0UL
+  ;sync_errors =0ul
+  total_bytes = 0L
+  endofdata = 0
+  while ~endofdata do begin
+
+    if dict.fifo eq !null then begin
+      dict.n2read = self.header_size
+      dict.headerstr = !null
+      dict.sync_errors = 0
+      dict.packet_is_complete = 0
+    endif
+    nb = dict.n2read
+
+    buf= self.read_nbytes(nb,source,pos=nbytes)
+    nbuf = n_elements(buf)
+
+    if nbuf eq 0 then begin
+      dprint,verbose=self.verbose,dlevel=4,'No more data'
+      break
+    endif
+
+    bytes_missing = nb - nbuf   ; the number of missing bytes in the read
+
+    dict.fifo = [dict.fifo,buf]
+    nfifo = n_elements(dict.fifo)
+
+    if bytes_missing ne 0 then begin
+      dict.n2read = bytes_missing
+      if ~isa(buf) then endofdata =1
+      continue
+    endif
+
+    if ~isa(dict.headerstr) then begin
+
+      dict.headerstr = self.header_struct(dict.fifo)
+      if ~isa(dict.headerstr) then    begin     ; invalid structure: Skip a byte and try again
+        dict.fifo = dict.fifo[1:*]
+        dict.n2read = 1
+        nb = 1
+        dict.sync_errors += 1
+        continue      ; read one byte at a time until sync is found
+      endif
+      dict.packet_is_complete = (dict.headerstr.psize eq 0)
+    endif
+
+    if ~dict.packet_is_complete then begin    ; need to read rest of the packet
+      nb = dict.headerstr.psize
+      if nb eq 0 then begin
+        dprint,verbose = self.verbose,dlevel=2,self.name+'; Packet length with zero length'
+        dict.fifo = !null
+      endif else begin
+        dict.packet_is_complete =1
+        dict.n2read = nb
+      endelse
+      continue            ; continue to read the rest of the packet
+    endif
+
+
+    if dict.sync_errors ne 0 then begin
+      dprint,verbose=self.verbose,dlevel=2,self.name+': '+strtrim(dict.sync_errors,2)+' sync errors';,dwait =4.
+    endif
+
+    ; if it reaches this point then a valid message header+payload has been read in
+
+
+    self.handle,dict.fifo    ; process each packet
 
 
 
-pro socket_reader::read, buffer, source_dict=source_dict
+    if dict.haskey('flag') && keyword_set(dict.flag) && debug(2,self.verbose,msg='status') then begin
+      dprint,verbose=self.verbose,dlevel=3,header
+      ;dprint,'gsehdr: ',n_elements(gsehdr)
+      ;hexprint,gsehdr
+      ;dprint,'payload: ',n_elements(payload)
+      ;hexprint,payload
+      dprint,'fifo: ', n_elements(dict.fifo)  ;,'   ',time_string(gsemsg.time)
+      hexprint,dict.fifo
+      dprint
+    endif
+
+    dict.fifo = !null
+
+  endwhile
+
+  if dict.sync_errors ne 0 then begin
+    dprint,verbose=self.verbose,dlevel=2,self.name+': '+strtrim(dict.sync_errors,1)+' sync errors at "'+time_string(dict.time_received)+'"'
+    ;printdat,source
+    ;hexprint,source
+  endif
+
+
+  if 0 then begin
+    nextfile:
+    dprint,!error_state.msg
+    dprint,'Skipping file'
+  endif
+
+  if nbytes ne 0 then msg += string(/print,nbytes,format='(i8 ," bytes: ")')  $
+  else msg+= ' No data available'
+
+  dprint,verbose=self.verbose,dlevel=4,msg
+  dict.msg = msg
+
+end
+
+
+
+
+
+pro socket_reader::handle, buffer    ; This routine is typically overloaded by another object
+
+  dprint,dlevel=4,verbose=self.verbose,n_elements(buffer),' Bytes for Handler: "',self.name,'"'
+  self.nbytes += n_elements(buffer)
+  self.npkts  += 1
+  
+  if self.save_data && isa(self.dyndata,'dynamicarray') then begin
+    self.dyndata.append,self.source_dict.headerstr
+  endif
+
+
+  if self.run_proc then begin
+    if self.procedure_name then begin
+      call_procedure,self.procedure_name,buffer ,source_dict=self.source_dict
+    endif else begin
+      if debug(3,self.verbose,msg=self.name+' '+self.msg) then begin
+        if debug(3,self.verbose) then      hexprint,buffer
+      endif
+    endelse
+  endif
+
+end
+
+
+
+
+
+
+pro socket_reader::read_old1, buffer, source_dict=source_dict
   ; Read data from stream until EOF is encountered or no more data is available on the stream
   ; if the proc flag is set then it will process the data
   ; if the output lun is non zero then it will save the data.
@@ -202,7 +439,7 @@ pro socket_reader::read, buffer, source_dict=source_dict
       break
     endelse
 
-    self.handle,buf,source_dict=source_dict
+    self.handle,buf  ;,source_dict=source_dict
 
     dprint,verbose=self.verbose,dlevel=4,self.msg,/no_check
     ;eofile = eof(self.input_lun)
@@ -244,11 +481,29 @@ end
 
 
 
-pro socket_reader::file_read,filenames
+pro socket_reader::file_read,filenames,trange=trange
+  if keyword_set(trange) and keyword_set(self.fileformat) then begin
+    pathformat = self.fileformat
+    ;filenames = file_retrieve(pathformat,trange=trange,/hourly_,remote_data_dir=opts.remote_data_dir,local_data_dir= opts.local_data_dir)
+    if n_elements(trange eq 1)  then trange = systime(1) + [-trange[0],0.1]*3600.
+    timespan,trange
+    if 0 then begin
+      filenames = time_string(self.fileformat)
+    endif else begin
+      ;remote_url = ''   ; don't download files if writing locally
+      dprint,dlevel=2,'Download raw telemetry files...'
+      filenames = file_retrieve(pathformat,trange=trange,remote=remote_url,local=self.directory,resolution=self.file_timeres)
+    endelse 
+    dprint,dlevel=2, "Files to be loaded:"
+    dprint,dlevel=2,file_info_string(filenames)
+  endif
+
+
+
   on_ioerror, keepgoing
   for i= 0,n_elements(filenames)-1 do begin
     file = filenames[i]
-    file_open,'r',file,unit=lun,compress=-1
+    file_open,'r',file,unit=lun,compress=-1,verbose=2
     if keyword_set(lun) then begin
       self.input_lun = lun
       self.read
@@ -257,26 +512,6 @@ pro socket_reader::file_read,filenames
       self.input_lun = 0
     endif
   endfor
-
-end
-
-
-
-pro socket_reader::handle, buffer, source_dict=source_dict
-
-  dprint,dlevel=4,verbose=self.verbose,n_elements(buffer),' Bytes for Handler: "',self.name,'"'
-  self.nbytes += n_elements(buffer)
-  self.npkts  += 1
-
-  if self.run_proc then begin
-    if self.procedure_name then begin
-      call_procedure,self.procedure_name,buffer ,source_dict=self.source_dict
-    endif else begin
-      if debug(3,self.verbose,msg=self.name+' '+self.msg) then begin
-        if debug(3,self.verbose) then      hexprint,buffer
-      endif
-    endelse
-  endif
 
 end
 
@@ -305,10 +540,11 @@ pro socket_reader::GetProperty,name=name,verbose=verbose,dyndata=dyndata,time_re
   if arg_present(verbose) then verbose=self.verbose
   if arg_present(time_received) then time_received=self.time_received
   if arg_present(source_dict) then source_dict=self.source_dict
+  if arg_present(parent_dict) then parent_dict=self.parent_dict
 end
 
 pro socket_reader::help , item
-  if keyword_set(self.base) then begin
+  if keyword_set(self.base) and widget_info(self.base,/valid_id) then begin
     msg = string('Base ID is: ',self.base)
     output_text_id = widget_info(self.base,find_by_uname='OUTPUT_TEXT')
     widget_control, output_text_id, set_value=msg
@@ -322,19 +558,20 @@ end
 
 
 
-pro socket_reader::print_status,no_header=no_header,apid = apid
+pro socket_reader::print_status,no_header=no_header  ;,apid = apid
    format1 = '(a12,a18,a18,i3,i10,i12,i10,i10,i10,i10,i10,i10)'
    format2 = str_sub(format1,',i',',a')
-   if ~isa(apid,'string') then apid =''
+   ;if ~isa(apid,'string') then apid =''
+   apid = self.apid
    ;printdat,apid
    if ~keyword_set(no_header) then $
      print,'APID','Name','Object','S','sum1','sum2','npkts','nreads','Size',format=format2
    print,apid,self.name,typename(self),self.isasocket,self.sum1_bytes,self.sum2_bytes,self.npkts,self.nreads,self.dyndata.size,format=format1
    if ~keyword_set(no_header) then $
      print,'-----','-----','-----','--','----','----','----','----','-------',format=format2
-
-
 end
+
+
 
 
 ;function socket_reader::struct
@@ -368,7 +605,6 @@ end
 
 
 
-
 pro socket_reader::timed_event
 
   if self.input_lun gt 0 then begin
@@ -395,6 +631,17 @@ pro socket_reader::timed_event
     endif
   endif
   self.time_received = systime(1)
+end
+
+
+
+
+
+pro socket_reader::open_socket,host,port       ; not finished yet - use widget button
+  if isa(host,/string) then begin
+    
+  endif
+
 
 
 end
@@ -675,10 +922,11 @@ function socket_reader::init,name=name,title=title,ids=ids,host=host,port=port,f
   tplot_tagnames=tplot_tagnames, $
   ;apid = apid,  $
   eol = eol,  $
+  save_data = save_data,  $
   run_proc=run_proc,directory=directory, $
   no_widget=no_widget,verbose=verbose
 
-  if ~keyword_set(name) then name=typename(self)
+  if ~keyword_set(name) then name=strlowcase(typename(self))
   self.name  =name
 
   self.source_dict = dictionary()
@@ -702,6 +950,11 @@ function socket_reader::init,name=name,title=title,ids=ids,host=host,port=port,f
   ;self.isasocket=1
   self.run_proc = isa(run_proc) ? run_proc : 1    ; default to not running proc
   self.dyndata = dynamicarray(name=name,tplot_tagnames=tplot_tagnames)
+  if isa(save_data) then self.save_data = save_data
+  self.cmblk = {cmblk_header}
+  self.cmblk.sync =  0x434D4231
+  self.cmblk.time = systime(1)
+  self.cmblk.descid = byte(strmid(name,0,10))
 
 
   if ~keyword_set(no_widget) then begin
@@ -775,6 +1028,18 @@ END
 
 
 pro socket_reader__define
+
+  cmblk ={cmblk_header, $
+    sync: 0x434D4231 , $ ;  swap_endian(ulong(byte('CMB1'),0))  
+    psize: 0ul, $
+    time: !values.d_nan,  $
+    seqn: 0us,  $   ; 2 byte sequence counter
+    user: 0us,  $   ; 2 byte uint
+    source: 0b,$   ; byte stored as uint
+    type: 0b,  $   ; byte stored as uint
+    descid: bytarr(10)  }
+    
+
   dummy = {socket_reader, $
     inherits generic_object, $
     timer_id: 0u, $
@@ -788,6 +1053,9 @@ pro socket_reader__define
     file_timeres: 0d,   $   ; Defines time interval of each output file
     next_filechange: 0d, $ ; don't use - will be deprecated in future
     isasocket:0,  $
+    reconnect:  0 ,  $          ;  set flag to attempt reconnect if data has dropped 
+    reconnect_time:  0d,  $        ; 
+    reconnect_period: 0d, $       ;
     eol:-1 ,$                  ; character used to define End Of Line  typically 0x0A;   use negative integer to ignore
     input_lun:0,  $               ; host input file pointer (lun)
     output_lun:0 , $               ; destination output file pointer (lun)
@@ -796,11 +1064,21 @@ pro socket_reader__define
     filename:'', $             ; output filename
     msg: '', $
     buffersize:0L, $
+    header_size:0, $
+    sync_pattern:  bytarr(4),  $
+    sync_mask:  bytarr(4),  $
+    sync_size:  0,  $
     ;buffer_ptr: ptr_new(),   $
+    parent_reader: obj_new() , $
+    parent_dict: obj_new(),   $
     source_dict: obj_new(),  $
     dyndata: obj_new(), $        ; dynamicarray object to save all the data in
-    apid: '',  $                 ; APID name used in common block
+    hdr_data: obj_new(), $       ; dynamicarray object to save header data
+    apid: '',  $         ; APID name used in common block
+    add_cmblk_header:0 ,  $
+    cmblk : cmblk, $
     name: '',  $
+    save_data: 0b ,  $            ; set this flag to save data
     nbytes: 0UL, $
     sum1_bytes: 0UL, $
     sum2_bytes: 0UL, $

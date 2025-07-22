@@ -108,9 +108,9 @@ End
 ; 28-apr-2008, pcruce, Added interp_resolution option, added memory warning, 
 ;                        mod to guarantee that precision of output is at least as 
 ;                        large as precision of input
-;$LastChangedBy: egrimes $
-;$LastChangedDate: 2019-04-10 17:15:44 -0700 (Wed, 10 Apr 2019) $
-;$LastChangedRevision: 27000 $
+;$LastChangedBy: ghanley $
+;$LastChangedDate: 2024-07-03 11:10:37 -0700 (Wed, 03 Jul 2024) $
+;$LastChangedRevision: 32716 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/misc/smooth_in_time.pro $
 ;-
 
@@ -227,7 +227,7 @@ Function smooth_in_time, array, time_array, dt, $
 ;Now do the smoothing      
         If(cnot_min Ne 0) Then Begin
 ;Create the regular grid
-          nr = ceil((tx[nok-1]-tx[0])/dtx0)
+          nr = ceil((tx[nok-1]-tx[0])/dtx0,/L64)
           t1 = tx[0]+dtx0*dindgen(nr)
         Endif Else Begin
           t1 = tx

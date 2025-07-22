@@ -47,9 +47,9 @@
 ; 
 ;HISTORY:
 ;
-;$LastChangedBy: adrozdov $
-;$LastChangedDate: 2018-01-10 17:03:26 -0800 (Wed, 10 Jan 2018) $
-;$LastChangedRevision: 24506 $
+;$LastChangedBy: nikos $
+;$LastChangedDate: 2023-12-15 14:11:08 -0800 (Fri, 15 Dec 2023) $
+;$LastChangedRevision: 32290 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/misc/tpwrspc.pro $
 ;-
 Pro tpwrspc, varname, newname = newname, $
@@ -84,6 +84,7 @@ Pro tpwrspc, varname, newname = newname, $
   If(is_struct(d)) Then Begin
     y = d.y
     t = (d.x-d.x[0])
+    tav = average(d.x)
     If(n_elements(trange) Eq 2) Then Begin
       tr = time_double(trange)
       ok = where(d.x Ge tr[0] And d.x Lt tr[1], nok)
@@ -111,7 +112,7 @@ Pro tpwrspc, varname, newname = newname, $
 ;At Vassilis's request, using single midpoint,instead of two points
 ;pcruce 2013-10-08
 
-    d = {x:average(t),v:reform(f,1,n_elements(f)),y:reform(p,1,n_elements(p))}
+    d = {x:tav,v:reform(f,1,n_elements(f)),y:reform(p,1,n_elements(p))}
 
     If(keyword_set(overwrite)) Then newname = varname $
     Else newname = nvn

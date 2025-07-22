@@ -29,9 +29,9 @@
 ;CREATED BY:	Davin Larson
 ;MODIFICATION BY: 	Peter Schroeder
 ;LAST MODIFICATION:	@(#)get_data.pro	1.28 02/04/17
-; $LastChangedBy: jwl $
-; $LastChangedDate: 2021-09-13 19:29:07 -0700 (Mon, 13 Sep 2021) $
-; $LastChangedRevision: 30293 $
+; $LastChangedBy: davin-mac $
+; $LastChangedDate: 2023-11-19 11:39:45 -0800 (Sun, 19 Nov 2023) $
+; $LastChangedRevision: 32251 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/tplot/get_data.pro $
 ;
 ;-
@@ -75,7 +75,7 @@ pro get_data,name, time, data, values, $
   if index ne 0 then begin
     dq = data_quants[index]
     if arg_present(data) or arg_present(time) or arg_present(values) or arg_present(data_str) then begin
-      if dq.dtype eq 4 then begin
+      if dq.dtype eq 4 then begin    ; dynamicarray 
         dh = (*dq.dh)
         datastr_array = dh.ddata.sample()
         tags = tag_names(datastr_array)

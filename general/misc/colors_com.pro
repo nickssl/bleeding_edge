@@ -12,4 +12,5 @@
 
 common colors_com, colors,red,green,blue,yellow,cyan,magenta,white,black, $
   foreground_c,background_c,bottom_c,top_c,primary,ncolor,color_table,a_,b_,$
-  color_reverse,line_colors_common,line_colors_presets,line_colors_index
+  color_reverse,line_colors_common,line_colors_presets,line_colors_index, $
+  ct_file, ct_max

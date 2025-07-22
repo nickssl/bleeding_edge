@@ -72,6 +72,8 @@
 ;
 ;       KEEP:    Keep the last histogram window open on exit.
 ;
+;       RANGE:   Range of values for the histogram.
+;
 ;       NBINS:   If HIST is set, number of bins in the histogram.
 ;
 ;       NPTS:    If this is set, then statistics are calculated for NPTS centered
@@ -107,17 +109,16 @@
 ;       SILENT:  Shhh.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-08-13 15:42:47 -0700 (Sun, 13 Aug 2023) $
-; $LastChangedRevision: 31994 $
+; $LastChangedDate: 2024-04-19 08:29:46 -0700 (Fri, 19 Apr 2024) $
+; $LastChangedRevision: 32527 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/tools/misc/tmean.pro $
 ;
 ;CREATED BY:    David L. Mitchell
 ;-
 pro tmean, var, trange=trange, offset=offset, outlier=outlier, result=result, hist=hist, $
                 nbins=nbins, npts=npts, silent=silent, minpts=minpts, dst=dst, cluster=cluster, $
-                t0=t0, t1=t1, maxdz=maxdz, diag=diag, keep=keep, ind=dndx, avg=doavg, zero=zero
-
-  @swe_snap_common
+                t0=t0, t1=t1, maxdz=maxdz, diag=diag, keep=keep, ind=dndx, avg=doavg, zero=zero, $
+                range=hrange
 
 ; Determine if routine is being used without a window server
 
@@ -221,10 +222,10 @@ pro tmean, var, trange=trange, offset=offset, outlier=outlier, result=result, hi
   if (xwin) then begin
     twin = !d.window
     if (hist) then begin
-      win, /free, /secondary, xsize=800, ysize=600, dx=10
+      win, /free, /secondary, xsize=800, ysize=600, dx=10, dy=10
       hwin = !d.window
       if (core) then begin
-        win, /free, relative=hwin, xsize=800, ysize=600, dx=10
+        win, /free, clone=hwin, relative=hwin, dx=10, /top
         vwin = !d.window
       endif
     endif
@@ -507,9 +508,9 @@ pro tmean, var, trange=trange, offset=offset, outlier=outlier, result=result, hi
         oplot,[ycut,ycut],[0.,2.*max(var1+var2)],line=2,color=6
       endif
       wset, hwin
-      if keyword_set(nbins) then nbins = fix(nbins) else nbins = 32
-      range = minmax(y)
-      dy = (range[1] - range[0])/float(nbins)
+      yrange = minmax(y)
+      if (n_elements(hrange) ge 2) then range = minmax(hrange) else range = yrange
+      dy = (yrange[1] - yrange[0])/float(nbins)
       h = histogram(y, binsize=dy, loc=hy, min=range[0], max=range[1])
       title = 'N = ' + strtrim(string(round(total(h))),2)
 

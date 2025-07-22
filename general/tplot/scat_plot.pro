@@ -14,9 +14,9 @@
 ;   end_time: time at which to end plot
 ;
 ;CREATED BY:    Davin Larson
-; $LastChangedBy: ali $
-; $LastChangedDate: 2019-08-19 15:08:26 -0700 (Mon, 19 Aug 2019) $
-; $LastChangedRevision: 27622 $
+; $LastChangedBy: davin-mac $
+; $LastChangedDate: 2025-06-12 05:11:24 -0700 (Thu, 12 Jun 2025) $
+; $LastChangedRevision: 33385 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/tplot/scat_plot.pro $
 ; $ID: $;-
 
@@ -29,9 +29,12 @@ pro scat_plot,xname,yname, zname,$
    xvalue=x, $
    tvalue=t, $
    yvalue=y, $
+   zvalue=z, $
    color = colors, $
    ydimen = ny, $
+   xdimen = nx, $
    dens=dens , $
+   randomize=randomize, $
    limits = limits
 
 
@@ -41,7 +44,9 @@ get_data,yname,data=ydata
 if n_elements(xdata) eq 0 then message,'No data associated with: '+xname
 
 prompt = 'Which dimension of '+xname+'? '
-if dimen2(xdata.y) gt 1 then read, nx, prompt = prompt else nx = 0
+if n_elements(nx) eq 0 then begin
+  if dimen2(xdata.y) gt 1 then read, nx, prompt = prompt else nx = 0  
+endif
 if n_elements(ny) eq 0 then begin
   prompt = 'Which dimension of '+yname+'? '
   if dimen2(ydata.y) gt 1 then read, ny, prompt = prompt else ny = 0  
@@ -76,9 +81,9 @@ if three then begin
     str_element, limits, 'zrange', value = zrange, index = index
     if index lt 0 then zrange = minmax(z)
     str_element, limits, 'log_color', value = log_color, index = index
+    str_element, limits,'zlog',zlog
     if index lt 0 then log_color = 0
-    colors = bytescale(z, range = zrange, log = log_color, $
-    missing = 0)
+
 endif else if n_elements(colors) eq 0 then colors = replicate(!p.color, dimen1(time))
 
 if n_elements(trn) eq 2 then begin
@@ -115,6 +120,9 @@ if not keyword_set(t0) then t0 = min(time)
 if not keyword_set(t1) then t1 = max(time)
 ;title = title +'   '+ trange_str(t0,t1)
 title = trange_str(t0,t1)
+if three then begin
+  colors = bytescale(z, range = zrange, log = keyword_set(log_color) or keyword_set(zlog),   missing = 0)
+endif
 
 
 if not keyword_set(overplot) then plot,x,y,xtitle=xtitle, ytitle=ytitle,color=color, title = title, /nodata, _EXTRA = plotstuff
@@ -126,6 +134,11 @@ if keyword_set(dens) then begin
   specplot,xbins,ybins,h,limits=limits
 endif else begin
   plots,x,y,color=colors, psym = psym, noclip = 0
+  if keyword_set(randomize) then begin
+    rind = randomu(seed,n_elements(x))
+    ind = sort(rind)
+    plots,x[ind],y[ind],color=colors[ind], psym = psym, noclip = 0    
+  endif ;else plots,x,y,color=colors, psym = psym, noclip = 0;,/ynozero
   
 endelse
 

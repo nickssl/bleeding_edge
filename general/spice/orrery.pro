@@ -35,17 +35,27 @@
 ;  to see the positions of these two spacecraft.  Version 1.8.0 is 
 ;  known to work.
 ;
+;  Note: This routine will not reset timespan or timerange.
+;
 ;USAGE:
 ;  orrery [, time] [,KEYWORD=value, ...]
 ;
 ;INPUTS:
 ;       time:      Show planet positions at this time(s).  Valid times
-;                  are from 1900-01-05 to 2100-01-01 in any format
+;                  are from 1550-01-01 to 2650-01-01 in any format
 ;                  accepted by time_double().
 ;
 ;                  If not specified, use the current system time.
 ;
 ;KEYWORDS:
+;       You can set default values for any of the following keywords with
+;       orrery_options.pro.  Keywords set explicitly override defaults.
+;
+;       TIMERANGE: Time range for ephemeric calculations.  The latest planetary
+;                  ephemeris (de442) spans from 1550 to 2650, but the routine runs
+;                  much faster when this is limited to a shorter span.
+;                  Default = ['1850','2150'].
+;
 ;       NOPLOT:    Skip the plot (useful with keyword EPH).
 ;
 ;       NOBOX:     Hide the axis box.
@@ -100,7 +110,7 @@
 ;                  ephemeris values and interpolates across the 
 ;                  gap.)
 ;                    Coverage:
-;                      Stereo A: 2006-10-26 to 2023-01-25
+;                      Stereo A: 2006-10-26 to 2025-06-05
 ;                      Stereo B: 2006-10-26 to 2014-09-28
 ;
 ;       SORB:      Plot the location of Solar Orbiter.  Includes a
@@ -109,7 +119,11 @@
 ;
 ;       PSP:       Plot the location of Parker Solar Probe. Includes
 ;                  a predict ephemeris.
-;                    Coverage: 2018-08-12 to 2025-08-31
+;                    Coverage: 2018-08-12 to 2030-01-01
+;
+;       MAVEN:     Plot the location of MAVEN from launch to Mars orbit
+;                  insertion.
+;                    Coverage: 2013-11-18 to 2014-09-23 
 ;
 ;       SALL:      Plot all of the above spacecraft locations.
 ;
@@ -120,6 +134,11 @@
 ;                  solar wind magnetic field.  Spiral is shown out
 ;                  to the orbit of Saturn, where the magnetic field
 ;                  is nearly tangential to the orbit.
+;
+;       PCURVE:    Show the Parker spiral curve that intersects the
+;                  planet indicated by keyword PLANET.  This is shown
+;                  in a different color.  This is automatically set
+;                  whenever SPIRAL is set.
 ;
 ;       VSW:       Solar wind velocity for calculating the spiral.
 ;                  Default = 400 km/s.  (Usually within the range
@@ -161,7 +180,7 @@
 ;                  extends out to the orbit of Saturn.
 ;
 ;       TPLOT:     Create Earth-PLANET geometry and spacecraft position
-;                  tplot variables.
+;                  tplot variables.  Default = 1 (yes).
 ;
 ;       VARNAMES:  Standard set of tplot variables to plot.
 ;
@@ -173,10 +192,11 @@
 ;                  spiral, and all labels.
 ;
 ;       BLACK:     Use a black background for the orbit snapshot.
+;                  (After all, space is black.)  Default = 1.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-08-25 08:36:05 -0700 (Fri, 25 Aug 2023) $
-; $LastChangedRevision: 32062 $
+; $LastChangedDate: 2025-07-14 11:32:33 -0700 (Mon, 14 Jul 2025) $
+; $LastChangedRevision: 33461 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/spice/orrery.pro $
 ;
 ;CREATED BY:	David L. Mitchell
@@ -187,9 +207,10 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
                   xyrange=range, planet=planet2, sorb=sorb2, psp=psp2, sall=sall, $
                   verbose=verbose, full=full, fixplanet=fixplanet, monitor=monitor, $
                   window=window, png=png, varnames=varnames, plabel=plabel, slabel=slabel, $
-                  css=css2, black=black, key=key
+                  css=css2, black=black, pcurve=pcurve, timerange=timerange, key=key, $
+                  maven=maven
 
-  common planetorb, planet, css, sta, stb, sorb, psp, orrkey
+  common planetorb, planet, css, sta, stb, sorb, psp, mvn, orrkey, madeplot
   @putwin_common
 
   if (size(windex,/type) eq 0) then win, config=0  ; win acts like window
@@ -202,7 +223,8 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
   tlist = ['NOPLOT','NOBOX','LABEL','SCALE','EPH','SPIRAL','VSW','SROT','MOVIE', $
            'STEREO','KEEPWIN','TPLOT','RELOAD','OUTER','XYRANGE','PLANET2','SORB2', $
            'PSP2','SALL','VERBOSE','FULL','FIXPLANET','MONITOR','WINDOW','PNG', $
-           'VARNAMES','PLABEL','SLABEL','CSS2','BLACK']
+           'VARNAMES','PLABEL','SLABEL','CSS2','BLACK','PCURVE','TIMERANGE', $
+           'MAVEN']
   for j=0,(n_elements(ktag)-1) do begin
     i = strmatch(tlist, ktag[j]+'*', /fold)
     case (total(i)) of
@@ -232,7 +254,7 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
   pcol = [ 4, 204, 3,  6, 204, 4,  5,  3,  1 ]  ; planet colors
   psze = [ 3,  4,  4,  3,  6,  5,  4,  4,  3 ]  ; planet symbol sizes
   pday = [89, 226, 367, 688, 4334, 10757, 30689, 60192, 90562]  ; days per orbit
-  tspan = time_double(['1900-01-05','2100-01-01'])  ; range covered by mar097.bsp
+  tspan = time_double(['1550','2650'])          ; de442.bsp covers 1550 to 2650
   nplan = n_elements(pname)
 
   cname = 'SIDING SPRING'
@@ -242,12 +264,12 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
   csze = 3
   cday = 5845  ; 2000-01-01 to 2016-01-01 (siding_spring_s46.bsp)
 
-  sname = ['STEREO AHEAD','STEREO BEHIND','SOLAR ORBITER','SOLAR PROBE PLUS']
-  slab = ['STA','STB','SO','PSP']
-  ssym = [ 1,   1,   5,   6 ]  ; spacecraft symbols
-  scol = [ 4,   5,   6,   1 ]  ; spacecraft colors
-  ssze = [ 2,   2,  1.5, 1.5]  ; spacecraft symbol sizes
-  sday = [367, 367, 150,  90]  ; days per orbit (typical)
+  sname = ['STEREO AHEAD','STEREO BEHIND','SOLAR ORBITER','SOLAR PROBE PLUS','MAVEN']
+  slab = ['STA','STB','SO','PSP','MVN']
+  ssym = [ 1,   1,   5,   6,   6 ]  ; spacecraft symbols
+  scol = [ 4,   5,   6,   1,  254]  ; spacecraft colors
+  ssze = [ 2,   2,  1.5, 1.5, 1.5]  ; spacecraft symbol sizes
+  sday = [367, 367, 150,  90, 367]  ; days per orbit (typical)
 
   xsize = 792
   ysize = 765
@@ -265,6 +287,11 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
 
 ; Process keywords
 
+  if (n_elements(timerange) gt 1) then begin
+    timerange = time_double(timerange)
+    tspan[0] = min(timerange) > tspan[0]
+    tspan[1] = max(timerange) < tspan[1]
+  endif else tspan = time_double(['1850','2150'])     ; shorter timespan for speed
   if (size(planet2,/type) eq 0) then planet2 = 4      ; default is Mars
   if (size(planet2,/type) eq 7) then begin
     ok = 0
@@ -308,6 +335,7 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
   sflg = keyword_set(stereo)
   oflg = keyword_set(sorb2)
   pflg = keyword_set(psp2)
+  vflg = keyword_set(maven)
   cflg = keyword_set(css2)
 
   if keyword_set(full) then begin
@@ -319,6 +347,7 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
     sflg = 1
     oflg = 1
     pflg = 1
+    vflg = 1
   endif
   mflg = keyword_set(movie)
 
@@ -379,6 +408,11 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
            end
   endcase
 
+  spiral = keyword_set(spiral)
+  pcurve = keyword_set(pcurve) or spiral
+  black = size(black,/type) eq 0 ? 1 : keyword_set(black)
+
+  tflg = keyword_set(tplot) or undefined(madeplot)
   varnames = ['S-M','Lss','STEREO','R-SORB','Lat-SORB','R-PSP']
 
 ; Check the version of ICY/SPICE
@@ -434,12 +468,16 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
 
     ssrc = mvn_file_source(archive_ext='')  ; don't archive old files
 
-; Locate the Siding Spring ephemeris, but do not load it yet
-;   The position of this kernel in the loadlist matters!
+; Locate the Siding Spring and MAVEN ephemerides, but do not load them yet
+;   The positions of these kernels in the loadlist matter!
 
     path = 'misc/spice/naif/generic_kernels/spk/comets/'
     pathname = path + 'siding_spring_s46.bsp'
     css_ker = (mvn_pfp_file_retrieve(pathname,source=ssrc,verbose=verbose))[0]
+
+    path = 'misc/spice/naif/MAVEN/kernels/spk/'
+    pathname = path + 'trj_c_131118-140923_rec_v1.bsp'
+    mvn_ker = (mvn_pfp_file_retrieve(pathname,source=ssrc,verbose=verbose))[0]
 
 ; Check for standard SPICE kernels; load them if necessary
 
@@ -450,7 +488,7 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
       dprint,' ', getdebug=bug, dlevel=4
       dprint,' ', setdebug=0, dlevel=4
       std_kernels = spice_standard_kernels(/mars,verbose=-1)
-      std_kernels = [std_kernels[0:1], css_ker, std_kernels[2:*]]
+      std_kernels = [std_kernels[0:1], css_ker, mvn_ker, std_kernels[2:*]]
       spice_kernel_load, std_kernels
       dprint,' ', setdebug=bug, dlevel=4
       mk = spice_test('*', verbose=-1)
@@ -528,7 +566,7 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
 
     if (iflg) then begin
       path = 'misc/spice/naif/Solar_Orbiter/kernels/spk/'
-      pathname = path + 'solo_ANC_soc-orbit_20200210-20301120_L016_V2_00025_V01.bsp'
+      pathname = path + 'solo_ANC_soc-orbit_20200210-20301120_L020_V1_00408_V01.bsp'
       fname = (mvn_pfp_file_retrieve(pathname,source=ssrc,verbose=verbose))[0]
       indx = where(mk eq fname, count)
       if (count eq 0) then begin
@@ -544,7 +582,7 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
 ; Parker Solar Probe
 
       path = 'misc/spice/naif/PSP/kernels/spk/'
-      pathname = path + 'spp_nom_20180812_20250831_v039_RO6.bsp'
+      pathname = path + 'spp_nom_20180812_20300101_v042_PostV7.bsp'
       fname = (mvn_pfp_file_retrieve(pathname,source=ssrc,verbose=verbose))[0]
       indx = where(mk eq fname, count)
       if (count eq 0) then begin
@@ -572,11 +610,11 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
     tt = t0 + oneday*dindgen(ndays)
     et = time_ephemeris(tt)
 
-; Calculate ephemeris for each planet
+; Calculate J2000 ECLIPTIC ephemeris for each planet
 
     planet = {name  : ''                  , $
               time  : replicate(0D,ndays) , $
-              x     : replicate(0D,ndays) , $
+              x     : replicate(0D,ndays) , $  ; J2000
               y     : replicate(0D,ndays) , $
               z     : replicate(0D,ndays) , $
               r     : replicate(0D,ndays) , $
@@ -586,6 +624,14 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
               owlt  : replicate(0D,ndays) , $
               latss : replicate(0D,ndays) , $
               d2l   : replicate(0D,ndays) , $
+              xs    : replicate(0D,ndays) , $  ; IAU_SUN
+              ys    : replicate(0D,ndays) , $
+              zs    : replicate(0D,ndays) , $
+              d2xs  : replicate(0D,ndays) , $
+              d2ys  : replicate(0D,ndays) , $
+              d2zs  : replicate(0D,ndays) , $
+              ls    : replicate(0D,ndays) , $  ; solar longitude
+              my    : replicate(0D,ndays) , $  ; Mars year
               units : ['AU','SEC','DEG']  , $
               frame : 'ECLIPJ2000'           }
 
@@ -618,6 +664,23 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
     endfor
     print,".",format='(a1,$)'
 
+; --------- SUBPLANET POINT ON THE SUN ---------
+
+    pos = transpose(pos)
+    for k=0,(nplan-1) do begin
+      pos[0,*] = planet[k].x
+      pos[1,*] = planet[k].y
+      pos[2,*] = planet[k].z
+      pos = spice_vector_rotate(pos, tt, 'ECLIPJ2000', 'IAU_SUN')
+      planet[k].xs   = pos[0,*]
+      planet[k].ys   = pos[1,*]
+      planet[k].zs   = pos[2,*]
+      planet[k].d2xs = spl_init(planet[k].time, planet[k].xs, /double)
+      planet[k].d2ys = spl_init(planet[k].time, planet[k].ys, /double)
+      planet[k].d2zs = spl_init(planet[k].time, planet[k].zs, /double)
+    endfor
+    print,".",format='(a1,$)'
+
 ; --------- MARS SUBSOLAR LATITUDE ---------
 
     latss = dblarr(ndays)
@@ -629,6 +692,13 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
     endfor
     planet[3].latss = latss
     planet[3].d2l = spl_init(planet[3].time, planet[3].latss, /double)
+    print,".",format='(a1,$)'
+
+; --------- MARS SOLAR LONGITUDE (L_s) ---------
+
+    mars_season = mvn_ls(planet[3].time, /all, /silent)
+    planet[3].ls = mars_season.ls
+    planet[3].my = mars_season.mars_year
     print,".",format='(a1,$)'
 
 ; Place holder for missing ephemeris data
@@ -865,7 +935,50 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
 
     print,".",format='(a1,$)'
 
+; --------- MAVEN Cruise ---------
+
+    i = where(sinfo.obj_name eq sname[4], count)
+    if (count gt 0L) then begin
+      tsp = time_double(sinfo[i].trange)
+      tsp = minmax(tsp)
+      ndays = floor(2D*(tsp[1] - tsp[0])/oneday)
+      dt = (tsp[1] - tsp[0])/double(ndays)
+      tt = tsp[0] + dt*dindgen(ndays)
+      et = time_ephemeris(tt)
+
+      cspice_spkpos, sname[4], et, 'ECLIPJ2000', 'NONE', 'Sun', mvn, ltime
+      mvn = transpose(mvn)/(au/1.d5)
+      mvn = { name  : sname[4]     , $
+              time  : tt           , $
+              x     : mvn[*,0]     , $
+              y     : mvn[*,1]     , $
+              z     : mvn[*,2]     , $
+              owlt  : ltime        , $
+              units : ['AU','SEC'] , $
+              frame : 'ECLIPJ2000'    }
+
+      d2x = spl_init(mvn.time, mvn.x, /double)
+      d2y = spl_init(mvn.time, mvn.y, /double)
+      d2z = spl_init(mvn.time, mvn.z, /double)
+      str_element, mvn, 'd2x', d2x, /add
+      str_element, mvn, 'd2y', d2y, /add
+      str_element, mvn, 'd2z', d2z, /add
+
+      xe = spl_interp(planet[2].time, planet[2].x, planet[2].d2x, mvn.time)
+      ye = spl_interp(planet[2].time, planet[2].y, planet[2].d2y, mvn.time)
+      ze = spl_interp(planet[2].time, planet[2].z, planet[2].d2z, mvn.time)
+      dx = mvn.x - xe
+      dy = mvn.y - ye
+      dz = mvn.z - ze
+      ds = sqrt(dx*dx + dy*dy + dz*dz)
+      mvn.owlt = ds*(au/c)
+
+    endif else mvn = missing
+
+    print,".",format='(a1,$)'
+
     print,' done'
+
   endif
 
   if (cflg and (css.frame eq 'INVALID')) then begin
@@ -887,8 +1000,12 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
     print, 'Warning: Solar Probe ephemeris not loaded.'
     pflg = 0
   endif
+  if (vflg and (mvn.frame eq 'INVALID')) then begin
+    print, 'Warning: MAVEN cruise ephemeris not loaded.'
+    vflg = 0
+  endif
 
-  eph = {planet:planet, css:css, stereo_A:sta, stereo_B:stb, solar_orb:sorb, psp:psp}
+  eph = {planet:planet, css:css, stereo_A:sta, stereo_B:stb, solar_orb:sorb, psp:psp, mvn:mvn}
 
   if ((tmin lt min(planet[2].time)) or (tmax gt max(planet[2].time))) then begin
     tsp = time_string(minmax(planet[2].time),prec=-3)
@@ -898,7 +1015,7 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
 
 ; Create TPLOT variables
 
-  if keyword_set(tplot) then begin
+  if (tflg) then begin
     xm = planet[pnum].x
     ym = planet[pnum].y
     zm = planet[pnum].z
@@ -960,7 +1077,44 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
     if (pnum eq 3) then begin
       store_data,'latss',data={x:planet[3].time, y:planet[3].latss}
       options,'latss','ytitle','Mars!cLss (deg)'
+
+      store_data,'Ls',data={x:planet[3].time, y:planet[3].Ls}
+      ylim,'Ls',0,360,0
+      options,'Ls','yticks',4
+      options,'Ls','yminor',3
+      options,'Ls','ytitle','Mars L!dS!n (deg)'
+
+      store_data,'MarsYear',data={x:planet[3].time, y:planet[3].My}
+      options,'MarsYear','ytitle','Mars Year'
+      options,'MarsYear','ynozero',1
     endif
+
+    slon = atan(planet[pnum].ys, planet[pnum].xs) * !radeg
+    indx = where(slon lt 0., count)
+    if (count gt 0L) then slon[indx] += 360.
+    if (1) then begin
+      ; line plot format
+      store_data,'Slon',data={x:planet[pnum].time, y:slon}
+      ylim,'Slon',0,360,0
+      options,'Slon','spec',0
+      options,'Slon','color_table',-1
+      options,'Slon','panel_size',1.0
+      options,'Slon','x_no_interp',0
+      options,'Slon','yticks',4
+      options,'Slon','yminor',3
+      options,'Slon','psym',3
+    endif else begin
+      ; cyclic color bar format (experimental)
+      store_data,'Slon',data={x:planet[pnum].time, y:slon#[1.,1.], v:[0.,1.]}
+      ylim,'Slon',0,1,0
+      options,'Slon','spec',1
+      options,'Slon','color_table',1118
+      options,'Slon','panel_size',0.3
+      options,'Slon','x_no_interp',1
+      options,'Slon','no_color_scale',1
+      options,'Slon','yticks',1
+      options,'Slon','yminor',1
+    endelse
 
     if (css.frame ne 'INVALID') then begin
       tname = 'OWLT-CSS'
@@ -1036,6 +1190,23 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
       options,tname,'colors',scol[3]
     endif
 
+    if (mvn.frame ne 'INVALID') then begin
+      tname = 'OWLT-MVN'
+      store_data,tname,data={x:mvn.time, y:mvn.owlt/60D}
+      options,tname,'ytitle','MAVEN!cOWLT (min)'
+      options,tname,'ynozero',1
+      options,tname,'colors',scol[4]
+
+      tname = 'R-MVN'
+      r = sqrt(mvn.x^2. + mvn.y^2. + mvn.z^2.)
+      store_data,tname,data={x:mvn.time, y:r*(au/Rs)}
+      options,tname,'ytitle','MAVEN!cRadius (R!dS!n)'
+      options,tname,'constant',[minmax(planet[0].r), mean(planet[1].r), 1.]*(au/Rs)
+      options,tname,'colors',scol[4]
+    endif
+
+    madeplot = 1
+
   endif
 
 ; Make the plot
@@ -1071,8 +1242,13 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
     if (size(window,/type) gt 0) then wnum = fix(window[0])
   endif
 
+; Ensure color scheme
+
+  initct, 1074, /rev, previous_ct=pct, previous_rev=prev
+  line_colors, 5, previous_lines=plines
+
   if (mflg) then begin
-    if (keyword_set(black) and (!p.background ne 0L)) then begin
+    if (black and (!p.background ne 0L)) then begin
       revvid
       vswap = 1
     endif else vswap = 0
@@ -1088,6 +1264,7 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
     if (data_type(trange) eq 2) then begin
       wdelete, Owin  ; window never used
       wset, Twin
+      initct, pct, rev=prev, line=plines
       return
     endif
     t = trange[0]
@@ -1201,10 +1378,26 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
         endif
       endif
 
-      plot, [0.], [0.], xrange=xyrange, yrange=xyrange, xsty=xsty, ysty=ysty, $
+      if (vflg) then begin
+        xmvn = !values.f_nan
+        ymvn = xmvn
+        imvn = nn2(mvn.time, t, maxdt=oneday)
+        if (imvn ge 0L) then begin
+          xmvn = spl_interp(mvn.time, mvn.x, mvn.d2x, t)
+          ymvn = spl_interp(mvn.time, mvn.y, mvn.d2y, t)
+          if (fflg) then begin
+            x =  xmvn*cosp + ymvn*sinp
+            y = -xmvn*sinp + ymvn*cosp
+            xmvn = x
+            ymvn = y
+          endif
+        endif
+      endif
+
+      plot, [0.], [0.], xrange=xyrange, yrange=xyrange, xsty=xsty, ysty=ysty, /isotropic, $
                         charsize=csize, xtitle='Ecliptic X (AU)', ytitle='Ecliptic Y (AU)'
 
-      if keyword_set(spiral) then begin
+      if (spiral) then begin
         ds = smax/float(spts)
         rs = ds*findgen(spts)
         dt = rs/Vsw
@@ -1227,6 +1420,25 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
           phi = phi + (30.*!dtor)
         endfor
 
+      endif
+
+      if (pcurve) then begin
+        ds = smax/float(spts)
+        rs = ds*findgen(spts)
+        dt = rs/Vsw
+        phi = omega*dt
+
+        if (finite(rp[pnum]) and (pnum lt 6)) then begin
+          dr = min(abs(rs - rp[pnum]), k)
+          xs = rs*cos(phi)
+          ys = -rs*sin(phi)
+
+          phi0 = 2.*!pi - atan(yp[pnum],xp[pnum])
+          phi -= (phi[k] - phi0)
+          xs = rs*cos(phi)
+          ys = -rs*sin(phi)
+          oplot, xs, ys, color=5, line=2
+        endif
       endif
 
       pday = pday < (n_elements(planet[3].x)-1)
@@ -1259,7 +1471,9 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
           yy = y
         endif
 
-        initct, 1072, /rev, previous_ct=pct, previous_rev=prev
+;       Encode solar latitude with red-to-blue color gradient
+
+        initct, 1072, /rev, previous_ct=pct2, previous_rev=prev2
           ll = css.lat[imin:imax] + 60.
           lscale = float(colstr.top_c - colstr.bottom_c)/120.
           lcol = (round(ll*lscale) + colstr.bottom_c) > colstr.bottom_c < colstr.top_c
@@ -1269,7 +1483,7 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
           if (clabel and visible) then xyouts, [xcss+loff[3]], [ycss+loff[3]], clab, color=ccol, charsize=scale
           draw_color_scale, range=[-60,60], brange=[colstr.bottom_c, colstr.top_c], charsize=scale, $
                             position=[0.88,0.1,0.9,0.2], title='Lat (deg)', yticks=2, ytickval=[-60,0,60]
-        initct, pct, rev=prev
+        initct, pct2, rev=prev2
       endif
 
       if (sflg) then begin
@@ -1313,10 +1527,28 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
         if (slabel) then xyouts, [xpsp+loff[3]], [ypsp+loff[3]], slab[3], color=scol[3], charsize=scale
       endif
 
+      if (vflg) then if (finite(xmvn)) then begin
+        imin = (imvn - sday[4]) > 0L
+        imax = (imvn + sday[4]) < (n_elements(mvn.time) - 1L)
+        xx = mvn.x[imin:imax]
+        yy = mvn.y[imin:imax]
+        if (fflg) then begin
+          x =  xx*cosp + yy*sinp
+          y = -xx*sinp + yy*cosp
+          xx = x
+          yy = y
+        endif
+        oplot, xx, yy, color=scol[4], line=3
+        oplot, [xmvn] , [ymvn] , psym=ssym[4], symsize=ssze[4]*zscl, color=scol[4]
+        if (slabel) then xyouts, [xmvn+loff[3]], [ymvn+loff[3]], slab[4], color=scol[4], charsize=scale
+      endif
+
       if (inbounds and (dolab gt 0)) then begin
-        xs = 0.77  ; upper right
-        ys = 0.92
-        dys = 0.03
+        span = xyrange[1] - xyrange[0]
+        xs = span*0.75 + xyrange[0]
+        ys = span*0.95 + xyrange[0]
+        dys = span*0.03
+        donorm = 0
 
         if (dolab gt 1) then begin
           phi_e = atan(yp[2], xp[2])*!radeg
@@ -1331,7 +1563,7 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
 
           msg = string(pstr[pnum], round(dphi), format = '("ES",a1," = ",i," deg")')
           msg = strcompress(msg)
-          xyouts,  xs, ys,  msg, /norm, charsize=csize
+          xyouts,  xs, ys,  msg, norm=donorm, charsize=csize
           ys -= dys
 
           ds = [(xp[pnum] - xp[2]), (yp[pnum] - yp[2]), (zp[pnum] - zp[2])]
@@ -1341,14 +1573,14 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
 
           msg = string(pstr[pnum], round(sme), format = '("S",a1,"E = ",i," deg")')
           msg = strcompress(msg)
-          xyouts,  xs, ys,  msg, /norm, charsize=csize
+          xyouts,  xs, ys,  msg, norm=donorm, charsize=csize
           ys -= dys
 
           sem = acos((rp[2]*rp[2] + ds*ds - rp[pnum]*rp[pnum])/(2.*rp[2]*ds))*!radeg
 
           msg = string(pstr[pnum], round(sem), format='("SE",a1," = ",i," deg")')
           msg = strcompress(msg)
-          xyouts,  xs, ys,  msg, /norm, charsize=csize
+          xyouts,  xs, ys,  msg, norm=donorm, charsize=csize
           ys -= dys
 
           if (pnum le 5) then begin
@@ -1359,7 +1591,7 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
             msg = string(owlt, format='("OWLT = ",f5.2," hrs")')
           endelse
           msg = strcompress(msg)
-          xyouts,  xs, ys, msg, /norm, charsize=csize
+          xyouts,  xs, ys, msg, norm=donorm, charsize=csize
           ys -= dys
 
           if (pnum eq 3) then begin
@@ -1367,22 +1599,32 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
             if (Lss ge 0.) then ns = ' N' else ns = ' S'
             msg = string(abs(Lss), format='("Lss = ",f8.1)') + ns
             msg = strcompress(msg)
-            xyouts, xs, ys,  msg, /norm, charsize=csize
+            xyouts, xs, ys,  msg, norm=donorm, charsize=csize
+            ys -= dys
           endif
+
+          xss = spl_interp(planet[pnum].time, planet[pnum].xs, planet[pnum].d2xs, t)
+          yss = spl_interp(planet[pnum].time, planet[pnum].ys, planet[pnum].d2ys, t)
+          slon = atan(yss, xss) * !radeg
+          if (slon lt 0.) then slon += 360.
+          msg = string(slon, format='("Slon = ",f8.1)')
+          msg = strcompress(msg)
+          xyouts, xs, ys, msg, norm=donorm, charsize=csize
+          ys -= dys
         endif
 
-        xs = 0.14  ; lower left
-        ys = 0.17
+        xs = span*0.05 + xyrange[0]
+        ys = span*0.10 + xyrange[0]
 
-        if keyword_set(spiral) then begin
+        if (spiral) then begin
           msg = string(round(Vsw*au/1d5), format='("Vsw = ",i," km/s")')
           msg = strcompress(msg)
-          xyouts, xs, ys, msg, /norm, charsize=csize, color=4
+          xyouts, xs, ys, msg, norm=donorm, charsize=csize, color=4
           ys -= dys
           if (alpha gt -1.) then begin
             msg = string(pstr[pnum], round(alpha), format='("Asw at ",a1," = ",i," deg")')
             msg = strcompress(msg)
-            xyouts, xs, ys, msg, /norm, charsize=csize, color=4
+            xyouts, xs, ys, msg, norm=donorm, charsize=csize, color=4
             ys -= dys
           endif
         endif
@@ -1402,14 +1644,14 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
             msg = string(round(dphi), format = '("AB = ",i," deg")')
           endif else msg = ""
           msg = strcompress(msg)
-          xyouts,  xs, ys,  msg, /norm, charsize=csize, color=5
+          xyouts,  xs, ys,  msg, norm=donorm, charsize=csize, color=5
         endif
 
-        xs = 0.14  ; upper left
-        ys = 0.92
+        xs = span*0.05 + xyrange[0]
+        ys = span*0.95 + xyrange[0]
 
         tmsg = time_string(t)
-        xyouts, xs, ys, tmsg, /norm, charsize=csize
+        xyouts, xs, ys, tmsg, norm=donorm, charsize=csize
         ys -= dys
 
       endif
@@ -1428,6 +1670,7 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
     if (not kflg) then wdelete, Owin
     wset,Twin
 
+    initct, pct, rev=prev, line=plines
     return
 
   endif
@@ -1547,6 +1790,24 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
     endif
   endif
 
+  if (vflg) then begin
+    xmvn = replicate(!values.f_nan, n_elements(t))
+    ymvn = xmvn
+    i = nn2(mvn.time, t, maxdt=oneday)
+    j = where(i gt 0L, count)
+    if (count gt 0L) then begin
+      imvn = round(mean(i[j]))
+      xmvn[j] = spl_interp(mvn.time, mvn.x, mvn.d2x, t[j])
+      ymvn[j] = spl_interp(mvn.time, mvn.y, mvn.d2y, t[j])
+      if (fflg) then begin
+        x =  xmvn*cosp + ymvn*sinp
+        y = -xmvn*sinp + ymvn*cosp
+        xmvn = x
+        ymvn = y
+      endif
+    endif
+  endif
+
   if (dopng) then begin
     current_dev = !d.name
     set_plot, 'z'
@@ -1562,10 +1823,15 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
 
   csize = 1.5*zscl*scale
 
-  plot, [0.], [0.], xrange=xyrange, yrange=xyrange, xsty=xsty, ysty=ysty, $
+  if (black and (!p.background ne 0L)) then begin
+    revvid
+    vswap = 1
+  endif else vswap = 0
+
+  plot, [0.], [0.], xrange=xyrange, yrange=xyrange, xsty=xsty, ysty=ysty, /isotropic, $
                     charsize=csize, xtitle='Ecliptic X (AU)', ytitle='Ecliptic Y (AU)'
 
-  if keyword_set(spiral) then begin
+  if (spiral) then begin
     ds = smax/float(spts)
     rs = ds*findgen(spts)
     dt = rs/Vsw
@@ -1588,6 +1854,25 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
       oplot, xs, ys, color=pkscol, line=1
       phi = phi + (30.*!dtor)
     endfor
+  endif
+
+  if (pcurve) then begin
+    ds = smax/float(spts)
+    rs = ds*findgen(spts)
+    dt = rs/Vsw
+    phi = omega*dt
+
+    if (finite(rp[pnum]) and (pnum lt 6)) then begin
+      dr = min(abs(rs - rp[pnum]), k)
+      xs = rs*cos(phi)
+      ys = -rs*sin(phi)
+
+      phi0 = 2.*!pi - atan(yp[pnum],xp[pnum])
+      phi -= (phi[k] - phi0)
+      xs = rs*cos(phi)
+      ys = -rs*sin(phi)
+      oplot, xs, ys, color=5, line=2
+    endif
   endif
 
   pday = pday < (n_elements(planet[3].x)-1)
@@ -1667,10 +1952,28 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
     if (slabel) then xyouts, [xpsp+loff[3]], [ypsp+loff[3]], slab[3], color=scol[3], charsize=scale
   endif
 
+  if (vflg) then if (max(finite(xmvn))) then begin
+    imin = (imvn - sday[4]) > 0L
+    imax = (imvn + sday[4]) < (n_elements(mvn.time) - 1L)
+    xx = mvn.x[imin:imax]
+    yy = mvn.y[imin:imax]
+    if (fflg) then begin
+      x =  xx*cosp + yy*sinp
+      y = -xx*sinp + yy*cosp
+      xx = x
+      yy = y
+    endif
+    oplot, xx, yy, color=scol[4], line=3
+    oplot, [xmvn], [ymvn], psym=ssym[4], symsize=ssze[4]*zscl, color=scol[4]
+    if (slabel) then xyouts, [xpsp+loff[3]], [ypsp+loff[3]], slab[4], color=scol[4], charsize=scale
+  endif
+
   if (inbounds and (dolab gt 0)) then begin
-    xs = 0.77  ; upper right
-    ys = 0.92
-    dys = 0.03
+    span = xyrange[1] - xyrange[0]
+    xs = span*0.75 + xyrange[0]
+    ys = span*0.95 + xyrange[0]
+    dys = span*0.03
+    donorm = 0
     csize = 1.5*zscl*scale  ; character size for labels
 
     if (dolab gt 1) then begin
@@ -1686,7 +1989,7 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
 
       msg = string(pstr[pnum], round(dphi), format = '("ES",a1," = ",i," deg")')
       msg = strcompress(msg)
-      xyouts, xs, ys, msg, /norm, charsize=csize
+      xyouts, xs, ys, msg, norm=donorm, charsize=csize
       ys -= dys
 
       ds = [(xp[pnum,j[1]] - xp[2,j[1]]), (yp[pnum,j[1]] - yp[2,j[1]]), (zp[pnum,j[1]] - zp[2,j[1]])]
@@ -1696,14 +1999,14 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
 
       msg = string(pstr[pnum], round(sme), format = '("S",a1,"E = ",i," deg")')
       msg = strcompress(msg)
-      xyouts, xs, ys, msg, /norm, charsize=csize
+      xyouts, xs, ys, msg, norm=donorm, charsize=csize
       ys -= dys
 
       sem = acos((rp[2,j[1]]^2. + ds^2. - rp[pnum,j[1]]^2.)/(2.*rp[2,j[1]]*ds))*!radeg
 
       msg = string(pstr[pnum], round(sem), format='("SE",a1," = ",i," deg")')
       msg = strcompress(msg)
-      xyouts, xs, ys, msg, /norm, charsize=csize
+      xyouts, xs, ys, msg, norm=donorm, charsize=csize
       ys -= dys
 
       if (pnum le 5) then begin
@@ -1714,7 +2017,7 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
         msg = string(owlt, format='("OWLT = ",f5.2," hrs")')
       endelse
       msg = strcompress(msg)
-      xyouts, xs, ys, msg, /norm, charsize=csize
+      xyouts, xs, ys, msg, norm=donorm, charsize=csize
       ys -= dys
 
       if (pnum eq 3) then begin
@@ -1722,22 +2025,32 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
         if (Lss ge 0.) then ns = ' N' else ns = ' S'
         msg = string(abs(Lss), format='("Lss = ",f8.1)') + ns
         msg = strcompress(msg)
-        xyouts,  xs, ys, msg, /norm, charsize=csize
+        xyouts,  xs, ys, msg, norm=donorm, charsize=csize
+        ys -= dys
       endif
+
+      xss = spl_interp(planet[pnum].time, planet[pnum].xs, planet[pnum].d2xs, t)
+      yss = spl_interp(planet[pnum].time, planet[pnum].ys, planet[pnum].d2ys, t)
+      slon = atan(yss, xss) * !radeg
+      if (slon lt 0.) then slon += 360.
+      msg = string(slon, format='("Slon = ",f8.1)')
+      msg = strcompress(msg)
+      xyouts, xs, ys, msg, norm=donorm, charsize=csize
+      ys -= dys
     endif
 
-    xs = 0.14  ; lower left
-    ys = 0.17
+    xs = span*0.05 + xyrange[0]
+    ys = span*0.10 + xyrange[0]
 
-    if keyword_set(spiral) then begin
+    if (spiral) then begin
       msg = string(round(Vsw*au/1d5), format='("Vsw = ",i," km/s")')
       msg = strcompress(msg)
-      xyouts, xs, ys, msg, /norm, charsize=csize, color=4
+      xyouts, xs, ys, msg, norm=donorm, charsize=csize, color=4
       ys -= dys
       if (alpha gt -1.) then begin
         msg = string(pstr[pnum], round(alpha), format='("Asw at ",a1," = ",i," deg")')
         msg = strcompress(msg)
-        xyouts, xs, ys, msg, /norm, charsize=csize, color=4
+        xyouts, xs, ys, msg, norm=donorm, charsize=csize, color=4
         ys -= dys
       endif
     endif
@@ -1757,22 +2070,22 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
         msg = string(round(dphi), format = '("AB = ",i," deg")')
       endif else msg = ""
       msg = strcompress(msg)
-      xyouts,  xs, ys,  msg, /norm, charsize=csize, color=5
+      xyouts,  xs, ys,  msg, norm=donorm, charsize=csize, color=5
     endif
 
-    xs = 0.14  ; upper left
-    ys = 0.92
+    xs = span*0.05 + xyrange[0]
+    ys = span*0.95 + xyrange[0]
 
     if (npts gt 1) then begin
       tmsg = strmid(time_string(tmin),0,10)
-      xyouts, xs, ys, tmsg, /norm, charsize=csize
+      xyouts, xs, ys, tmsg, norm=donorm, charsize=csize
       ys -= dys
       tmsg = strmid(time_string(tmax),0,10)
-      xyouts, xs, ys, tmsg, /norm, charsize=csize
+      xyouts, xs, ys, tmsg, norm=donorm, charsize=csize
       ys -= dys
     endif else begin
       tmsg = time_string(tavg)
-      xyouts, xs, ys, tmsg, /norm, charsize=csize
+      xyouts, xs, ys, tmsg, norm=donorm, charsize=csize
       ys -= dys
     endelse
   endif
@@ -1802,12 +2115,15 @@ pro orrery, time, noplot=noplot, nobox=nobox, label=label, scale=scale, eph=eph,
 
   if (dopng) then begin
     print, "Writing png file: ",pngname," ... ",format='(3a,$)'
-    img = tvrd()
+    img = tvrd(true=1)
     tvlct, red, green, blue, /get
     write_image, pngname, 'png', img, red, green, blue
     print, "done"
     set_plot, current_dev
   endif else wset, Twin
+
+  initct, pct, rev=prev, line=plines
+  if (vswap) then revvid
 
   return
 

@@ -6,9 +6,9 @@
 ;
 ; Written by Davin Larson
 ;
-; $LastChangedBy: adrozdov $
-; $LastChangedDate: 2020-10-12 18:53:38 -0700 (Mon, 12 Oct 2020) $
-; $LastChangedRevision: 29241 $
+; $LastChangedBy: jimm $
+; $LastChangedDate: 2024-07-09 11:03:46 -0700 (Tue, 09 Jul 2024) $
+; $LastChangedRevision: 32730 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/CDF/cdf_info_to_tplot.pro $
 ;-
 pro cdf_info_to_tplot,cdfi,varnames,loadnames=loadnames,  $
@@ -18,10 +18,10 @@ pro cdf_info_to_tplot,cdfi,varnames,loadnames=loadnames,  $
   verbose=verbose,get_support_data=get_support_data,  $
   tplotnames=tplotnames,$
   load_labels=load_labels,$ ;copy labels from labl_ptr_1 in attributes into dlimits
-  smex_epoch=smex_epoch ;if set, variables called "epoch" are seconds from 1968-05-24, not CDF epoch
+  smex_epoch=smex_epoch ;if set, variables called "epoch" and "time" are seconds from 1968-05-24, not CDF epoch
   ;resolve labels implemented as keyword to preserve backwards compatibility
 
-  dprint,verbose=verbose,dlevel=4,'$Id: cdf_info_to_tplot.pro 29241 2020-10-13 01:53:38Z adrozdov $'
+  dprint,verbose=verbose,dlevel=4,'$Id: cdf_info_to_tplot.pro 32730 2024-07-09 18:03:46Z jimm $'
     tplotnames=''
   vbs = keyword_set(verbose) ? verbose : 0
 
@@ -85,6 +85,12 @@ pro cdf_info_to_tplot,cdfi,varnames,loadnames=loadnames,  $
     endif
 
     if (strcmp( v.name, 'Epoch',5, /fold_case) && keyword_set(smex_epoch)) then begin
+      *(v.dataptr) = *(v.dataptr) + time_double('1968-05-24')     ; convert to UNIX_time
+      v.datatype = 'CDF_S1970'
+      continue
+    endif
+
+    if (strcmp( v.name, 'Time',4, /fold_case) && keyword_set(smex_epoch)) then begin
       *(v.dataptr) = *(v.dataptr) + time_double('1968-05-24')     ; convert to UNIX_time
       v.datatype = 'CDF_S1970'
       continue

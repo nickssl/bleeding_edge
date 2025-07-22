@@ -88,9 +88,9 @@
 ;     cotrans,cotrans_get_coord,tvector_rotate,minvar_matrix_make,fac_crib
 ;
 ;
-; $LastChangedBy: jimm $
-; $LastChangedDate: 2020-04-29 11:48:35 -0700 (Wed, 29 Apr 2020) $
-; $LastChangedRevision: 28649 $
+; $LastChangedBy: jwl $
+; $LastChangedDate: 2025-04-08 12:36:00 -0700 (Tue, 08 Apr 2025) $
+; $LastChangedRevision: 33245 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/cotrans/special/fac/fac_matrix_make.pro $
 ;-
 
@@ -513,9 +513,9 @@ valid_coords[3] : begin
     y_2 = dindgen(n_elements(theta_t),3)
 
     ; next get unit vector phi coordinates in GEI system (overwrite y_2)
-    y_2[*,0]=cos(theta_d*!PI/180.)*cos(phi_d*!PI/180.)
-    y_2[*,1]=sin(theta_d*!PI/180.)*cos(phi_d*!PI/180.)
-    y_2[*,2]=-sin(phi_d*!PI/180.)
+    y_2[*,0]=-sin(phi_d*!PI/180.)
+    y_2[*,1]=cos(phi_d*!PI/180.)
+    y_2[*,2]=0.
 
     ; transform into mag field coordinate system
 
@@ -630,9 +630,9 @@ valid_coords[4] : begin
     y_2 = dindgen(n_elements(theta_t),3)
 
     ; next get unit vector phi coordinates in GEI system (overwrite y_2)
-    y_2[*,0]=cos(theta_d*!PI/180.)*cos(phi_d*!PI/180.)
-    y_2[*,1]=sin(theta_d*!PI/180.)*cos(phi_d*!PI/180.)
-    y_2[*,2]=-sin(phi_d*!PI/180.)
+    y_2[*,0]=-sin(phi_d*!PI/180.)
+    y_2[*,1]=cos(phi_d*!PI/180.)
+    y_2[*,2]=0.
 
     ; transform into mag field coordinate system
 

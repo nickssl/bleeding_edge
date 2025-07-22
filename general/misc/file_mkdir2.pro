@@ -3,9 +3,9 @@
 ;PURPOSE:  Wrapper for FILE_MKDIR that also sets the mode for each newly created directory.
 ;   dir must be a scalar.
 ;D. Larson, April, 2008
-; $LastChangedBy: ali $
-; $LastChangedDate: 2021-06-14 10:41:49 -0700 (Mon, 14 Jun 2021) $
-; $LastChangedRevision: 30044 $
+; $LastChangedBy: orlando $
+; $LastChangedDate: 2025-03-31 12:27:24 -0700 (Mon, 31 Mar 2025) $
+; $LastChangedRevision: 33217 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/misc/file_mkdir2.pro $
 ;
 pro file_mkdir2,dirs,mode=mode,dir_mode=dir_mode,writeable=writeable $
@@ -32,7 +32,7 @@ pro file_mkdir2,dirs,mode=mode,dir_mode=dir_mode,writeable=writeable $
         writeable = 1b
         if keyword_set(add_link) then begin
           dprint,'Creating link to: '+add_link,verbose=verbose
-          file_link,add_link,dir +'/'+file_basename(add_link)
+          if !VERSION.OS_FAMILY ne 'Windows' then file_link,add_link,dir +'/'+file_basename(add_link)
         endif
       endif else dprint,dlevel=dlevel,verbose=verbose,'Unable to create Directory: '+dir
     endelse

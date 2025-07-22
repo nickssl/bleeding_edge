@@ -1,6 +1,6 @@
-;$LastChangedBy: ali $
-;$LastChangedDate: 2023-03-13 12:37:21 -0700 (Mon, 13 Mar 2023) $
-;$LastChangedRevision: 31623 $
+;$LastChangedBy: orlando $
+;$LastChangedDate: 2025-03-31 12:28:25 -0700 (Mon, 31 Mar 2025) $
+;$LastChangedRevision: 33218 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/tools/misc/fill_nan.pro $
 
 function fill_nan,data,intfill=intfill,realfill=realfill
@@ -28,6 +28,7 @@ function fill_nan,data,intfill=intfill,realfill=realfill
     end
     9:  rdat[*] = realfill
     10: rdat[*] = ptr_new()
+    11: rdat[*] = obj_new()
     else:  dprint,'Data type not implemented: ',dt
   endcase
   return,rdat

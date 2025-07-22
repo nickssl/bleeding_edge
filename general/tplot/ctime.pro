@@ -261,6 +261,7 @@ pro ctime,time,value,zvalue,$
    panel   = panel  ,$       ;
    ynorm   = ynorm  ,$       ; added by JBT
    xnorm   = xnorm  ,$       ; added by JBT
+   plotter_objs = plotter_objs,  $   ; these object(s) are called everytime the curser is updated. (will replace routine_???? keywords
    routine_name = routine_name,  $         ; this routine is called everytime the curser is updated.
    routine_param = routine_param, $
    cut  = cut       ,$                     ; Shortcut to:  ctime,routine_name='tplot_cut'
@@ -420,9 +421,10 @@ if not keyword_set(debug) then begin
     tvcrs,0                         ;turn off cursor
     device,set_graphics=old         ;restore old graphics state
     wset,current_window             ;restore old window
+    catch,/cancel
     return                          ;exit on error
   endif
-endif                           ;end error handler
+endif  ;  else catch,/cancel                       ;end error handler
 ;;;;;;
 
 
@@ -490,6 +492,16 @@ while n lt max do begin
       var = 'Null'
     endelse
     ind2 = -1
+
+    if isa(plotter_objs) then begin
+      device, set_graphics = old
+      wset,current_window
+      for i= 0,n_elements(plotter_objs)-1 do begin
+        plotter_objs[i].plot,t,var
+      endfor
+      wset, tplot_vars.settings.window
+      device, set_graphics = 6      
+    endif
 
     if keyword_set(routine_param) && isa(routine_param,'dictionary') && isa(routine_param.haskey('routine_name') ) then begin
       routine_name=routine_param.routine_name

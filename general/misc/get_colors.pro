@@ -26,8 +26,8 @@
 ;Written by: Davin Larson    96-01-31
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-09-05 08:51:31 -0700 (Tue, 05 Sep 2023) $
-; $LastChangedRevision: 32076 $
+; $LastChangedDate: 2025-02-03 13:32:18 -0800 (Mon, 03 Feb 2025) $
+; $LastChangedRevision: 33109 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/misc/get_colors.pro $
 ;-
 function  get_colors,colors=cols,array=array,input
@@ -56,10 +56,13 @@ crev = n_elements(color_reverse) ? color_reverse : 0
 cbot = n_elements(bottom_c) ? bottom_c : -1
 ctop = n_elements(top_c) ? top_c : -1
 lndx = n_elements(line_colors_index) ? line_colors_index : -1
+ctfl = n_elements(ct_file) ? ct_file : ''
+ctmx = n_elements(ct_max) ? ct_max : -1
 
 col = {black:black,magenta:magenta,blue:blue,cyan:cyan,green:green, $
   yellow:yellow,red:red,white:white,color_table:ctab,bottom_c:cbot, $
-  top_c:ctop,color_reverse:crev,line_colors_index:lndx}
+  top_c:ctop,color_reverse:crev,line_colors_index:lndx, ct_file:ctfl, $
+  ct_max:ctmx}
 
 if dt eq 7 then begin
   map = bytarr(256)+!p.color

@@ -35,6 +35,14 @@
 ;FILE:  tlimit.pro
 ;VERSION:  1.26
 ;LAST MODIFICATION:  98/08/06
+;
+; $LastChangedBy: davin-mac $
+; $LastChangedDate: 2025-03-14 14:42:21 -0700 (Fri, 14 Mar 2025) $
+; $LastChangedRevision: 33183 $
+; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/tplot/tlimit.pro $
+
+;
+;
 ;-
 pro tlimit,d1,d2,  $
 days = days, $
@@ -51,7 +59,8 @@ OLD_TVARS = old_tvars, $
 NEW_TVARS = new_tvars, $
 WINDOW = window, $
 SILENT = silent,$
-current = current
+current = current,$
+shift=shift
 
 @tplot_com.pro
 
@@ -105,6 +114,12 @@ if keyword_set(current) then begin
   trange = current * 60 * [-.95,.05] + systime(1)
   n=-1
 endif
+
+if keyword_set(shift) then begin
+  trange = trange + shift
+  n=-1
+endif
+
 
 if n eq 0 then begin
   delta = tr[1] - tr[0]

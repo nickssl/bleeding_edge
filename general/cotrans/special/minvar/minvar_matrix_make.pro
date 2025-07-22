@@ -74,8 +74,8 @@
 ;     thm_crib_mva.pro (THEMIS project) 
 ;
 ; $LastChangedBy: jwl $
-; $LastChangedDate: 2021-12-10 11:18:45 -0800 (Fri, 10 Dec 2021) $
-; $LastChangedRevision: 30461 $
+; $LastChangedDate: 2025-03-15 12:13:20 -0700 (Sat, 15 Mar 2025) $
+; $LastChangedRevision: 33187 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/cotrans/special/minvar/minvar_matrix_make.pro $
 ;-
 
@@ -84,12 +84,12 @@ pro minvar_matrix_make,in_var_name,tstart=tstart,tstop=tstop,twindow=twindow,tsl
 error = 0
 
 if not keyword_set(in_var_name) then begin
-    dprint,' fx requires in_var_name to be set'
+    dprint,'minvar_matrix_make requires in_var_name to be set'
     return
 endif
 
 if tnames(in_var_name) eq '' then begin
-    dprint,' fx requires in_var_name to be set'
+    dprint,'minvar_matrix_make: input variable ' + in_var_name + ' not found.'
     return
 endif
 
@@ -98,12 +98,12 @@ get_data,in_var_name,data=d,limits=l,dlimits=dl
 d_s = size(d.y,/dimensions)
 
 if n_elements(d_s) ne 2 then begin
-    dprint,' fx requires in_var_name.y to have 2 dimensions'
+    dprint,'minvar_matrix_make requires in_var_name.y to have 2 dimensions'
     return
 endif
 
 if d_s[1] ne 3 then begin
-    dprint,' fx requires cardinality of the second dimensions of in_var_name.y to equal 3'
+    dprint,'minvar_matrix_make requires cardinality of the second dimensions of in_var_name.y to equal 3'
     return
 endif
 
@@ -114,25 +114,25 @@ if not keyword_set(tstop) then stop_d = d.x[n_elements(d.x)-1L] $
 else stop_d = time_double(tstop)
 
 if(start_d ge stop_d) then begin
-  dprint, 'fx requires tstart to be greater than or equal to tstop'
+  dprint, 'minvar_matrix_make requires tstart to be greater than or equal to tstop'
   return
 endif
 
 if not keyword_set(twindow) then twindow = stop_d - start_d
+if twindow le 0 then twindow = stop_d - start_d
+if twindow gt (stop_d - start_d) then twindow = stop_d - start_d 
 
 ;sets it to something large enough that it will only generate one
 ;matrix in the default case
 if not keyword_set(tslide) then tslide = twindow/2
+if tslide le 0 then tslide=twindow/2
 
 if not keyword_set(newname) then newname = in_var_name+'_mva_mat'
 
 current_d = start_d
 
-;estimate the number of output matrices to generate temporary storage
-if tslide ne 0 then $
-  o_num = (stop_d - start_d) / tslide $
-else $
-  o_num = 1
+; Exact number of windows: always at least one, plus however many tslides fit in the space after the first window
+o_num = 1 + floor((stop_d - start_d - twindow)/tslide)
 
 
 

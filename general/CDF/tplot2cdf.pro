@@ -31,9 +31,9 @@
 ;  Alexander Drozdov
 ;  
 ;   
-; $LastChangedBy: jimm $
-; $LastChangedDate: 2023-01-25 10:38:15 -0800 (Wed, 25 Jan 2023) $
-; $LastChangedRevision: 31425 $
+; $LastChangedBy: haraday $
+; $LastChangedDate: 2024-03-26 01:20:29 -0700 (Tue, 26 Mar 2024) $
+; $LastChangedRevision: 32507 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/CDF/tplot2cdf.pro $
 ;-
 
@@ -167,7 +167,7 @@ pro tplot2cdf, filename=filename, tvars=tplot_vars, inq=inq_structure, g_attribu
           return
         endif
         EpochVAR.DATAPTR = ptr_new(x, /NO_COPY)
-        EpochVAR.DATATYPE = 'CDF_TIME_TT200' ;Set datatype to CDF_TIME_TT2000, jmm 2023-01-24
+        EpochVAR.DATATYPE = 'CDF_TIME_TT2000' ;Set datatype to CDF_TIME_TT2000, jmm 2023-01-24
      endif else begin      
         ; === CDF_EPOCH ===
         ; Time should be in SPEDAS format, which is UNIX time.

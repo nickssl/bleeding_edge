@@ -17,9 +17,11 @@
 
   compile_opt idl2
 
+  data_dir=routine_dir()
+  data_file=data_dir+path_sep()+'sst_nino3.dat'
 	n = 504
 	sst = FLTARR(n)
-	OPENR,1,'sst_nino3.dat'   ; input SST time series
+	OPENR,1,data_file   ; input SST time series
 	READF,1,sst
 	CLOSE,1
 
@@ -128,8 +130,8 @@ LOADCT,39
 	levels = [0.5,1,2,4]
 	colors = [64,128,208,254]
 	period2 = FIX(ALOG(period)/ALOG(2))   ; integer powers of 2 in period
-	ytickv = 2.^(period2(UNIQ(period2)))  ; unique powers of 2
-	pos2 = [pos1(0),0.35,pos1(2),0.65]
+	ytickv = 2.^(period2[UNIQ(period2)])  ; unique powers of 2
+	pos2 = [pos1[0],0.35,pos1[2],0.65]
 
 	CONTOUR,power,time,period,/NOERASE,POSITION=pos2, $
 		XRANGE=xrange,YRANGE=yrange,/YTYPE, $
@@ -141,7 +143,7 @@ LOADCT,39
 	CONTOUR,signif,time,period,/OVERPLOT,LEVEL=1,THICK=2, $
 		C_LABEL=1,C_ANNOT='90%',C_CHARSIZE=1
 ; cone-of-influence, anything "below" is dubious
-	x = [time(0),time,MAX(time)]
+	x = [time[0],time,MAX(time)]
 	y = [MAX(period),coi,MAX(period)]
 	color = 4
 	POLYFILL,x,y,ORIEN=+45,SPACING=0.5,COLOR=color,NOCLIP=0,THICK=1
@@ -149,7 +151,7 @@ LOADCT,39
 	PLOTS,time,coi,COLOR=color,NOCLIP=0,THICK=1
 
 ;--- Plot global wavelet spectrum
-	pos3 = [0.74,pos2(1),0.95,pos2(3)]
+	pos3 = [0.74,pos2[1],0.95,pos2[3]]
 	blank = REPLICATE(' ',29)
 	PLOT,global_ws,period,/NOERASE,POSITION=pos3, $
 		THICK=2,XSTYLE=10,YSTYLE=9, $
@@ -161,7 +163,7 @@ LOADCT,39
 	XYOUTS,1.7,60,'95%'
 	
 ;--- Plot 2--8 yr scale-average time series
-	pos4 = [pos1(0),0.05,pos1(2),0.25]
+	pos4 = [pos1[0],0.05,pos1[2],0.25]
 	PLOT,time,scale_avg,/NOERASE,POSITION=pos4, $
 		XRANGE=xrange,YRANGE=[0,MAX(scale_avg)*1.25],THICK=2, $
 		XTITLE='Time (year)',YTITLE='Avg variance (!Uo!NC!U2!N)', $

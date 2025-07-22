@@ -56,7 +56,7 @@ cotrans,'thd_state_pos_gse','thd_state_pos_gsm',/gse2gsm
 get_data, 'thd_state_pos_gsm', data=pos_gsm
 mpause_t96,dynp,xmgnp=xmgnp,ymgnp=ymgnp,xgsm=pos_gsm.y[*,0]/re,ygsm=pos_gsm.y[*,1]/re,zgsm=pos_gsm.y[*,2]/re,id=id,distan=distan
 help, id
-help, distance
+help, distan
 xrange=[20,-60]
 plot, xmgnp, ymgnp, xrange=xrange
 

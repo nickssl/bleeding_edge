@@ -19,10 +19,16 @@
 ;         first panel and so on.  Set this to a value greater than the
 ;         existing number of panels in your tplot window to add panels to
 ;             the bottom of the plot.
+;         Set this variable to a negative integer to count up from the last
+;         panel.  If set to -1, the new panels will be placed above the last
+;         panel.  If set to -2, they will be placed above the second to last
+;         panel, and so on.
+;   SUB_VAR:  Set this variable to remove datanames from the plot.
 ;   LASTVAR:  Set this variable to plot the previous variables plotted in a
 ;         TPLOT window.
 ;   PICK:     Set this keyword to choose new order of plot panels
 ;             using the mouse.
+;   TOSS:     Set this keyword to remove panels using the mouse.
 ;   WINDOW:   Window to be used for all time plots.  If set to -1, then the
 ;             current window is used.
 ;   VAR_LABEL:  String [array]; Variable(s) used for putting labels along
@@ -106,8 +112,8 @@
 ;   Send e-mail to:  tplot@ssl.berkeley.edu    someone might answer!
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-02-25 18:01:04 -0800 (Sat, 25 Feb 2023) $
-; $LastChangedRevision: 31528 $
+; $LastChangedDate: 2024-12-31 18:33:10 -0800 (Tue, 31 Dec 2024) $
+; $LastChangedRevision: 33025 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/tplot/tplot.pro $
 ;-
 
@@ -123,6 +129,7 @@ pro tplot,datanames,      $
    TITLE = title,         $
    LASTVAR = lastvar,     $
    ADD_VAR = add_var,     $
+   SUB_VAR = sub_var,     $
    LOCAL_TIME= local_time,$
    REFDATE = refdate,     $
    VAR_LABEL = var_label, $
@@ -131,6 +138,7 @@ pro tplot,datanames,      $
    TRANGE = trng,         $
    NAMES = names,         $
    PICK = pick,           $
+   TOSS = toss,           $
    new_tvars = new_tvars, $
    old_tvars = old_tvars, $
    datagap = datagap,     $  ;It looks like this keyword isn't actually used.  pcruce 10/4/2012
@@ -197,13 +205,23 @@ extract_tags,def_opts,tplot_vars.options
 ; if n_elements(tplot_var) eq 0 then $
 ;    str_element,tplot_vars,'options.varnames',['NULL'],/add_replace
 
-if keyword_set(pick) then $
+if keyword_set(pick) then begin
    ctime,prompt='Click on desired panels. (button 3 to quit)',panel=mix,/silent
-if n_elements(mix) ne 0 then datanames = tplot_vars.settings.varnames[mix]
+   if n_elements(mix) ne 0 then datanames = tplot_vars.settings.varnames[mix]
+endif
+
+if keyword_set(toss) then begin
+   ctime,prompt='Click on panels to remove. (button 3 to quit)',panel=nix,/silent
+   mix = indgen(n_elements(tplot_vars.settings.varnames))
+   for i=0,(n_elements(nix)-1) do mix[nix[i]] = -1
+   i = where(mix ne -1, count)
+   if (count gt 0) then datanames = tplot_vars.options.varnames[mix[i]]
+endif
 
 if keyword_set(add_var)  then begin
    names = tnames(datanames,/all)
    if keyword_set(reverse) then names = reverse(names)
+   if (add_var lt 0) then add_var = (n_elements(tplot_vars.options.varnames)+add_var+1) > 1
    if add_var eq 1 then datanames = [names,tplot_vars.options.varnames] else $
     if (add_var gt n_elements(tplot_vars.options.varnames)) then $
         datanames = [tplot_vars.options.varnames,names] else $
@@ -474,7 +492,7 @@ for i=0,nd-1 do begin
      if fill_intv eq 1 then tplot_fill_time_intv, routine, data, newlim, time_offset
 
      if (color_table ne pct || rev_color_table ne prev) then initct,pct,rev=prev
-     if (abs(max(lcolors - pline)) gt 0) then line_colors,pline
+     if (max(abs(lcolors - pline)) gt 0) then line_colors,pline
 
      ;get offset into color array (for pseudo vars)
      if keyword_set(colors_set) then begin

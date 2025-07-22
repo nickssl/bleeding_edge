@@ -2,13 +2,13 @@ pro aacgmidl_v2_crib
 
   compile_opt strictarr
   ;------------------------------------------------------------------------
-  ; To use all the AACGM-v2 routines you will need to first call the 
-  ; main routine which sets environmental variables and compiles the 
+  ; To use all the AACGM-v2 routines you will need to first call the
+  ; main routine which sets environmental variables and compiles the
   ; libraries
   aacgmidl_v2
   ch = ''
   fmt = '(a,$)'
-  
+
   ;-----------------------------------------------------------------------------
   ; Note that you must now set the Date and Time explicitly. An error will
   ; occur if you do not. Try it. If you are running this routine a second
@@ -18,12 +18,12 @@ pro aacgmidl_v2_crib
   lat0 = 22.2
   lon0 = -44.3
   alt  = 150.
-  p = cnvcoord_v2(lat0,lon0, alt)  
+  p = cnvcoord_v2(lat0,lon0, alt)
   print, "<Press Return to continue>", format=fmt
   read, ch
 
-;  print, 'To continue enter .c at the command line or click the resume button.' 
-;  stop  
+  ;  print, 'To continue enter .c at the command line or click the resume button.'
+  ;  stop
 
   ;-----------------------------------------------------------------------------
   ; now set the date
@@ -31,24 +31,24 @@ pro aacgmidl_v2_crib
   year  = 1997
   month = 6
   day   = 25
-  ; hour, minute, second have little effect...  
+  ; hour, minute, second have little effect...
   ret = AACGM_v2_SetDateTime(year,month,day)
   print, ''
   print, 'Date successfully set to 1997-06-25'
   print, "<Press Return to continue>", format=fmt
   read, ch
-  
+
   ;-----------------------------------------------------------------------------
   ; test single input
-  ;  
+  ;
   lat0 = 50.
   lon0 = 120.
-  alt  = 111.  
+  alt  = 111.
   p = cnvcoord_v2(lat0,lon0, alt)
-  
+
   print, ''
   print, '********************* TESTING AACGM-v2 SOFTWARE ***********************'
-  print, ''  
+  print, ''
   print, 'SINGLE INPUT: G2A'
   print, ''
   print, 'expected output:'
@@ -57,16 +57,16 @@ pro aacgmidl_v2_crib
   print, 'actual   output:'
   print, p
   print, ''
-  print, '' 
+  print, ''
   print, "<Press Return to continue>", format=fmt
   read, ch
-  
+
   ;-----------------------------------------------------------------------------
   ; Now set to current date and time, results will now vary
-  ;   
-  ret = AACGM_v2_SetNow()  
+  ;
+  ret = AACGM_v2_SetNow()
   p = cnvcoord_v2(lat0,lon0, alt)
-  
+
   print, ''
   print, 'SINGLE INPUT: G2A'
   print, ''
@@ -76,15 +76,15 @@ pro aacgmidl_v2_crib
   print, 'actual   output:'
   print, p
   print, ''
-  print, '' 
+  print, ''
   print, "<Press Return to continue>", format=fmt
   read, ch
-  
+
   ;-----------------------------------------------------------------------------
-  ; test of field-line tracing  
+  ; test of field-line tracing
   ;
   p = cnvcoord_v2(lat0,lon0,alt,/trace)
-  
+
   print, ''
   print, 'SINGLE INPUT: G2A Trace'
   print, ''
@@ -94,18 +94,18 @@ pro aacgmidl_v2_crib
   print, 'actual   output:'
   print, p
   print, ''
-  print, ''  
+  print, ''
   print, "<Press Return to continue>", format=fmt
   read, ch
-  
+
   ;-----------------------------------------------------------------------------
   ; test vector input and reset date to a fixed time so output does not vary
-  ;  
-  ret = AACGM_v2_SetDateTime(2014,01,22)  
+  ;
+  ret = AACGM_v2_SetDateTime(2014,01,22)
   inp = [[50.,120.,111.], [55.,50.,250.], [-50.,-120.,600.], [-75.,120.,300.], $
-    [33,15,1900], [23,50,150], [11,-60,330]]  
+    [33,15,1900], [23,50,150], [11,-60,330]]
   p = cnvcoord_v2(inp)
-  
+
   print, 'VECTOR INPUT'
   print, ''
   print, 'expected output:'
@@ -120,16 +120,16 @@ pro aacgmidl_v2_crib
   print, 'actual   output:'
   print, p
   print, ''
-  print, ''  
+  print, ''
   print, "<Press Return to continue>", format=fmt
   read, ch
-  
+
   ;-----------------------------------------------------------------------------
   ; test inverse transformation
   ;
   lat0 = 50.
   lon0 = 12.
-  alt  = 450.  
+  alt  = 450.
   RE = 6371.2
   p = cnvcoord_v2(lat0,lon0, alt)         ; G2A using coefficients
   s = cnvcoord_v2(lat0,lon0, alt, /trace) ; G2A using field-line tracing
@@ -137,7 +137,7 @@ pro aacgmidl_v2_crib
   hs = RE*(s[2]-1.d)
   q = cnvcoord_v2(p[0],p[1],hp, /geo)   ; inverse xform using coeffs
   r = cnvcoord_v2(s[0],s[1],hs, /geo, /trace) ; inv using tracing
-  
+
   print, ''
   print, '--------------------- INVERSE TRANSFORMATION -----------------------'
   print, ''
@@ -160,34 +160,34 @@ pro aacgmidl_v2_crib
   print, ' Note that the inverse transformation is less accurate than the'
   print, ' forward transformation when using coefficients. Using field line'
   print, ' tracing (/trace) for the inverse transformation restores accuracy.'
-  print, ''  
+  print, ''
   fmt = '(a,$)'
   print, "<Press Return to continue>", format=fmt
   read, ch
-  
+
   ;-----------------------------------------------------------------------------
   ; test MLT
-  ;  
+  ;
   ; set date/time for AACGM-v2
   yr = 2003
   mo = 5
   dy = 17
   hr = 7
   mt = 53
-  sc = 16  
+  sc = 16
   e = AACGM_v2_SetDateTime(yr,mo,dy,hr,mt,sc)
-  lat = 77.d & lon = -88.d & hgt = 300.d  
+  lat = 77.d & lon = -88.d & hgt = 300.d
   p  = [lat,lon,hgt]              ; input in geographic coordinates
   p2 = cnvcoord_v2(lat,lon,hgt)   ; compute AACGM-v2 coordinates of point
   m2 = mlt_v2(p2[1])              ; compute MLT using AACGM-v2 longitude
   p3 = cnvcoord_v2(lat,lon,hgt,/trace)    ; compute AACGM-v2 coordinates of point
   m3 = mlt_v2(p3[1])              ; compute MLT using AACGM-v2 longitude
-  
+
   print, ''
   print, '----------------------------- MLT-v2 -------------------------------'
   print, ''
   print, 'expected output:'
-  print, ''  
+  print, ''
   print, ' GLAT       GLON        HEIGHT      MLAT       MLON       R         MLT'
   print, ' 77.000000  -88.000000  300.000000  85.518717  -25.478599 1.044990  1.412911'
   print, ' 77.000000  -88.000000  300.000000  85.515908  -25.477768 1.044990  1.412967'
@@ -195,10 +195,10 @@ pro aacgmidl_v2_crib
   print, 'actual output:'
   print, ''
   print, ' GLAT       GLON        HEIGHT      MLAT       MLON       R         MLT'
-  
+
   fmt = '(f10.6,x,f11.6,x,f11.6,x,f10.6,x,f11.6,x,f8.6,2x,f8.6)'
   print, format=fmt, lat,lon,hgt, p2, m2
-  print, format=fmt, lat,lon,hgt, p3, m3  
+  print, format=fmt, lat,lon,hgt, p3, m3
   print, ''
   print, ''
   print, 'expected output:'
@@ -230,15 +230,15 @@ pro aacgmidl_v2_crib
   print, ''
   print, ' GLAT       GLON        HEIGHT      MLAT       MLON       R         MLT'
   print, ''
-  
+
   npts = 20
   lons = findgen(npts)
   lats = 45.  + fltarr(npts)
   hgts = 150. + fltarr(npts)
-  
+
   ; test functions with array inputs
   p3 = cnvcoord_v2(lats,lons,hgts)
-  m3 = mlt_v2(p3[1,*])  
+  m3 = mlt_v2(p3[1,*])
   for k=0,npts-1 do $
     print, lats[k],lons[k],hgts[k], p3[*,k], m3[k], format=fmt
 

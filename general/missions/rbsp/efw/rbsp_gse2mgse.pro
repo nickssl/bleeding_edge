@@ -43,93 +43,21 @@
 ;Written by Aaron Breneman, Oct 31, 2012
 ;	2013-10-02 -> added a check to make sure the WGSE array is the correct size.
 ;				  Returns if it isn't.
+; 	2022-08-07 -> just use rbsp_mgse2gse with inverse.
 ;-
 
 
-pro rbsp_gse2mgse,tname,wgse,newname=newname
+pro rbsp_gse2mgse, tname, wgse, probe=probe, $
+	newname=newname, inverse=inverse, $
+	no_spice_load=no_spice_load, $
+	_extra=extra
 
-
-	get_data,tname,data=dat,dlimits=dlim,limits=lim
-	zgse = [0.,0.,1d]
-	datx = dblarr(n_elements(dat.x))
-	daty = datx
-	datz = datx
-
-
-	test = size(wgse)
-
-
-	;Loop for single value of wgse. This value will be applied to the rotation of
-	;every data point
-
-	if test[0] eq 1 then begin
-
-		;Normalize wgse..just in case
-		wgse = wgse/sqrt(wgse[0]^2 + wgse[1]^2 + wgse[2]^2)
-
-		;MGSE axes in terms of GSE coord
-		Ymgse = -1d*crossp(wgse,zgse)
-		Ymgse = Ymgse/sqrt(Ymgse[0]^2 + Ymgse[1]^2 + Ymgse[2]^2)
-
-		Zmgse = crossp(wgse,Ymgse)
-		Zmgse = Zmgse/sqrt(Zmgse[0]^2 + Zmgse[1]^2 + Zmgse[2]^2)
-
-		Xmgse = crossp(Ymgse,Zmgse)
-		Xmgse = Xmgse/(sqrt(Xmgse[0]^2 + Xmgse[1]^2 + Xmgse[2]^2))
-
-
-		for j=0L,n_elements(dat.x)-1 do begin
-			;Project data along MGSE axes
-			datx[j] = total(dat.y[j,*]*Xmgse)
-			daty[j] = total(dat.y[j,*]*Ymgse)
-			datz[j] = total(dat.y[j,*]*Zmgse)
-		endfor
-
-	endif
-
-
-
-	if test[0] ne 1 then begin
-
-		;Make sure that the Wgse vector has the same number of elements as tname
-		if test[1] ne n_elements(dat.x) then begin
-			print,'****************************************************'
-			print,"'WGSE ARRAY [n,3] DOESN'T HAVE THE CORRECT SIZE....'"
-			print,'THE n MUST BE THE SAME AS THE NUMBER OF TIMES IN TNAME'
-			print,'OR BE SIZE [3] ARRAY'
-			print,'****************************************************'
-			return
-		endif
-
-
-		for j=0L,n_elements(dat.x)-1 do begin
-
-			;Normalize wgse..just in case
-			wgse[j,*] = wgse[j,*]/sqrt(wgse[j,0]^2 + wgse[j,1]^2 + wgse[j,2]^2)
-
-
-			;MGSE axes in terms of GSE coord
-			Ymgse = -1d*crossp(wgse[j,*],zgse)
-			Ymgse = Ymgse/(sqrt(Ymgse[0]^2 + Ymgse[1]^2 + Ymgse[2]^2))
-			Zmgse = crossp(wgse[j,*],Ymgse)
-			Zmgse = Zmgse/(sqrt(Zmgse[0]^2 + Zmgse[1]^2 + Zmgse[2]^2))
-			Xmgse = crossp(Ymgse,Zmgse)
-			Xmgse = Xmgse/(sqrt(Xmgse[0]^2 + Xmgse[1]^2 + Xmgse[2]^2))
-
-
-
-			;Project data along MGSE axes
-
-			datx[j] = total(dat.y[j,*]*Xmgse)
-			daty[j] = total(dat.y[j,*]*Ymgse)
-			datz[j] = total(dat.y[j,*]*Zmgse)
-
-		endfor
-	endif
-
-
-	if ~keyword_set(newname) then name = tname+'_mgse' else name = newname
-	store_data,name,data={x:dat.x,y:[[datx],[daty],[datz]]}
-
+	if keyword_set(inverse) then begin
+		; inverse=1, means we want mgse2gse.
+		rbsp_mgse2gse, tname, wgse, probe=probe, newname=newname, inverse=0, no_spice_load=no_spice_load, _extra=extra
+	endif else begin
+		; inverse=0, means we want gse2mgse.
+		rbsp_mgse2gse, tname, wgse, probe=probe, newname=newname, inverse=1, no_spice_load=no_spice_load, _extra=extra
+	endelse
 
 end

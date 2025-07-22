@@ -50,8 +50,8 @@
 ;               the complement of VINDEX.  Only works when VALID is set.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-02-24 15:38:45 -0800 (Fri, 24 Feb 2023) $
-; $LastChangedRevision: 31513 $
+; $LastChangedDate: 2024-08-06 08:29:17 -0700 (Tue, 06 Aug 2024) $
+; $LastChangedRevision: 32779 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/misc/nn2.pro $
 ;
 ;CREATED BY:	David L. Mitchell  2018-08-23
@@ -62,7 +62,7 @@ function nn2, time1, time2, maxdt=maxdt, valid=valid, vindex=vindex, badindex=ba
   t1 = time_double(time1)
   n = n_elements(t1)
   t2 = time_double(time2)
-  i = round(interpol(dindgen(n), t1, t2)) > 0L < (n-1L) ;-)
+  i = round(interpol(dindgen(n), t1, t2, /nan)) > 0L < (n-1L) ;-)
 
   if (size(maxdt,/type) gt 0) then begin
     j = where(abs(t2 - t1[i]) gt abs(double(maxdt[0])), count)

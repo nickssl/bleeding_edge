@@ -73,7 +73,7 @@ if ~(keyword_set(base) && widget_info(base,/managed) ) then begin
     ids = create_struct(ids,'poll_button', widget_button(ids.poll_base2,uname='POLL_BUTTON',value='Poll Interval:'))
     ids = create_struct(ids,'poll_text',   widget_text(ids.poll_base,xsize=6, uname='POLL_TEXT', value = keyword_set(poll_text) ? poll_text:'5',/editable, /no_newline))
     ids = create_struct(ids,'poll_lab',    widget_label(ids.poll_base,uname='POLL_LAB', value='Seconds  '))
-    ids = create_struct(ids,'done',        WIDGET_BUTTON(ids.poll_base, VALUE='Done', UNAME='DONE'))
+    ids = create_struct(ids,'done',        WIDGET_BUTTON(ids.poll_base, VALUE='Exit', UNAME='DONE'))
     WIDGET_CONTROL, ids.base, SET_UVALUE=ids
     WIDGET_CONTROL, ids.base, /REALIZE
     title = 'EXEC ('+strtrim(ids.base,2)+')'

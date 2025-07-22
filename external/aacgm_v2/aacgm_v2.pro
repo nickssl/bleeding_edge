@@ -49,7 +49,7 @@
 ;                                        [minute], [second])
 ;
 ;     Arguments:
-;       year          - year [1900-2025)
+;       year          - year [1900-2030)
 ;       month         - month [1-12]
 ;       day           - day [1-31]
 ;       hour          - hour [0-24]
@@ -350,9 +350,8 @@ function cnvcoord_v2, in1,in2,in3, geo=geo, trace=trace, gcentric=gcentric, $
   outpos = reform(outpos,s0[1:n_elements(s0)-3])
 
   return, outpos
-
 end
 
 pro aacgm_v2
-    ; for initial compile
+  ; used for compilation and initialization
 end

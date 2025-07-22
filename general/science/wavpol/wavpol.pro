@@ -102,8 +102,8 @@
 ;	 100%. Remember, comparing two straight lines yields 100% polarisation.
 ;
 ; $LastChangedBy: jwl $
-; $LastChangedDate: 2023-02-01 10:16:16 -0800 (Wed, 01 Feb 2023) $
-; $LastChangedRevision: 31456 $
+; $LastChangedDate: 2025-03-29 21:55:43 -0700 (Sat, 29 Mar 2025) $
+; $LastChangedRevision: 33213 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/science/wavpol/wavpol.pro $
 ;-
 pro wavpol,ct,Bx,By,Bz,timeline,freqline,powspec,degpol,waveangle,elliptict,helict,pspec3,$
@@ -314,6 +314,15 @@ samp_per=samp_per_input, nopfft=nopfft_input,steplength = steplength_input, bin_
               matspec[KK,*,2,2]=halfspecz[KK,*]*conj(halfspecz[KK,*])
               
               ;CALCULATION OF SMOOTHED SPECTRAL MATRIX
+              ;
+              ; NOTE: k does not iterate over the full set of spectral bins!  Depending on the nosmbins setting, the first
+              ; few and last few frequencies will not have values assigned here.   They are implicitly set to 0, by the
+              ; make_array calls that initialized the arrays.   This resulted in a discrepancy between IDL results, and
+              ; Python results, where the data wasn't zero-initialized (and it wasn't obvious that it was necessary).
+              ;
+              ; JWL 2025-03-29
+              ;
+              
               for k=(nosmbins-1)/2, (nopfft/2-1)-(nosmbins-1)/2 do begin
                     ematspec[KK,k,0,0]=TOTAL(aa[0:(nosmbins-1)]*matspec[KK,(k-(nosmbins-1)/2):(k+(nosmbins-1)/2),0,0])
                     ematspec[KK,k,1,0]=TOTAL(aa[0:(nosmbins-1)]*matspec[KK,(k-(nosmbins-1)/2):(k+(nosmbins-1)/2),1,0])

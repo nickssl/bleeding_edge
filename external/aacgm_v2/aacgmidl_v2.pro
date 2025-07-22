@@ -413,7 +413,7 @@ pro AACGM_v2_Date, yr,dayno, mo,dy
 end
 
 ;------------------------------------------------------
-; AACGMIDL_V2 
+; AACGMIDL_V2
 ; This procedure initializes environmental variables
 ; and compiles routines used for AACGM
 ;------------------------------------------------------
@@ -423,15 +423,15 @@ pro aacgmidl_v2
   rt_info = routine_info('aacgmidl_v2',/source)
   basedir=file_dirname(rt_info.path)
 
-  envstring1='AACGM_v2_DAT_PREFIX='+basedir+path_sep()+'coeffs'+path_sep()+'aacgm_coeffs-13-'
-  envstring2='IGRF_COEFFS='+basedir+path_sep()+'magmodel_1590-2020.txt'
+  envstring1='AACGM_v2_DAT_PREFIX='+basedir+path_sep()+'coeffs'+path_sep()+'aacgm_coeffs-14-'
+  envstring2='IGRF_COEFFS='+basedir+path_sep()+'magmodel_1590-2025.txt'
   setenv,envstring1
   setenv,envstring2
   ; compile and initialize all routines needed for aacgm-v2
-  igrflib_v2  
+  igrflib_v2
   aacgmlib_v2
   aacgm_v2
   astalg
-  mlt_v2  
+  mlt_v2
 
 end

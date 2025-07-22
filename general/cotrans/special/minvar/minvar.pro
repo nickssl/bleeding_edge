@@ -24,9 +24,9 @@
 ;Written by: Vassilis Angelopoulos
 ;
 ;
-; $LastChangedBy: lbwilson $
-; $LastChangedDate: 2016-06-23 12:01:09 -0700 (Thu, 23 Jun 2016) $
-; $LastChangedRevision: 21356 $
+; $LastChangedBy: jwl $
+; $LastChangedDate: 2025-03-15 12:11:20 -0700 (Sat, 15 Mar 2025) $
+; $LastChangedRevision: 33186 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/cotrans/special/minvar/minvar.pro $
 ;
 ;-
@@ -78,6 +78,13 @@ if (eigenVijk[2,2] lt 0) then begin
   eigenVijk[*,1] = -eigenVijk[*,1]
 endif
 
+; Ensure minvar-Z and intvar-Z are both positive, to ensure matching results between IDL and Python
+if (eigenVijk[2,1] lt 0) then begin
+  eigenVijk[*,1] = -eigenVijk[*,1]
+  eigenVijk[*,0] = -eigenVijk[*,0]
+endif
+
+
 ;;  create dummy variable for rotated vectors (output keyword variable)
 Vrot = vec & Vrot[*,*] = !VALUES.F_NAN
 ;;  Rotate data into minvar coords
@@ -88,6 +95,6 @@ Vrot(2,*) = eigenVijk[0,2]*vec[0,*] + eigenVijk[1,2]*vec[1,*] + eigenVijk[2,2]*v
 ;;  Define output keyword variable
 lambdas2=diagonal
 
-;;  Return to user
+;;  Return to user.c
 return
 end

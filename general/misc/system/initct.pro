@@ -62,6 +62,7 @@
 ;                         8  : https://www.nature.com/articles/nmeth.1618 except no yellow
 ;                         9  : same as 8 but permuted so vector defaults are blue, orange, reddish purple
 ;                        10  : Chaffin's CSV line colors, suitable for colorblind vision
+;                        11  : same as 5, except a darker green for better contrast on white
 ;
 ;                         See get_line_colors() for RGB values of predefined schemes.
 ;                         The most recent color schemes may not be documented here.
@@ -109,11 +110,31 @@
 ;
 ;       SHOW:         Show the color table in a separate window after loading.
 ;
+;       The next three keywords are mutually exclusive.  You can only set one.  They
+;       are listed in order of precedence: the first one set disables the others.
+;
+;       STD:          Use the standard color table file.  This is the default if
+;                     the environment variable IDL_CT_FILE is undefined.  This
+;                     keyword is used to revert to the standard file.
+;
+;       SPP:          Use the Solar Probe Plus Fields color table file.  The path
+;                     and filename are determined automatically and stored in the 
+;                     environment variable IDL_CT_FILE, which is used by loadct2.
+;                     See https://colorcet.com/index.html for a description of this
+;                     catalog, along with tips on how to choose a good color table.
+;
+;       FILE:         The full path/filename of a color table file.  This is stored
+;                     in the environment variable IDL_CT_FILE, which is used by
+;                     loadct2.  Set this keyword to the null string ('') to revert
+;                     to the standard color table file.
+;
 ;       SUPPRESS:     Suppress floating overflow error in first call to window.
 ;
+;       SUCCESS:      Returns 1 if the routine finishes normally, 0 otherwise.
+;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-03-02 11:08:00 -0800 (Thu, 02 Mar 2023) $
-; $LastChangedRevision: 31572 $
+; $LastChangedDate: 2025-02-03 13:34:12 -0800 (Mon, 03 Feb 2025) $
+; $LastChangedRevision: 33110 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/misc/system/initct.pro $
 ;
 ;Created by David L. Mitchell (February 2023)
@@ -121,14 +142,53 @@
 
 pro initct, ctab, reverse=rv, line_clrs=ln, mycolors=mc, color_names=cn, graybkg=gb, $
                   previous_ct=previous_ct, previous_rev=previous_rev, show=show, $
-                  suppress=suppress
+                  std=std, spp=spp, file=file, suppress=suppress, success=ok
+
+  @colors_com
+  ok = 0
 
   if (n_elements(ctab) eq 0) then begin
-    print,"You must supply a color table."
+    print,"  You must supply a color table number."
+    print,""
     return
   endif
-
   ct = fix(ctab[0])
+
+; Determine if there is a new color table file, and if so update IDL_CT_FILE.  This makes
+; the change persistent in subsequent calls to initct until the user explicitly chooses
+; a different color table file.  Note that this does not apply to the CSV color tables,
+; which are loaded in a different manner (loadcsv ignores IDL_CT_FILE).  The CSV tables
+; are always available with table numbers >= 1000.
+
+  std = keyword_set(std)
+  spp = keyword_set(spp) and ~std
+  if (std) then file = ''
+  if (spp) then undefine, file
+
+  cfile = ''
+  if (spp) then begin
+    cfile = file_which('spp_fld_colors.tbl')
+    if (cfile eq '') then print,"  SPP Fields color tables not found: spp_fld_colors.tbl" 
+  endif
+  if (size(file,/type) eq 7) then begin
+    if (file ne '') then begin
+      finfo = file_info(file)
+      if finfo.exists then cfile = file else print,"  Color tables not found: " + file_basename(file)
+    endif else setenv, 'IDL_CT_FILE=' + file  ; revert to IDL default color tables
+  endif
+  if (cfile ne '') then setenv, 'IDL_CT_FILE=' + cfile else cfile = getenv('IDL_CT_FILE')
+
+; Update the common block so other routines can know about the change
+
+  if (cfile eq '') then loadct, get_names=cnames else loadct, get_names=cnames, file=cfile
+  ct_file = cfile
+  ct_max = n_elements(cnames) - 1L
+
+  if ((ct lt 0) or (ct gt ct_max and ct lt 1000) or (ct gt 1118)) then begin
+    print,"  Table number out of range: " + strtrim(string(ct),2)
+    print,""
+    return
+  endif
 
   if (ct lt 1000) then begin
     loadct2, ct, reverse=rv, line_clrs=ln, mycolors=mc, line_color_names=cn, $
@@ -141,5 +201,7 @@ pro initct, ctab, reverse=rv, line_clrs=ln, mycolors=mc, color_names=cn, graybkg
   if keyword_set(show) then showct
 
   if keyword_set(suppress) then i = check_math()
+
+  ok = 1
 
 end

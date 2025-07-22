@@ -1,5 +1,13 @@
+How to cite:
+
+Shepherd, S. G. (2014), Altitude-adjusted corrected geomagnetic coordinates:
+Definition and functional approximations, J. Geophys. Res. Space Physics, 119,
+7501–7521, doi:10.1002/2014JA020264.
+
 AACGM-v2 Software
-v2.6 20191229
+v2.7 20241122
+
+CHECK OUTPUTS
 
 IDL Instructions:
 
@@ -7,11 +15,11 @@ IDL Instructions:
 
 2. Set the environment variable AACGM_v2_DAT_PREFIX to the directory that
    you are storing the coefficients in AND include the prefix of the
-   coefficient files, i.e., aacgm_coeffs-13-
+   coefficient files, i.e., aacgm_coeffs-14-
 
    e.g.,
 
-   AACGM_v2_DAT_PREFIX=/directory_you_put_coefficients_in/aacgm_coeffs-13-
+   AACGM_v2_DAT_PREFIX=/directory_you_put_coefficients_in/aacgm_coeffs-14-
 
    Note that if you used the old AACGM software from JHU/APL you should have
    a similar variable that is already set.
@@ -19,17 +27,17 @@ IDL Instructions:
 3. Untar the contents of the .tar file into a directory
 
 4. Setup the magnetic field model by putting the GUFM1/IGRF coefficients file
-   (magmodel_1590-2020.txt) somewhere or leaving them in the current directory
+   (magmodel_1590-2025.txt) somewhere or leaving them in the current directory
    and setting the environment variable IGRF_COEFFS to the fully qualified
    path, i.e.,
 
-   IGRF_COEFFS=/directory_you_put_IGRF_coefs_in/magmodel_1590-2020.txt
+   IGRF_COEFFS=/directory_you_put_IGRF_coefs_in/magmodel_1590-2025.txt
 
 5. Test software by running test.idl by typing:
 
    idl test.idl
 
-   from the command line. The output should be self-explanitory. Any errors
+   from the command line. The output should be self-explanatory. Any errors
    should be reported to simon.shepherd@dartmouth.edu.
 
    Looking at test.idl will give you an idea of how to use the software. The
@@ -95,7 +103,7 @@ time.pro
 astalg.pro
 mlt_v2.pro
 
-and the IGRF13 coefficients (igrf13coeffs.txt) must be identified by the
+and the IGRF14 coefficients (igrf14coeffs.txt) must be identified by the
 environment variable IGRF_COEFFS
 
 
@@ -104,7 +112,7 @@ This package include the following files:
 AACGM IDL software:
 
 README.txt            ; this file
-release_notes.txt     ; details of changes to v2.6
+release_notes.txt     ; details of changes to v2.7
 aacgm_v2.pro          ; user functions
 aacgmlib_v2.pro       ; internal library functions
 genmag.pro            ; general purpose functions
@@ -112,7 +120,8 @@ igrflib_v2.pro        ; internal IGRF functions
 time.pro              ; internal date/time functions
 astalg.pro            ; astronomical algorithms
 mlt_v2.pro            ; magnetic local time functions
-igrf13coeffs.txt      ; IGRF12 coefficients
+igrf14coeffs.txt      ; IGRF14 coefficients (1900-2025)
+magmodel_1590-2025.txt; magnetic field coefficients (1590-2025)
 test.idl              ; idl driver script for testing
 LICENSE-AstAlg.txt    ; license file for Astro algrorithms
 

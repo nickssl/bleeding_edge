@@ -56,8 +56,8 @@
 ;       UNITS:    Skip units to use after the first call.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-06-26 16:22:09 -0700 (Mon, 26 Jun 2023) $
-; $LastChangedRevision: 31912 $
+; $LastChangedDate: 2024-08-07 08:03:17 -0700 (Wed, 07 Aug 2024) $
+; $LastChangedRevision: 32783 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/tplot/skip.pro $
 ;
 ;CREATED BY:    David L. Mitchell
@@ -65,7 +65,7 @@
 pro skip, n, orb=orb, day=day, sec=sec, minute=minute, hour=hour, page=page, $
              first=first, last=last, peri=peri, apo=apo, tref=tref, units=units
 
-  common skip_com, ptime, atime, period, mode
+  common skip_com, ptime, atime, period, mode, torb
 
 ; Determine skip units
 
@@ -104,12 +104,23 @@ pro skip, n, orb=orb, day=day, sec=sec, minute=minute, hour=hour, page=page, $
 ; Get orbit data if needed
 
   if (mode eq 6) then begin
-    if (size(period,/type) eq 0) then begin
-      orb = mvn_orbit_num()
-      period = orb.peri_time - shift(orb.peri_time,1)
+    refresh = size(torb,/type) ne 5
+    if (~refresh) then if (systime(/ut,/sec) gt torb) then refresh = 1B
+
+    if (refresh) then begin
+      print, "Getting orbit numbers ... ", format='(a,$)'
+      dprint,' ', getdebug=bug, dlevel=4
+      dprint,' ', setdebug=0, dlevel=4
+      odat = mvn_orbit_num()
+      dprint,' ', setdebug=bug, dlevel=4
+
+      period = odat.peri_time - shift(odat.peri_time,1)
       period[0] = period[1]
-      ptime = orb.peri_time
-      atime = orb.apo_time
+      ptime = odat.peri_time
+      atime = odat.apo_time
+
+      print, "done"
+      torb = systime(/ut,/sec) + 86400D
     endif
 
     i = nn2(ptime,[t[0],mean(topt.trange),t[1]])

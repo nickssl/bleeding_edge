@@ -12,7 +12,7 @@ if keyword_set(xs) then begin
    xs0 = xlog ? alog10(xs) : xs
    ys0 = ylog ? alog10(ys) : ys
    ys2= spl_init(xs0,ys0)
-   p = {func:'spline_fit3',xs:float(xs0),ys:double(ys0),ys2:float(ys2), xlog:xlog, ylog:ylog, recalc:1, pwlin:keyword_set(pwlin)}
+   p = {func:'spline_fit3',xs:double(xs0),ys:double(ys0),ys2:double(ys2), xlog:xlog, ylog:ylog, recalc:1, pwlin:keyword_set(pwlin)}
 endif
 
 if p.recalc then p.ys2 = spl_init(p.xs,p.ys)

@@ -28,7 +28,7 @@ tlng=fltarr(61)				; longitudes (radians)
 
 ; Calc angle between axis and terminator
 
-t0=str_to_time('96-12-21/0:00')
+t0=time_double('96-12-21/0:00')
 ang=(time - t0)*2*!PI/(365.25*24.*3600.)
 tilt = 23.5/!RADEG	; Angle, axis and normal to ecliptic plane
 alpha = tilt * cos(ang)	; Angle, axis and terminator
@@ -45,10 +45,10 @@ tlat = atan( sin(tlat)*cos(alpha) / sqrt( 1. - (sin(tlat)*cos(alpha))^2 ) )
 ; Rotate terminator according to time of day
 
 if (!VERSION.RELEASE LE '5.4') then begin
-    date_time = str_sep(time_to_str(time), '/')	; split the time string
+    date_time = str_sep(time_string(time), '/')	; split the time string
     t_hms=str_sep(date_time(1),':')	; time array [hh,mm,ss]
 endif else begin
-    date_time = strsplit(time_to_str(time), '/', /EXTRACT)	; split the time string
+    date_time = strsplit(time_string(time), '/', /EXTRACT)	; split the time string
     t_hms=strsplit(date_time(1),':', /EXTRACT)	; time array [hh,mm,ss]
 endelse
 ;noon is degrees that 12pm is offset from Greenwich

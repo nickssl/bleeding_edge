@@ -1,7 +1,7 @@
 ;+
-; $LastChangedBy: davin-mac $
-; $LastChangedDate: 2023-04-02 23:46:03 -0700 (Sun, 02 Apr 2023) $
-; $LastChangedRevision: 31697 $
+; $LastChangedBy: nikos $
+; $LastChangedDate: 2025-01-06 11:01:53 -0800 (Mon, 06 Jan 2025) $
+; $LastChangedRevision: 33045 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/misc/strfilter.pro $
 ;-
 ;FUNCTION:
@@ -111,7 +111,7 @@ function strfilter,str,matchs,count=count,wildcard=wildcard,fold_case=fold_case,
         temp = str[i]                     ; so an extra loop is required here
         p = 0
         for j=0L,nmss-1 do begin
-          p2 = (j lt nmss-1) ? strpos(temp,mss[j],p) : rstrpos(temp,mss[j])
+          p2 = (j lt nmss-1) ? strpos(temp,mss[j],p) : strpos(temp,mss[j],/REVERSE_SEARCH)
           if j eq 0 then r = (p2 eq 0) else r = (p2 ge p)
           p = p2 + lms[j]
           if r eq 0 then goto,break

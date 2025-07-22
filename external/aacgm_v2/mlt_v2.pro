@@ -490,6 +490,8 @@ function mlt_v2, mlon, $
   return, ret
 end
 
+
 pro mlt_v2
-    ; used by aacgmidl_v2 to initialize and compile routines
+  ; used for compilation and initialization
 end
+

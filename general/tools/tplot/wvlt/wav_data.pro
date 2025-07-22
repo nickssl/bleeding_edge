@@ -5,9 +5,9 @@
 ;
 ;  Author: Davin Larson
 ;
-;$LastChangedBy: ali $
-;$LastChangedDate: 2020-03-05 13:20:27 -0800 (Thu, 05 Mar 2020) $
-;$LastChangedRevision: 28379 $
+;$LastChangedBy: davin-mac $
+;$LastChangedDate: 2025-06-12 05:18:03 -0700 (Thu, 12 Jun 2025) $
+;$LastChangedRevision: 33388 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/tools/tplot/wvlt/wav_data.pro $
 ;
 ;-
@@ -738,7 +738,7 @@ pro wav_data,varname, period=period,prange=prange,frange=frange, $
 
   if keyword_set(get_components)  then begin
     dprint,dlevel=4,verbose=verbose,'dim=',dim,'nk=',nk
-    cstr = ['x','y','z']
+    cstr = ['x','y','z','4']
     for i=0,nk-1 do begin
       powopts.ztitle='P!d'+cstr[i]+'!n'+tsfx
       pow = (abs(wv[*,*,i])^2)

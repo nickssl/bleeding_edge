@@ -26,11 +26,11 @@
 ;
 ;CREATED BY:	Davin Larson  4-30-96
 ;FILE:  interp.pro
-; $LastChangedBy: davin-mac $
-; $LastChangedDate: 2022-01-08 18:24:07 -0800 (Sat, 08 Jan 2022) $
-; $LastChangedRevision: 30508 $
+; $LastChangedBy: dmitchell $
+; $LastChangedDate: 2024-06-04 16:43:03 -0700 (Tue, 04 Jun 2024) $
+; $LastChangedRevision: 32686 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/misc/interp.pro $
-; $Id: interp.pro 30508 2022-01-09 02:24:07Z davin-mac $
+; $Id: interp.pro 32686 2024-06-04 23:43:03Z dmitchell $
 ;-
 function interp,y,x,u,index=i,no_check_monotonic=ch_mon,no_extrapolate=no_extrap,interp_threshold=int_th, $
   ignore_nan=ignore_nan,last_value=last_value,missing = missing,xlog=xlog,ylog=ylog
@@ -54,6 +54,7 @@ function interp,y,x,u,index=i,no_check_monotonic=ch_mon,no_extrapolate=no_extrap
 
   if array_equal(x,u) then begin   ; quick check, improves speed in many cases
     dprint,dlevel=3,'Same time steps, no need to interpolate'
+    i = lindgen(n_elements(u))     ; need to define index in case interp_threshold is set (DLM, 2024-06-04)
     return,y
   endif
   ndimy = size(/n_dimension,y)

@@ -1,0 +1,377 @@
+1) UPDATING IDL PATH:
+
+The muser SPEDAS working copy is under the directory
+/home/muser/export_socware/idl_socware/. To update, cd into that
+directory and run svn update, the SVN passphrase is the same as for muser
+login.
+
+
+2) The following PFP L2/QL cronjobs are run by the muser user on mojo, deimos:
+
+MOJO JOBS:
+
+# once per day, manage L2 access
+17 11 * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/l2gen/private/mvn_manage_l2access.sh >/dev/null 2>&1
+
+# Once every half-hour, STA L2 process from L0 files
+ 22,52 * * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/l2gen/muser_sta_l2gen.sh >/dev/null 2>&1
+
+# run STA L2 reprocess from L2 files, should increment and only run once per day,
+ 7 4,7,10,13,16,19,22 * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/l2gen/muser_sta_l2reprocess.sh >/dev/null 2>&1
+
+# Once an hour, remove 0 length STATIC L2 log files
+40 * * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/l2gen/mvn_l2gen_remove_0logs.sh >/dev/null 2>&1
+
+# Once a day, process any new files for PFPL2 plots, MOVED TO MAJA, 2024-05-20, jmm
+55 11 * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/quicklook/run_pfpl2plot.sh >/dev/null 2>&1
+
+# Once a day, update spice kernels
+ 23 3 * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/l2gen/muser_spice_update.sh >/dev/null 2>&1
+
+
+#Once a day, reprocess QL instrument plots from 7,14,30 days ago
+ 44 10 * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/quicklook/run_mvn_over_shell30.sh >/dev/null 2>&1
+
+# Create QL plot directories for next year, most are created in processing, but not QL instrument plots
+0 12 25 12 * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/l2gen/private/add_yrdirql.csh >/dev/null 2>&1
+
+DEIMOS JOBS:
+# MAVEN SWE L2 Processing, moved to mojo, temporarily, 2015-05-11, moved
+# back 2015-05-29
+ 23,53 * * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/l2gen/run_swe_l2gen.sh >/dev/null 2>&1
+
+MAJA JOBS:
+
+# Process PFPL2 plots for the last 15 days, temporarily, 2023-10-19, jmm
+ 20 13 * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/quicklook/run_pfpl2plot15.sh >/dev/null 2>&1
+
+# Once a day, process any new files for PFPL2 plots, 2017-10-03, commented out in 2023 in favor of pfpl2plot15 job
+# 50 11 * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/quicklook/run_pfpl2plot.sh >/dev/null 2>&1
+
+# Once an hour, run SWE repad, This was stopped in 2024, restarted 2025-04-07
+ 14 * * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/l2gen/run_swe_repad.sh >/dev/null 2>&1
+
+The shell scripts are in the IDL path,
+/home/muser/export_socware/idl_socware/projects/maven/ in the l2gen,
+l2gen/private and quicklook directories.
+
+
+3) JOB DESCRIPTIONS:
+
+# once per day, manage L2 access
+17 11 * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/l2gen/private/mvn_manage_l2access.sh >/dev/null 2>&1
+
+The script mvn_manage_l2access.sh calls the IDL procedure
+mvn_manage_l2access for the 'pfp', 'sta', 'swe', and 'mag' directories
+under /disks/data/maven/data/sci. This program sets up the .htaccess
+files for the level 2 (l2) and quicklook (ql) subdirectories to
+password protect unreleased data. Also now manages STATIC 'l3'
+directories.
+
+# Once every half-hour, STA L2 process from L0 files
+ 22,52 * * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/l2gen/muser_sta_l2gen.sh >/dev/null 2>&1
+
+The script muser_sta_l2gen.sh picks up any new L0 files that have not
+yet been processed. The file creation time for the most recent L0
+files processed can be found in the file:
+/disks/data/maven/data/sci/sta/l2/most_recent_l0_processed.txt.  This
+process will wait for any L2 to L2 processes to finish before
+starting. Process log files are found in the directory
+/disks/mojo/home/maven/stalog, called run_sta_l2gen.txtYYYYMMDDhhmmss
+
+The STA L0 to L2 process also creates LPW tplot files in the
+directories under /disks/data/maven/data/sci/lpw/tplot_l0
+
+# run STA L2 reprocess from L2 files, should increment and only run once per day,
+ 7 4,7,10,13,16,19,22 * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/l2gen/muser_sta_l2reprocess.sh >/dev/null 2>&1
+
+The script muser_sta_l2reprocess.sh calls the program
+mvn_call_sta_l1l2.pro that reprocesses STATIC L2 files for 3, 10, 30,
+and 60 days ago. It is set up to run only once per day, and will not
+run if there is a current L0 to L2 process running. Process log files
+are found in the directory /disks/mojo/home/maven/stalog, called
+run_sta_l2reprocess.txtYYYYMMDDhhmmss
+
+
+# Once an hour, remove 0 length STATIC L2 log files
+40 * * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/l2gen/mvn_l2gen_remove_0logs.sh >/dev/null 2>&1
+
+If an L0 process does not find any new files, there is an empty log
+file. This process clears out empty log files.
+
+# Once a day, process any new files for PFPL2 plots
+55 11 * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/quicklook/run_pfpl2plot.sh >/dev/null 2>&1
+
+The script run_pfpl2plot.sh calls the mvn_call_pfpl2plot.pro routine
+that produces the PFP L2 browser plots, for any new L2 files created
+in the last day. These include the full-day, single-orbit, periapsis,
+and long-term plots created in the directory
+/disks/data/maven/data/sci/pfp/l2/plots.
+
+(Note that plots in
+/disks/data/maven/data/sci/pfp/ql/ are created by a different process
+that is called when the L0 files are moved into the database.)
+
+Now also includes spaceweather plots in the directory:
+/disks/data/maven/anc/ccmc, with 1, 3, and 7 day plots.
+
+# Once an hour, run SWE repad
+ 14 * * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/l2gen/run_swe_repad.sh >/dev/null 2>&1
+
+The script run_swe_repad.sh calls the program run_swe_repad.pro which
+calls the program mvn_call_swe_repad_daily.pro, which checks for new
+L1 mag data, and reprocesses SWEA pitch angle distribution data. The
+date for the most recent L1 mag data processed is held in the file
+/dsks/data/maven/data/sci/swe/l2/most_recent_l1mag_processed.txt.
+
+# Once a day, update spice kernels
+ 23 3 * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/l2gen/muser_spice_update.sh >/dev/null 2>&1
+
+The script muser_spice_update.sh calls mvn_load_spice.pro that downloads and loads the latest SPICE kernels.
+
+#Once a day, reprocess QL instrument plots from 7,14,30 days ago
+ 44 10 * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/quicklook/run_mvn_over_shell30.sh >/dev/null 2>&1
+
+This script reprocess the QL plots in
+/disks/data/maven/data/sci/pfp/ql/ for dates 7, 14 and 30 days ago, to
+be sure that any new missing data is filled in.
+
+# Create QL plot directories for next year, most are created in processing, but not QL instrument plots
+0 12 25 12 * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/l2gen/private/add_yrdirql.csh >/dev/null 2>&1
+
+On December 25, this script creates directories for the plots in
+/disks/data/maven/data/sci/pfp/ql/ for next year. Otherwise plots
+remain in a scratch directory.
+
+On DEIMOS:
+# MAVEN SWE L2 Processing,
+ 23,53 * * * * /bin/csh /home/muser/export_socware/idl_socware/projects/maven/l2gen/run_swe_l2gen.sh >/dev/null 2>&1
+
+The script run_swe_l2gen.sh calls the program mvn_call_swe_l2gen which
+runs the L0 to L2 process for new L0 files. The file creation time for
+the most recent L0 files processed can be found in the file:
+/disks/data/maven/data/sci/swe/l2/most_recent_l0_processed.txt.
+
+
+4) IF JOBS CRASH OR HANG OR NEED RESTARTING:
+
+FOR STATIC L0 -> L2
+
+Delete the file /disks/mojo/home/maven/muser/STAL2lock.txt 
+
+and the process will repeat for files created after the time listed in 
+
+/disks/data/maven/data/sci/sta/l2/most_recent_l0_processed.txt
+
+
+FOR STATIC L2 -> L2
+
+Delete the file /disks/mojo/home/maven/muser/STAL2Rlock.txt
+
+And the process will run dates after the time listed in 
+
+/disks/data/maven/data/sci/sta/l2/most_recent_l2_processed.txt
+
+FOR SWEA L0 -> L2
+
+Delete (on deimos) /mydisks/home/maven/muser/SWEL2lock.txt
+
+and the process will repeat for files created after the time listed in 
+
+/disks/data/maven/data/sci/swe/l2/most_recent_l0_processed.txt
+
+
+5) REPROCESSING DATA:
+
+For some reprocessing jobs, the most_recent_l0_processed.txt file can
+be edited and the automated process will pick up all L0 files created
+after this time. To reprocess a single day, it is best to call idl and
+run the appropriate program, e.g. mvn_sta_l2gen, date = '2???-??-??'
+for the appropriate date. Other reprocess scripts exist for more
+complicated reprocesses.
+
+NEVER 'touch' Level 0 files, unless absolutely necessary, since this will 
+trigger reprocessing of those files for all instruments.
+ 
+EXAMPLES:
+
+The best way to reprocess a small amount of data is to use the program that
+starts with "mvn_call_", and use the days_in keyword, e.g., 
+
+To reprocess STATIC L2 data for multiple days:
+
+mvn_call_sta_l2gen, days_in = ['2019-12-11', '2019-12-21'] ;for two days
+
+Or SWEA data:
+mvn_call_swe_l2gen, days_in = '2019-12-'+['01','02','03']
+
+Or PFP L2 plots;
+mvn_call_pfpl2plot, days_in = '2019-11-'+string(1+indgen(30), format='(i.2.2)') ;for a full month
+
+6) MAVEN STATIC BACKGROUND REPROCESSING:
+
+Running the MAVEN STATIC background file creation code:
+
+There are four levels of STATIC background calculation; for each
+level, a background is calculated and saved in a file, with the same
+variables as the STATIC L2 file, with data in the background
+variable. Files are created for app_ids = ['c0', 'c6', 'c8', 'ca',
+'d0', 'd1'].
+
+COMMAND LINE:
+
+To run from the IDL command line, for a single day
+
+tstart = '2020-09-15'
+mvn_sta_l2gen, date = tstart, temp_dir = './', iv_level = 1, /nocatch
+mvn_sta_l2gen, date = tstart, temp_dir = './', iv_level = 2, /nocatch
+mvn_sta_l2gen, date = tstart, temp_dir = './', iv_level = 3, /nocatch
+mvn_sta_l2gen, date = tstart, temp_dir = './', iv_level = 4, /nocatch
+
+The temp_dir keyword is used for temporary files created during CDF
+compression/uncompression. Here it goes into the local working
+directory.  The output files are eventually written to the datatbase,
+/disks/data/maven/data/sci/sta/iv1, 2, 3, 4. All of these directories
+and files are group-writeable or all-writeable.
+
+There is an error handling procedure in mvn_sta_l2gen that will just
+go to the save file in the event of an IDL problem (This is there
+mostly to handle bad or missing SPICE data, or issues with LPW load.)
+You can avoid this by setting the /nocatch keyword in the call to
+mvn_sta_l2gen. (I forgot that the /nocatch option existed, but it's
+pretty useful...)
+
+The processing may need data from the following day at the previous
+level, so when running in the batch job, the IDL sequence looks like
+this:
+
+tstart = time_double(date)
+one_day = 86400.0d0
+mvn_sta_l2gen, date = time_string(tstart), temp_dir = './', iv_level = 1, /nocatch
+mvn_sta_l2gen, date = time_string(tstart-one_day), temp_dir = './', iv_level = 2, /nocatch
+mvn_sta_l2gen, date = time_string(tstart-2.0*one_day), temp_dir = './', iv_level = 3, /nocatch
+mvn_sta_l2gen, date = time_string(tstart-3.0*one_day), temp_dir = './', iv_level = 4, /nocatch
+
+This insures that for each level, the data for the following day at
+the previous level is there.
+
+
+BATCH JOB:
+
+This describes the cron job that can be used to process all levels at
+the same time; there are also processes for each individual level the
+can be run, (just replace ivall with iv1, 2, 3 or 4). Examples for
+scripts are in the spdsoft/projects/maven/sta/l2util directory.
+
+To setup (if you are user jimm):
+
+Create a working directory:
+
+       mkdir /disks/maja/home/maven/jimm/
+
+Create a subdirectory, called mvn_sta_ivall_1day0:
+
+       mkdir /disks/maja/home/maven/jimm/mvn_sta_ivall_1day0/
+
+Copy the program mvn_sta_ivall_1day.pro from your local SVN working
+directory into the subdirectory:
+
+       cp /home/jimm/themis_sw/projects/maven/sta/l2util/mvn_sta_ivall_1day.pro /disks/maja/home/maven/jimm/mvn_sta_ivall_1day0/
+
+In the subdirectory, create files:
+
+       mvn_sta_ivall_1day_start_time.txt
+
+and:
+
+       mvn_sta_ivall_1day_end_time.txt
+
+The start time file contains the start date, e.g., 2020-09-15/00:00:00,
+and the end time file will create the end date, e.g., 2020-10-01.
+
+
+(There is also an IDL process called mvn_sta_setup_ivallprocess, that
+accomplishes the same thing, and can be used to create an aribtrary
+number of sub-directories for an arbitrary number of processes, but
+using more than one process can cause memory problems, so it's a good
+idea to stick with one process.)
+
+The program mvn_sta_ivall_1day.pro processes 1 day of data. First it
+creates a file:
+
+       mvn_sta_ivall_1day_lock
+
+It reads the start_time file, and runs all four background levels for
+the given start date, which creates files for that date for iv1, one
+day ealier for iv2, another day earlier for iv3 and another day
+earlier for iv4.
+
+When it finishes, it increments the start date, writes a new
+_start_time file, and deletes the _lock file.
+
+***If the process fails, then it never deletes the lock file, and all
+processing in that subdirectory stops.***
+
+Eventually, the start_time will equal the end_time. When that happens
+the processing stops.
+
+SHELL SCRIPT FOR BATCH JOB:
+
+The next step is to create a shell script that can be called from a
+cronjob. The shell script sets up the IDL path and runs the batch
+job. For this example, the script is in the maven/l2gen directory:
+
+     /home/jimm/themis_sw/projects/maven/l2gen/jmm_l2gen_multiprocess_b.csh
+
+This will need to be edited for non-jimm users, there is also an
+example for the muser user:
+
+     /home/jimm/themis_sw/projects/maven/l2gen/mvn_l2gen_multiprocess_b.csh
+
+The only difference is the IDL path, which should be setup for the current user.
+
+To run the script:
+
+     /bin/csh /home/jimm/themis_sw/projects/maven/l2gen/jmm_l2gen_multiprocess_b.csh mvn_sta_ivall_1day 1 0 /disks/maja/home/maven/jimm COMMENT
+
+The inputs are:
+                mvn_sta_ivall_1day  (the IDL program name)
+                1 (the number of sub-processes, in sub-directories of /disks/maja/home/maven/jimm)
+		0 (an offset, used if different computers are running sub-processes in the same directory, otherwise 0)
+		/disks/maja/home/maven/jimm (the working directory)
+		COMMENT (an identifier, can be anything)
+
+The shell script sets up the IDL path. Then for each subdirectory it
+cd's into that subdirectory. Next, in each subdirectory it checks for
+the _lock file. If there is no _lock file then the process starts an
+IDL job. If the _lock file is present that means there's a job
+running, or crashed, and nothing happens.
+
+This is designed to be called from a cronjob that runs multiple times
+per day. For example, here is a crontab entry: to create it call from
+the Unix command line:
+
+    crontab -e
+
+Then insert a cron entry:
+
+# STA IVALL process
+*/5 * * * * /bin/csh /home/jimm/themis_sw/projects/maven/l2gen/jmm_l2gen_multiprocess_b.csh mvn_sta_ivall_1day 1 0 /mydisks/home/maven/jimm sta_ivall_test_20220104 >/dev/null 2>&1
+
+(In the command the  >/dev/null 2>&1 insures that no extra log files or emails are generated)
+
+This runs the shell script every five minutes. So every five minutes,
+it checks for the lock file, and if it finds no file it processes the
+date in the start_time file, increments the date, deletes the _lock
+file. Then, the next 5 minute multiple, it processes the next date,
+until start_time = end_time.
+
+
+
+
+
+
+7) ADDING NEW USER FOR MAVEN DATA ACCESS:
+
+See: /disks/data/maven/pfp/.hidden/README.html
+

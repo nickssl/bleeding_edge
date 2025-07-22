@@ -20,7 +20,7 @@
 ;               you want to display timespan in distant future.
 ;               Should not be more than a couple hours apart.  Format
 ;               of TMIN and TMAX must be the type of string accepted
-;               by str_to_time() or a double float in seconds since
+;               by time_double() or a double float in seconds since
 ;               1970.  ORBIT must not be set if these keywords are to
 ;               be used.  These times will be labeled on the map as t1
 ;               and t2.  (Good for showing AOS and LOS taken from
@@ -294,13 +294,13 @@ endif else time_N=middle_time
 
 center_time = time_N
 if (!VERSION.RELEASE LE '5.4') then begin
-    hr_min = (str_sep((str_sep(time_to_str(center_time),'/'))(1),':'))(0:1)
+    hr_min = (str_sep((str_sep(time_string(center_time),'/'))(1),':'))(0:1)
 endif else begin
-    hr_min = (strsplit((strsplit(time_to_str(center_time),'/',/EXTRACT))(1),':',/EXTRACT))(0:1)
+    hr_min = (strsplit((strsplit(time_string(center_time),'/',/EXTRACT))(1),':',/EXTRACT))(0:1)
 endelse
 gmt_hrs = float(hr_min(0)) + float(hr_min(1))/60.0
 noon_long  = (!pi - gmt_hrs*(!pi/12.)) MOD (2*!pi)
-t0 = str_to_time('96-12-21/0:00') ;
+t0 = time_double('96-12-21/0:00') ;
 ang = (center_time - t0)/(365.25d*24d*3600d)*2d*!pi
 tilt = .410152
 noon_lat = -(tilt * cos(ang))
@@ -339,8 +339,8 @@ endif
 ; MAKE THE MAP (This sets up the plotting axes.)
 
 if keyword_set(orbit) $
-  then maptitle = 'ORBIT ' + strtrim(string(orbit), 2)+'  '+time_to_str(tmin) $
-else maptitle = time_to_str(tmin) + '  ' + time_to_str(tmax)
+  then maptitle = 'ORBIT ' + strtrim(string(orbit), 2)+'  '+time_string(tmin) $
+else maptitle = time_string(tmin) + '  ' + time_string(tmax)
 
 maptitle = '!3' + maptitle
 if keyword_set(zoom) then scale = 81.25e6/float(zoom)/(win/640.)
@@ -365,7 +365,7 @@ if keyword_set(almanac_info) then begin
     ofname = ofpieces(n_elements(ofpieces) - 1)
     if keyword_set(drag_prop) then drag_inclu='with drag.' $
     else drag_inclu='without drag.'
-    last_epoch = time_to_str(find_last_epoch(orbit_file))
+    last_epoch = time_string(find_last_epoch(orbit_file))
     propinfo = 'Propagation: '+ofname+' ('+last_epoch+') '+drag_inclu
     xyouts, .29, .955, propinfo, /norm, color=col_tags, charsize=.90
 endif
@@ -395,7 +395,7 @@ xyouts, citylng, citylat, citytag, color=black
 get_data,'r',data=tmp	
 ;pos_arr = fa_orbit.fa_pos/6372.1 ; Position in GEI, km --> Re
 store_data, 'fa_pos_re', data={x:clock, y:tmp.y/6372.1}
-coord_trans, 'fa_pos_re', 'fa_pos_gse', 'GEIGSE'
+cotrans, 'fa_pos_re', 'fa_pos_gse', /GEI2GSE
 get_data, 'fa_pos_gse', data=gse_stc
 store_data, 'fa_pos_re', /delete
 store_data, 'fa_pos_gse', /delete
@@ -483,7 +483,7 @@ if (plot_craft) then begin
 	  xyouts, .8, .95, /norm, color=col_tags, $
             'CURRENT FAST INFO' + $
             '!C------------' + $
-            '!CUT: ' + (str_sep(time_to_str(now_time), '/'))(1) + $
+            '!CUT: ' + (str_sep(time_string(now_time), '/'))(1) + $
             '!CORBIT: ' + strtrim(string(current_orb), 2) + $
             '!CFLAT: ' + string(format='(F6.1)', Flat(pos_ind)) + $
             '!CFLNG: ' + string(format='(F6.1)', Flng(pos_ind))
@@ -491,7 +491,7 @@ if (plot_craft) then begin
 	  xyouts, .8, .95, /norm, color=col_tags, $
             'CURRENT FAST INFO' + $
             '!C------------' + $
-            '!CUT: ' + (strsplit(time_to_str(now_time), '/', /EXTRACT))(1) + $
+            '!CUT: ' + (strsplit(time_string(now_time), '/', /EXTRACT))(1) + $
             '!CORBIT: ' + strtrim(string(current_orb), 2) + $
             '!CFLAT: ' + string(format='(F6.1)', Flat(pos_ind)) + $
             '!CFLNG: ' + string(format='(F6.1)', Flng(pos_ind))
@@ -566,12 +566,12 @@ endif else begin
 endelse
 
 if (!VERSION.RELEASE LE '5.4') then begin
-    date_time = str_sep(time_to_str(time_N), '/')	; time_N is reference time
+    date_time = str_sep(time_string(time_N), '/')	; time_N is reference time
     year = fix(strmid(date_time(0), 0, 4))		; 4-digit integer
     N_hms = fix(str_sep(date_time(1),':'))		; [hh,mm,ss]
     UT_hrs = N_hms(0) + N_hms(1)/60.		; Hours into UT day
 endif else begin
-    date_time = strsplit(time_to_str(time_N), '/', /EXTRACT)	; time_N is reference time
+    date_time = strsplit(time_string(time_N), '/', /EXTRACT)	; time_N is reference time
     year = fix(strmid(date_time(0), 0, 4))		; 4-digit integer
     N_hms = fix(strsplit(date_time(1),':', /EXTRACT))		; [hh,mm,ss]
     UT_hrs = N_hms(0) + N_hms(1)/60.		; Hours into UT day
@@ -644,17 +644,17 @@ xyouts, line_xpos, line_ypos, /device, legend, color=colors
 if shade(0) NE -1 then begin
     if (!VERSION.RELEASE LE '5.4') then begin
       if data_break NE (n_datapts - 1) $
-        then ecl_ex = 'Eclipse Ext: '+(str_sep(time_to_str(gse_stc.x(data_break)), '/'))(1) $
+        then ecl_ex = 'Eclipse Ext: '+(str_sep(time_string(gse_stc.x(data_break)), '/'))(1) $
       else ecl_ex = ''
       if shade(0) NE 0 $
-        then ecl_en = 'Eclipse Ent: '+(str_sep(time_to_str(gse_stc.x(shade(0))), '/'))(1) $
+        then ecl_en = 'Eclipse Ent: '+(str_sep(time_string(gse_stc.x(shade(0))), '/'))(1) $
       else ecl_en = ''
     endif else begin
       if data_break NE (n_datapts - 1) $
-        then ecl_ex = 'Eclipse Ext: '+(strsplit(time_to_str(gse_stc.x(data_break)), '/', /EXTRACT))(1) $
+        then ecl_ex = 'Eclipse Ext: '+(strsplit(time_string(gse_stc.x(data_break)), '/', /EXTRACT))(1) $
       else ecl_ex = ''
       if shade(0) NE 0 $
-        then ecl_en = 'Eclipse Ent: '+(strsplit(time_to_str(gse_stc.x(shade(0))), '/', /EXTRACT))(1) $
+        then ecl_en = 'Eclipse Ent: '+(strsplit(time_string(gse_stc.x(shade(0))), '/', /EXTRACT))(1) $
       else ecl_en = ''
     endelse
     ecl_label = [ecl_ex, ecl_en]
@@ -670,11 +670,11 @@ endif
 
 if keyword_set(time1) AND keyword_set(time2) then begin
     if (!VERSION.RELEASE LE '5.4') then begin
-        t12_label = ['t1 = '+(str_sep(time_to_str(time1s),'/'))(1), $
-                     't2 = '+(str_sep(time_to_str(time2s),'/'))(1)  ]
+        t12_label = ['t1 = '+(str_sep(time_string(time1s),'/'))(1), $
+                     't2 = '+(str_sep(time_string(time2s),'/'))(1)  ]
     endif else begin
-        t12_label = ['t1 = '+(strsplit(time_to_str(time1s),'/',/EXTRACT))(1), $
-                     't2 = '+(strsplit(time_to_str(time2s),'/',/EXTRACT))(1)  ]
+        t12_label = ['t1 = '+(strsplit(time_string(time1s),'/',/EXTRACT))(1), $
+                     't2 = '+(strsplit(time_string(time2s),'/',/EXTRACT))(1)  ]
     endelse
     leg_loc = convert_coord(.02, .05, /norm, /to_device)
     line_xpos = make_array(2, /int, value=leg_loc(0))
@@ -684,7 +684,7 @@ if keyword_set(time1) AND keyword_set(time2) then begin
     xyouts, line_xpos, line_ypos, /device, t12_label, color=col_tags
 endif
 if keyword_set(xmark) then xyouts, .02, .05, /normal, col=col_tags, $
-  'X = '+time_to_str(xmark)
+  'X = '+time_string(xmark)
 
 ; Add POLAR spacecraft footprint if requested
 
@@ -709,14 +709,14 @@ if keyword_set(polar) then begin
     pz = sin(polar_flat)
     linesep = min(sqrt((fx-px)^2 + (fy-py)^2 + (fz-pz)^2), cji)
     ;;angsep = asin(linesep/2d)*!radeg
-    ;;print, 'Geocent Ang Sep: ', time_to_str(fast_times(cji)), angsep, ds
+    ;;print, 'Geocent Ang Sep: ', time_string(fast_times(cji)), angsep, ds
     
     ;; Label Conjunction
     
     if (!VERSION.RELEASE LE '5.4') then begin
-        cnj_time = (str_sep(time_to_str(fast_times(cji)), '/'))(1)
+        cnj_time = (str_sep(time_string(fast_times(cji)), '/'))(1)
     endif else begin
-        cnj_time = (strsplit(time_to_str(fast_times(cji)), '/', /EXTRACT))(1)
+        cnj_time = (strsplit(time_string(fast_times(cji)), '/', /EXTRACT))(1)
     endelse
 
     d_lat = string((fast_flat(cji) - polar_flat(cji))*!radeg, format='(F5.1)')

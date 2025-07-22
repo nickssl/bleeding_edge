@@ -130,9 +130,9 @@
 ;  4. All calculations are done internally in double precision
 ;
 ;
-; $LastChangedBy: jwl $
-; $LastChangedDate: 2022-09-16 16:30:39 -0700 (Fri, 16 Sep 2022) $
-; $LastChangedRevision: 31098 $
+; $LastChangedBy: nikos $
+; $LastChangedDate: 2025-06-22 10:49:35 -0700 (Sun, 22 Jun 2025) $
+; $LastChangedRevision: 33400 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/external/IDL_GEOPACK/trace/trace2iono.pro $
 ;-
 
@@ -383,10 +383,7 @@ pro trace2iono, tarray, in_pos_array, out_foot_array, out_trace_array=out_trace_
         endif else if in_coord2 eq 'gsm' then begin
            cotrans,in_pos_array2,in_pos_array2,tarray2, /gsm2gse
         endif 
-        ; cotrans transformed the coordinates to GSE, use Geopack to transform to GSW
-        geopack_recalc_08, ts[0].year, ts[0].doy, ts[0].hour, ts[0].min, ts[0].sec, tilt = tilt
-        geopack_conv_coord_08, in_pos_array2[*,0], in_pos_array2[*,1], in_pos_array2[*,2], x_out_gsw, y_out_gsw, z_out_gsw, /from_gse, /to_gsw
-        in_pos_array2 = [[x_out_gsw], [y_out_gsw], [z_out_gsw]]
+        ; GSE->GSW is inside the main loop because it is time dependent 
     endif else begin
         if in_coord2 eq 'gei' then begin
            cotrans,in_pos_array2,in_pos_array2,tarray2,/gei2gse
@@ -576,19 +573,32 @@ pro trace2iono, tarray, in_pos_array, out_foot_array, out_trace_array=out_trace_
           
           if geopack_2008 then begin
               ; Use Geopack 2008
+
+              ; cotrans transformed the coordinates to GSE, use Geopack to transform to GSW (required for geopack_2008)
+              geopack_conv_coord_08, in_pos_array2[i, 0], in_pos_array2[i, 1], in_pos_array2[i, 2], x_out_gsw, y_out_gsw, z_out_gsw, /from_gse, /to_gsw              
               if keyword_set(standard_mapping) then begin
                   if ta16supported eq 1 then begin              
-                      geopack_trace_08, in_pos_array2[i, 0], in_pos_array2[i, 1], in_pos_array2[i, 2], dir, par_iter, out_foot_x, out_foot_y, out_foot_z, R0 = R02, RLIM = RLIM2, fline = trgsm_out, tilt = tilt, IGRF = IGRF, T89 = vT89, T96 = vT96, T01 = vT01, TS04 = vTS04, TS07 = vTS07, TA15N = vTA15N, TA15B = vTA15B, TA16 = vTA16, _extra = _extra 
+                      geopack_trace_08, x_out_gsw, y_out_gsw, z_out_gsw, dir, par_iter, out_foot_x, out_foot_y, out_foot_z, R0 = R02, RLIM = RLIM2, fline = trgsm_out, tilt = tilt, IGRF = IGRF, T89 = vT89, T96 = vT96, T01 = vT01, TS04 = vTS04, TS07 = vTS07, TA15N = vTA15N, TA15B = vTA15B, TA16 = vTA16, _extra = _extra 
                   endif else begin
-                      geopack_trace_08, in_pos_array2[i, 0], in_pos_array2[i, 1], in_pos_array2[i, 2], dir, par_iter, out_foot_x, out_foot_y, out_foot_z, R0 = R02, RLIM = RLIM2, fline = trgsm_out, tilt = tilt, IGRF = IGRF, T89 = vT89, T96 = vT96, T01 = vT01, TS04 = vTS04, TS07 = vTS07, TA15N = vTA15N, TA15B = vTA15B, _extra = _extra
+                      geopack_trace_08, x_out_gsw, y_out_gsw, z_out_gsw, dir, par_iter, out_foot_x, out_foot_y, out_foot_z, R0 = R02, RLIM = RLIM2, fline = trgsm_out, tilt = tilt, IGRF = IGRF, T89 = vT89, T96 = vT96, T01 = vT01, TS04 = vTS04, TS07 = vTS07, TA15N = vTA15N, TA15B = vTA15B, _extra = _extra
                   endelse
               endif else begin
                   if ta16supported eq 1 then begin
-                      geopack_trace_08, in_pos_array2[i, 0], in_pos_array2[i, 1], in_pos_array2[i, 2], dir, par_iter, out_foot_x, out_foot_y, out_foot_z, R0 = R02, RLIM = RLIM2, fline = trgsm_out, tilt = tilt, IGRF = IGRF, T89 = vT89, T96 = vT96, T01 = vT01, TS04 = vTS04, TS07 = vTS07, TA15N = vTA15N, TA15B = vTA15B, TA16 = vTA16, /refine, /ionosphere, _extra = _extra
+                      geopack_trace_08, x_out_gsw, y_out_gsw, z_out_gsw, dir, par_iter, out_foot_x, out_foot_y, out_foot_z, R0 = R02, RLIM = RLIM2, fline = trgsm_out, tilt = tilt, IGRF = IGRF, T89 = vT89, T96 = vT96, T01 = vT01, TS04 = vTS04, TS07 = vTS07, TA15N = vTA15N, TA15B = vTA15B, TA16 = vTA16, /refine, /ionosphere, _extra = _extra
                   endif else begin
-                      geopack_trace_08, in_pos_array2[i, 0], in_pos_array2[i, 1], in_pos_array2[i, 2], dir, par_iter, out_foot_x, out_foot_y, out_foot_z, R0 = R02, RLIM = RLIM2, fline = trgsm_out, tilt = tilt, IGRF = IGRF, T89 = vT89, T96 = vT96, T01 = vT01, TS04 = vTS04, TS07 = vTS07, TA15N = vTA15N, TA15B = vTA15B, /refine, /ionosphere, _extra = _extra
+                      geopack_trace_08, x_out_gsw, y_out_gsw, z_out_gsw, dir, par_iter, out_foot_x, out_foot_y, out_foot_z, R0 = R02, RLIM = RLIM2, fline = trgsm_out, tilt = tilt, IGRF = IGRF, T89 = vT89, T96 = vT96, T01 = vT01, TS04 = vTS04, TS07 = vTS07, TA15N = vTA15N, TA15B = vTA15B, /refine, /ionosphere, _extra = _extra
                   endelse              
-              endelse
+              endelse              
+
+              ; GSW->GSE for the trace
+              geopack_conv_coord_08, trgsm_out[*,0], trgsm_out[*,1], trgsm_out[*,2], x_trout_gse, y_trout_gse, z_trout_gse, /from_gsw, /to_gse
+              trgsm_out = [[x_trout_gse], [y_trout_gse], [z_trout_gse]]
+              
+              ; GSW->GSE for the foot point
+              geopack_conv_coord_08, out_foot_x, out_foot_y, out_foot_z, x_footout_gse, y_footout_gse, z_footout_gse, /from_gsw, /to_gse
+              out_foot_x=x_footout_gse
+              out_foot_y=y_footout_gse
+              out_foot_z=z_footout_gse  
           endif else begin
               ; Use Geopack 2005
               if keyword_set(standard_mapping) then begin
@@ -610,7 +620,7 @@ pro trace2iono, tarray, in_pos_array, out_foot_array, out_trace_array=out_trace_
           out_foot_array[i, 0] = out_foot_x
           out_foot_array[i, 1] = out_foot_y
           out_foot_array[i, 2] = out_foot_z
-    
+          
           ;store pointer to field trace
           tr_ptr_arr[i] = ptr_new(trgsm_out)
     
@@ -667,19 +677,27 @@ pro trace2iono, tarray, in_pos_array, out_foot_array, out_trace_array=out_trace_
              
              if geopack_2008 then begin
                  ; Geopack 2008
+                 ; cotrans transformed the coordinates to GSE, use Geopack to transform to GSW (required for geopack_2008)
+                 geopack_conv_coord_08, rgsm_x, rgsm_y, rgsm_z, x_out_gsw, y_out_gsw, z_out_gsw, /from_gse, /to_gsw
                  if keyword_set(standard_mapping) then begin
                     if ta16supported eq 1 then begin
-                      geopack_trace_08,rgsm_x,rgsm_y,rgsm_z,dir,par_iter,foot_x,foot_y,foot_z,R0=R02,RLIM=RLIM2,tilt=tilt,IGRF=IGRF,T89 = vT89, T96 = vT96, T01 = vT01, TS04 = vTS04, TS07 = vTS07, TA15N = vTA15N, TA15B = vTA15B, TA16 = vTA16,_extra=_extra 
+                      geopack_trace_08,x_out_gsw,y_out_gsw,z_out_gsw,dir,par_iter,foot_x,foot_y,foot_z,R0=R02,RLIM=RLIM2,tilt=tilt,IGRF=IGRF,T89 = vT89, T96 = vT96, T01 = vT01, TS04 = vTS04, TS07 = vTS07, TA15N = vTA15N, TA15B = vTA15B, TA16 = vTA16,_extra=_extra 
                     endif else begin
-                      geopack_trace_08,rgsm_x,rgsm_y,rgsm_z,dir,par_iter,foot_x,foot_y,foot_z,R0=R02,RLIM=RLIM2,tilt=tilt,IGRF=IGRF,T89 = vT89, T96 = vT96, T01 = vT01, TS04 = vTS04, TS07 = vTS07, TA15N = vTA15N, TA15B = vTA15B,_extra=_extra                      
+                      geopack_trace_08,x_out_gsw,y_out_gsw,z_out_gsw,dir,par_iter,foot_x,foot_y,foot_z,R0=R02,RLIM=RLIM2,tilt=tilt,IGRF=IGRF,T89 = vT89, T96 = vT96, T01 = vT01, TS04 = vTS04, TS07 = vTS07, TA15N = vTA15N, TA15B = vTA15B,_extra=_extra                      
                     endelse
                  endif else begin
                     if ta16supported eq 1 then begin                 
-                      geopack_trace_08,rgsm_x,rgsm_y,rgsm_z,dir,par_iter,foot_x,foot_y,foot_z,R0=R02,RLIM=RLIM2,tilt=tilt,IGRF=IGRF,T89 = vT89, T96 = vT96, T01 = vT01, TS04 = vTS04, TS07 = vTS07, TA15N = vTA15N, TA15B = vTA15B, TA16 = vTA16, /refine,/ionosphere,_extra=_extra
+                      geopack_trace_08,x_out_gsw,y_out_gsw,z_out_gsw,dir,par_iter,foot_x,foot_y,foot_z,R0=R02,RLIM=RLIM2,tilt=tilt,IGRF=IGRF,T89 = vT89, T96 = vT96, T01 = vT01, TS04 = vTS04, TS07 = vTS07, TA15N = vTA15N, TA15B = vTA15B, TA16 = vTA16, /refine,/ionosphere,_extra=_extra
                     endif else begin
-                      geopack_trace_08,rgsm_x,rgsm_y,rgsm_z,dir,par_iter,foot_x,foot_y,foot_z,R0=R02,RLIM=RLIM2,tilt=tilt,IGRF=IGRF,T89 = vT89, T96 = vT96, T01 = vT01, TS04 = vTS04, TS07 = vTS07, TA15N = vTA15N, TA15B = vTA15B, /refine,/ionosphere,_extra=_extra
+                      geopack_trace_08,x_out_gsw,y_out_gsw,z_out_gsw,dir,par_iter,foot_x,foot_y,foot_z,R0=R02,RLIM=RLIM2,tilt=tilt,IGRF=IGRF,T89 = vT89, T96 = vT96, T01 = vT01, TS04 = vTS04, TS07 = vTS07, TA15N = vTA15N, TA15B = vTA15B, /refine,/ionosphere,_extra=_extra
                     endelse                  
                  endelse
+                 
+                 ; GSW->GSE for the foot point
+                 geopack_conv_coord_08, foot_x, foot_y, foot_z, x_foot_gse, y_foot_gse, z_foot_gse, /from_gsw, /to_gse
+                 foot_x=x_foot_gse
+                 foot_y=y_foot_gse
+                 foot_z=z_foot_gse
              endif else begin
                  ; Geopack 2005
                  if keyword_set(standard_mapping) then begin
@@ -721,14 +739,11 @@ pro trace2iono, tarray, in_pos_array, out_foot_array, out_trace_array=out_trace_
           
           ;all points within each trace have the same time  
           t_temp = replicate(tarray2[i],s_temp[0])
-    
+
           ;convert trace into the output coordinate system
           if geopack_2008 then begin
-              ; if geopack 2008 is being used, need to convert back to GSM
-              geopack_conv_coord_08, tr_temp[*,0], tr_temp[*,1], tr_temp[*,2], x_out_gse, y_out_gse, z_out_gse, /from_gsw, /to_gse
-              tr_temp = [[x_out_gse], [y_out_gse], [z_out_gse]]
-              ; convert from GSE to GSM
-              cotrans, tr_temp, tr_temp, t_temp, /gse2gsm
+            ; if geopack 2008 is being used, need to convert from GSE to GSM
+            cotrans, tr_temp, tr_temp, t_temp, /gse2gsm
           endif
           
           if out_coord2 eq 'gei' then begin
@@ -752,8 +767,6 @@ pro trace2iono, tarray, in_pos_array, out_foot_array, out_trace_array=out_trace_
     
     ; if geopack 2008 is being used, need to convert back to GSM
     if geopack_2008 then begin
-        geopack_conv_coord_08, out_foot_array[*,0], out_foot_array[*,1], out_foot_array[*,2], x_footout_gse, y_footout_gse, z_footout_gse, /from_gsw, /to_gse
-        out_foot_array = [[x_footout_gse], [y_footout_gse], [z_footout_gse]]
         ; convert from GSE to GSM
         cotrans, out_foot_array, out_foot_array, tarray2, /gse2gsm
     endif

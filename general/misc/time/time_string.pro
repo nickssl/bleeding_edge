@@ -90,15 +90,16 @@ end
 ;  time_string(1514851198) = 2018-01-01/23:59:58 (Correct!)  
 ;
 ;CREATED BY:    Davin Larson  Oct 1996
-; $LastChangedBy: nikos $
-; $LastChangedDate: 2018-07-09 14:31:15 -0700 (Mon, 09 Jul 2018) $
-; $LastChangedRevision: 25457 $
+; $LastChangedBy: davin-mac $
+; $LastChangedDate: 2025-05-24 15:55:33 -0700 (Sat, 24 May 2025) $
+; $LastChangedRevision: 33332 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/misc/time/time_string.pro $
 ;-
 function time_string,time0, $
    format = format,precision=prec,epoch=epoch,date_only=date_only, $
    tformat=tformat, $
    local_time=local_time, $
+   MMDDYYYY=MMDDYYYY,  $
    is_local_time=is_local_time, $
    msec = msec, sql=sql, autoprec=autoprec, deltat=dt,timezone=timezone,badstring=badstring,escape_seq=escape_seq
 
@@ -121,7 +122,7 @@ endif
 
 if size(/type,time0) eq 4 and n_elements(prec) eq 0  then prec=-1
 
-if size(/type,time0) ne 8 then time = time_struct(time0,epoch=epoch,timezone=timezone,local_time=local_time,is_local_time=is_local_time) $
+if size(/type,time0) ne 8 then time = time_struct(time0,epoch=epoch,timezone=timezone,local_time=local_time,is_local_time=is_local_time,mmddyyyy=mmddyyyy) $
 else time = time0                               ; Force input into a structure
 
 if keyword_set(tformat) then begin

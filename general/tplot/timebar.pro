@@ -1,5 +1,5 @@
 PRO timebar,t1,color=color,linestyle=linestyle,thick=thick,verbose=verbose,$
-            varname=varname,between=between,transient=transient,databar=databar
+            varname=varname,between=between,transient=transient,databar=databar,labels=labels
 ;+
 ;NAME:                  timebar
 ;PURPOSE:
@@ -154,6 +154,10 @@ PRO timebar,t1,color=color,linestyle=linestyle,thick=thick,verbose=verbose,$
       tp = xp[0] + (tp-xr[0])/(xr[1]-xr[0]) * (xp[1]-xp[0])
       if tp ge xp[0] and tp le xp[1] then begin
 	      plots,[tp,tp]  ,yp ,color=color[i],linestyle=linestyle[i],thick=thick[i],/normal
+	      ; Add labels
+	      if n_elements(labels) eq nt then begin
+	        xyouts,tp,yp[-1]*1.005,labels[i],align=0.5,color=0b,charsize=1,charthick=1,/normal
+	      endif
       endif else if keyword_set(verbose) then $
 	dprint, 'Time '+time_string(t[i])+' is out of trange.'
     endfor

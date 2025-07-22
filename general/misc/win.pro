@@ -8,8 +8,10 @@
 ;  monitor.  XPOS and YPOS are used to position windows within the super
 ;  monitor; however, the coordinate system is not known in advance, and
 ;  when you attempt to place a window entirely or partially out of bounds,
-;  IDL forces the window inbounds, so that it can appear in an unexpected
-;  location.
+;  it can appear in an unexpected location, depending on your window
+;  server.  (IDL can only make a request.  The window server will try to
+;  to honor that request, but if there's a problem the server may do 
+;  something different and unexpected.)
 ;
 ;  This procedure divides the super monitor back into physical monitors
 ;  and allows you to choose a monitor and place a window relative to the
@@ -137,6 +139,8 @@
 ;                  Set this keyword to a number N > 5 to display the small
 ;                  windows for N seconds.
 ;
+;       LIST:      List the existing windows and their dimensions.
+;
 ;       MONITOR:   Put window in this monitor.  If no monitor is set by
 ;                  input or keyword, then the new window is placed in
 ;                  the primary monitor.
@@ -257,8 +261,8 @@
 ;                  separately in the usual way.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-09-05 08:51:31 -0700 (Tue, 05 Sep 2023) $
-; $LastChangedRevision: 32076 $
+; $LastChangedDate: 2025-02-03 13:32:18 -0800 (Mon, 03 Feb 2025) $
+; $LastChangedRevision: 33109 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/misc/win.pro $
 ;
 ;CREATED BY:	David L. Mitchell  2020-06-03
@@ -270,10 +274,12 @@ pro win, wnum, mnum, monitor=monitor, dx=dx, dy=dy, corner=corner, full=full, $
                   yfull=yfull, aspect=aspect, show=show, secondary=secondary, $
                   relative=relative, top=top, bottom=bottom, right=right, left=left, $
                   middle=middle, clone=clone, setprime=setprime, silent=silent, $
-                  tcalib=tcalib, xpos=xpos, ypos=ypos, _extra=extra
+                  tcalib=tcalib, xpos=xpos, ypos=ypos, list=list, _extra=extra
 
   @putwin_common
   @colors_com
+
+  device, window_state=ws
 
 ; Query the operating system to get monitor information.
 ; Silently act like WINDOW until CONFIG is set.
@@ -283,13 +289,13 @@ pro win, wnum, mnum, monitor=monitor, dx=dx, dy=dy, corner=corner, full=full, $
       mnames = oInfo->GetMonitorNames()
       numMons = oInfo->GetNumberOfMonitors()
       rects = oInfo->GetRectangles()
-      primon = oInfo->GetPrimaryMonitorIndex()
+      primon = fix(oInfo->GetPrimaryMonitorIndex())
     obj_destroy, oInfo
 
     if (numMons gt 2) then begin
       j = sort(rects[0,1:*]) + 1
       rects = rects[*,[0,j]]
-      primon = 1L  ; left-most external
+      primon = 1  ; left-most external
     endif
 
     mons = indgen(numMons)
@@ -298,9 +304,9 @@ pro win, wnum, mnum, monitor=monitor, dx=dx, dy=dy, corner=corner, full=full, $
 
     mgeom = rects
     mgeom[1,*] = rects[3,primon] - rects[3,*] - rects[1,*]
-    maxmon = numMons - 1
-    primarymon = primon
-    secondarymon = secmon
+    maxmon = fix(numMons) - 1
+    primarymon = fix(primon)
+    secondarymon = fix(secmon)
 
     tbar = 22           ; MacOS
     if (strmatch(mnames[0], ':?')) then begin
@@ -340,7 +346,8 @@ pro win, wnum, mnum, monitor=monitor, dx=dx, dy=dy, corner=corner, full=full, $
 
   if (keyword_set(stat) or keyword_set(show)) then begin
     if (~windex) then begin
-      print,"Win is disabled (acts like window).  Use 'win, /config' to enable."
+      if (blab) then print,"Win is disabled (acts like window).  Use 'win, /config' to enable."
+      config = {enable:0}
       return
     endif
 
@@ -371,43 +378,103 @@ pro win, wnum, mnum, monitor=monitor, dx=dx, dy=dy, corner=corner, full=full, $
       wait, fix(show[0]) > 5
       for i=0,(n_elements(j)-1) do wdelete, j[i]
     endif else begin
-      print,"Monitor configuration:"
+      if (blab) then print,"Monitor configuration:"
       j = sort(mgeom[1,0:maxmon])
       for i=maxmon,0,-1 do begin
-        print, j[i], mgeom[2:3,j[i]], format='(2x,i2," : ",i4," x ",i4," ",$)'
+        if (blab) then print, j[i], mgeom[2:3,j[i]], format='(2x,i2," : ",i4," x ",i4," ",$)'
         case i of
           primarymon   : msg = "(primary)"
           secondarymon : msg = "(secondary)"
           else         : msg = ""
         endcase
-        print, msg
+        if (blab) then print, msg
       endfor
       if n_elements(color_table) then begin
-        cstr = strtrim(string(color_table),2)
+        if (size(ct_file,/type) eq 7) then begin
+          cfile = file_basename(ct_file,'.tbl')
+          case cfile of
+            ''               : cstr = ''
+            'spp_fld_colors' : cstr = 'SPP Fields '
+            else             : cstr = cfile + ' '
+          endcase
+        endif else cstr = ''
+        if (color_table ge 1000) then cstr = 'CSV '
+        cstr += strtrim(string(color_table),2)
         if keyword_set(color_reverse) then cstr += " (reverse)"
       endif else cstr = "not defined"
-      print,"Color table: ", cstr
+      if (blab) then print,"Color table: ", cstr
       if n_elements(line_colors_index) then lstr = strtrim(string(line_colors_index),2) $
                                        else lstr = "not defined"
-      print,"Line colors: ", lstr
+      if (blab) then print,"Line colors: ", lstr
       if (stat gt 1) then begin
-        device, window_state=ws
-        owin = where(ws, count)
+        owin = fix(where(ws, count))
         if (count gt 0L) then begin
-          print,"Open windows:"
+          mnum = replicate(-1, count)
           wsave = !d.window
-          for k=0,(count-1) do begin
-            wset, owin[k]
-            print, owin[k], !d.x_size, !d.y_size, format='(2x,i2," : ",i4," x ",i4)'
+          if (blab) then begin
+            print,""
+            print,"Open windows: "
+            print,'   #   Xsize   Ysize   Monitor'
+          endif
+          for i=0,(count-1) do begin
+            wset,owin[i]
+            device, get_window_position=wpos
+            xok = (wpos[0] ge mgeom[0,*]) and (wpos[0] lt mgeom[0,*]+mgeom[2,*])
+            yok = (wpos[1] ge mgeom[1,*]) and (wpos[1] lt mgeom[1,*]+mgeom[3,*])
+            mnum[i] = where(xok and yok)
+            if (blab) then print,owin[i],!d.x_size,!d.y_size,mnum[i],format='(2x,i2,3x,i5,3x,i5,5x,i2)'
           endfor
-          wset, wsave
-        endif
+          wset,wsave
+          tplot_options, get=topt
+          str_element, topt, 'window', twin, success=ok
+          if (~ok) then twin = -1
+          if (ok and ws[twin]) then tmon = mnum[where(owin eq twin)] else tmon = -1
+        endif else if (blab) then print,'  No open windows'
       endif
-      print,""
+      if (blab) then print,""
     endelse
 
-    config = {geom:mgeom, primon:primarymon, secmon:secondarymon, tbar:tbar}
+    config = {enable:windex, geom:mgeom, nmons:(maxmon+1), primon:primarymon, secmon:secondarymon, tbar:tbar}
+    if keyword_set(stat) then if (stat gt 1) then begin
+      str_element, config, 'owin', owin, /add
+      str_element, config, 'mnum', mnum, /add
+      str_element, config, 'twin', twin, /add
+      str_element, config, 'tmon', fix(tmon[0]), /add
+    endif
 
+    return
+  endif
+
+; List the currently existing windows.
+
+  if keyword_set(list) then begin
+    owin = fix(where(ws, count))
+    mnum = -1
+    if (count gt 0L) then begin
+      mnum = replicate(-1L, count)
+      wsave = !d.window
+      if (blab) then begin
+        print,"Open windows: "
+        print,'   #   Xsize   Ysize   Monitor'
+      endif
+      for i=0,(count-1) do begin
+        wset,owin[i]
+        device, get_window_position=wpos
+        xok = (wpos[0] ge mgeom[0,*]) and (wpos[0] lt mgeom[0,*]+mgeom[2,*])
+        yok = (wpos[1] ge mgeom[1,*]) and (wpos[1] lt mgeom[1,*]+mgeom[3,*])
+        mnum[i] = where(xok and yok)
+        if (blab) then print,owin[i],!d.x_size,!d.y_size,mnum[i],format='(2x,i2,3x,i5,3x,i5,5x,i2)'
+      endfor
+      wset,wsave
+    endif else if (blab) then print,'  No open windows'
+    if (blab) then print,''
+    config = {owin:owin, mnum:mnum}
+    tplot_options, get=topt
+    str_element, topt, 'window', twin, success=ok
+    if (~ok) then twin = -1
+    str_element, config, 'twin', twin, /add
+    if (ok and ws[twin]) then tmon = mnum[where(owin eq twin)] else tmon = -1
+    str_element, config, 'tmon', fix(tmon[0]), /add
     return
   endif
 

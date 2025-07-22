@@ -1,8 +1,7 @@
-.compile genmag
+.compile aacgmidl_v2
 .compile igrflib_v2
 .compile aacgmlib_v2
 .compile aacgm_v2
-.compile time
 .compile astalg
 .compile mlt_v2
 

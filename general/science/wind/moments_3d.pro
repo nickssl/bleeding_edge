@@ -1,3 +1,26 @@
+;
+; This code reorders the eigenvalues and eigenvectors of the temperature tensor, putting t_parallel last.
+; This was pulled out into its own routine, and debug output added, to facilitate troubleshooting the eigenvector ordering -- the real code is still called
+; inline in moments_3d. JWL
+
+
+pro reorder_t3,t3,t3evec
+  s = sort(t3)
+  print,'sort order:', s
+  mid=t3[s[1]]
+  avg=(t3[s[0]] + t3[s[2]])/2.0
+  print,'mid:',mid,'avg:',avg
+  if mid lt avg then num=s[2] else num=s[0]
+  print,'num:',num
+  shft = ([-1,1,0])[num]
+  print,'shift: shft'
+  out_t3 = shift(t3,shft)
+  out_t3evec = shift(t3evec,0,shft)
+  print,'out_t3:', out_t3
+  print,'out_t3evec',out_t3evec
+end
+
+
 ;function moments_3d_omega_weights,th,ph,dth,dph ,order=order  ;, tgeom   inputs may be up to 3 dimensions
 ;
 ;dim = size(/dimen,th)
@@ -117,7 +140,7 @@ if size(/type,momformat) eq 8 then mom = momformat else $
    mom = {time:d, sc_pot:f, sc_current:f, magf:f3, density:f, avgtemp:f, vthermal:f, $
      velocity:f3, flux:f3, Ptens:f6, mftens:f6,  $
      eflux:f3,  $
-  ;   qflux:f3, $   ; to be added later
+     qflux:f3, $
      t3:f3, symm:f3, symm_theta:f, symm_phi:f, symm_ang:f, $
      magt3:f3, erange:[f,f], mass:f, $
      valid:0}
@@ -150,6 +173,7 @@ if keyword_set(no_unit_conversion) then begin
 endif else begin
   data3d = conv_units(data,"eflux")		; Use Energy Flux
 endelse
+
 
 charge = data3d.charge
 
@@ -406,6 +430,56 @@ mom.velocity = mom.flux/mom.density /1e5   ; km/s
 if arg_present(dmom) then begin
   dmom.velocity = sqrt((dmom.flux/mom.density)^2+(mom.flux*dmom.density/mom.density^2)^2) /1e5
 endif
+
+
+; Heat flux moments -- derived from code contributed by Terry Liu
+; 
+; Terry's code has been modified to work with the units, scaling, and spacecraft potential handling in moments_3d, rather than the older 
+; n_3d, j_3d, and v_3d routines.
+; JWL 2025-07-10
+
+eV_J = 1.602176634e-19  ; conversion from eV to J
+
+mp=data3d.mass  ; mass units are eV/(km/sec)^2, for working with eflux units.  In these units, proton mass = 0.010453500
+q = eV_J
+
+v = sqrt(2d * data3d.energy/mp)  ; convert energy array to velocity (km/sec)
+
+vx = v*cos(data3d.theta/180.*!pi)*cos(data3d.phi/180.*!pi) 
+vy = v*cos(data3d.theta/180.*!pi)*sin(data3d.phi/180.*!pi)
+vz = v*sin(data3d.theta/180.*!pi)
+
+; Subtract bulk velocity to get thermal velocity, km/sec
+
+wx=vx-mom.velocity[0]  
+wy=vy-mom.velocity[1]
+wz=vz-mom.velocity[2]
+
+; thermal energy, eV
+Eth=0.5*mp*(wx^2+wy^2+wz^2)
+
+;Repurposed density calculation for integrating heat flux, original code made several calls to n_3d()
+
+data_dvx = Eth*wx*data3d.data * de_e * weight * domega_weight[0,*,*,*]
+data_dvy = Eth*wy*data3d.data * de_e * weight * domega_weight[0,*,*,*]
+data_dvz = Eth*wz*data3d.data * de_e * weight * domega_weight[0,*,*,*]
+
+
+dweight = sqrt(e_inf)/e
+parqx = sqrt(mass/2.)* 1e-5 * data_dvx * dweight
+parqy = sqrt(mass/2.)* 1e-5 * data_dvy * dweight
+parqz = sqrt(mass/2.)* 1e-5 * data_dvz * dweight
+
+; Conversion to output units
+conv_mw = eV_J*1d12  ; output in mW/m^2
+conv_ev = 1d05 ; output in eV/(cm^2-sec)
+
+
+heat_x = conv_ev * total(parqx)
+heat_y = conv_ev * total(parqy)
+heat_z = conv_ev * total(parqz)
+
+mom.qflux = [heat_x, heat_y, heat_z]
 
 mf3x3 = mom.mftens[map3x3]
 

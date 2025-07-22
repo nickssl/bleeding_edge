@@ -594,5 +594,6 @@ function AstAlg_equation_of_time,jd
 end
 
 pro astalg
-    ; used by AACGMIDL_V2 to compile routines 
+  ; used for compilation and initialization
 end
+

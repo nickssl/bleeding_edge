@@ -12,7 +12,7 @@
 ;         prefix, suffix: these are passed to cdf_info_to_tplot
 ;         gatt2istp: dictionary, mapping of HDF global attributes to ISTP global attributes
 ;         vatt2istp: dictionary, mapping of HDF variable attributes to ISTP variable attributes
-;         coord_list: coordinate list, if set we get the coordinate system from the variable name;         
+;         coord_list: coordinate list, if set we get the coordinate system from the variable name;
 ;         time_var: name of the time variable
 ;                   default is 'time'
 ;         time_offset: time offset in miliseconds
@@ -26,10 +26,49 @@
 ;
 ;
 ; $LastChangedBy: nikos $
-; $LastChangedDate: 2021-10-05 12:01:41 -0700 (Tue, 05 Oct 2021) $
-; $LastChangedRevision: 30336 $
+; $LastChangedDate: 2024-06-08 13:38:44 -0700 (Sat, 08 Jun 2024) $
+; $LastChangedRevision: 32690 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/hdf/hdf2tplot.pro $
 ;-
+
+function hdf_merge_cdf_struct, cdf_struct, final_cdf_struct
+  ; Merge cdf_struct into final_cdf_struct
+  compile_opt idl2
+
+  CATCH, err
+  IF err NE 0 THEN BEGIN
+    CATCH, /CANCEL
+    PRINT, !ERROR_STATE.MSG
+    RETURN, final_cdf_struct
+  ENDIF
+
+  if ~is_struct(final_cdf_struct) then begin
+    return, cdf_struct
+  endif
+  if ~is_struct(cdf_struct) then begin
+    return, final_cdf_struct
+  endif
+
+  a = final_cdf_struct
+  a.filename = a.filename + "," + cdf_struct.filename
+
+  for i=0,n_elements(a.vars)-1 do begin
+    v = cdf_struct.vars[i]
+    av = a.vars[i]
+    if av.DATAPTR eq ptr_new() then continue else d1 = *(av.DATAPTR)
+    if v.DATAPTR eq ptr_new() then continue else d2 = *(v.DATAPTR)
+    if n_elements(d1.dim) eq 0 then d = d1
+    if n_elements(d1.dim) eq 1 then d = [d1, d2]
+    if n_elements(d1.dim) eq 2 then begin
+      dd = d1.dim
+      if dd[0] gt dd[1] then d = [d1, d2] else d = [[d1], [d2]]
+    endif
+    if n_elements(d1.dim) eq 3 then d = [[[d1]], [[d2]]]
+    a.vars[i].dataptr = ptr_new(d)
+  endfor
+
+  return, a
+end
 
 pro hdf2tplot, filenames, tplotnames=tplotnames, varnames=varnames, merge=merge, prefix=prefix, suffix=suffix, verbose=verbose, $
   gatt2istp=gatt2istp, vatt2istp=vatt2istp, coord_list=coord_list, time_offset=time_offset, time_var=time_var, _extra=_extra
@@ -45,9 +84,11 @@ pro hdf2tplot, filenames, tplotnames=tplotnames, varnames=varnames, merge=merge,
     return
   endif
 
+  filenames = filenames[sort(filenames)]
+
   ; Either merge multiple files or use the last available.
   if ~keyword_set(merge) then begin
-    merge = 0
+    merge = 1
   endif
 
   ; Find which varnames to load.
@@ -75,6 +116,7 @@ pro hdf2tplot, filenames, tplotnames=tplotnames, varnames=varnames, merge=merge,
       continue
     endif else if merge eq 1 then begin
       ; Merge all files
+      final_cdf_struct = hdf_merge_cdf_struct(cdf_struct, final_cdf_struct)
     endif else begin
       final_cdf_struct = cdf_struct
     endelse

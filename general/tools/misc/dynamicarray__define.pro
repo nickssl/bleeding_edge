@@ -1,8 +1,8 @@
 ;+
 ; Written by Davin Larson - August 2016
-; $LastChangedBy: davin-mac $
-; $LastChangedDate: 2023-04-10 00:22:25 -0700 (Mon, 10 Apr 2023) $
-; $LastChangedRevision: 31719 $
+; $LastChangedBy: rjolitz $
+; $LastChangedDate: 2025-03-04 10:57:07 -0800 (Tue, 04 Mar 2025) $
+; $LastChangedRevision: 33161 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/tools/misc/dynamicarray__define.pro $
 
 ; Purpose: Object that provides an efficient means of concatenating arrays
@@ -151,7 +151,7 @@ pro DynamicArray::append, a1, error = error,replace=replace
       *a0 = [a1]
       dim0 = size(/dimension,*a0)
       self.size = dim0[0]
-      if self.dict.haskey('tplot_tagnames') then begin   ; This feature may be disabled in the future  - DON"T use
+      if self.dict.haskey('tplot_tagnames') then begin   ; This feature may be disabled in the future  - DON'T use
         tags = self.dict.tplot_tagnames
         dprint,dlevel=2,verbose=self.verbose,'Creating TPLOT variables: '+self.name+'_['+strjoin(tags,',')+']'
         store_data,verbose=0,self.name,data= self ,tagnames=tags,/silent  ;,separator = '_'
@@ -230,7 +230,7 @@ pro DynamicArray::append, a1, error = error,replace=replace
       error = prefix +": "+ error +" " + suffix
       dprint,verbose=self.verbose,dlevel=self.dlevel,error
       if ~keyword_set(size_error) then begin
-        dprint,verbose=self.verbose,dlevel=self.dlevel,'Attempting to concatenate using "relaxed structure assignment" (STRUCT_ASSIGN)
+        dprint,verbose=self.verbose,dlevel=self.dlevel,'Attempting to concatenate using "relaxed structure assignment" (STRUCT_ASSIGN)'
         a2=(*a0)[index:index+n1-1,*,*,*]
         struct_assign,a1,a2,/nozero ,verbose=self.verbose
         a1=a2
@@ -279,7 +279,7 @@ function DynamicArray::sample,nearest=nearest,range=range,tagname=tagname
     tag_num = where(/null,tag_names(*self.ptr_array) eq strupcase(tagname))
     if isa(tag_num) then begin
       vals= ((*self.ptr_array).(tag_num))[0:self.size-1,*,*,*]
-      if isa(nearest) then begin
+      if keyword_set(nearest) then begin
         w = interp(dindgen(self.size),vals,nearest,/last_value)
         ;printdat,w,vals[w],vals[w]-nearest
         vals = (*self.ptr_array)[w,*,*,*]  
@@ -293,6 +293,44 @@ function DynamicArray::sample,nearest=nearest,range=range,tagname=tagname
   endif else vals = (*self.ptr_array)[0:self.size-1,*,*,*]
   return,vals
 end
+
+
+
+pro DynamicArray::sort   , tagname    , uniq=uniq   ; Use with caution
+  nsize = self.size
+  if isa(tagname,/string) && isa(*self.ptr_array,'struct') then begin
+    if strlowcase(tagname) ne 'time' then message,'Can only sort on time for now.'
+
+    ;v = ((*self.ptr_array)[0: self.size-1] ).time
+    v = (*self.ptr_array).time
+    v = v[0:nsize-1]
+
+  endif else begin
+    v = (*self.ptr_array)[0: nsize-1] 
+  endelse
+  s= sort( v )
+  (*self.ptr_array)[0:nsize-1]  = (*self.ptr_array)[s]
+  if keyword_set(uniq) then begin
+    u = uniq( ((*self.ptr_array)[0:nsize-1]).time )
+    nusize = n_elements(u)
+    self.size = nusize
+    (*self.ptr_array)[0:nusize-1]  = (*self.ptr_array)[u]    
+  endif
+
+
+end
+
+
+
+
+pro DynamicArray::make_ncdf,filename=ncdf_filename,verbose=verbose,global_atts=global_atts,ncdf_template=ncdf_template
+  dat = (*self.ptr_array)[0:self.size-1,*,*,*]
+  swfo_ncdf_create,dat,filename=ncdf_filename,verbose=verbose,global_atts=global_atts,ncdf_template=ncdf_template
+
+end
+
+
+
 
 
 PRO DynamicArray::GetProperty, array=array, size=size, ptr=ptr, name=name  ,  typestring=typestring, dictionary=dict

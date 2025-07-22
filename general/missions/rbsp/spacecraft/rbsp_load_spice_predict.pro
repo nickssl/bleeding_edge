@@ -25,9 +25,9 @@
 ;	11/2012, created - Kris Kersten, kris.kersten@gmail.com
 ;
 ; VERSION:
-;   $LastChangedBy: aaronbreneman $
-;   $LastChangedDate: 2018-12-17 14:53:42 -0800 (Mon, 17 Dec 2018) $
-;   $LastChangedRevision: 26348 $
+;   $LastChangedBy: jwl $
+;   $LastChangedDate: 2024-01-23 15:58:42 -0800 (Tue, 23 Jan 2024) $
+;   $LastChangedRevision: 32398 $
 ;   $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/missions/rbsp/spacecraft/rbsp_load_spice_predict.pro $
 ;
 ;-
@@ -42,7 +42,7 @@ pro rbsp_load_spice_predict, all=all, unload=unload, $
 	if ~icy_test() then return
 
 	if ~keyword_set(no_download) and ~keyword_set(unload) then begin
-		relpathnames='MOC_data_products/RBSP?/attitude_predict/*'
+		relpathnames='MOC_data_products/RBSPA/attitude_predict/*'
 
 
 		;extract the local data path without the filename
@@ -58,6 +58,22 @@ pro rbsp_load_spice_predict, all=all, unload=unload, $
 		  local_file=lf,/last_version)
 		tempfiles = !rbsp_efw.local_data_dir + localpath + lf
 
+
+		relpathnames='MOC_data_products/RBSPB/attitude_predict/*'
+
+
+		;extract the local data path without the filename
+		localgoo = strsplit(relpathnames,'/',/extract)
+		for i=0,n_elements(localgoo)-2 do $
+		  if i eq 0. then localpath = localgoo[i] else localpath = localpath + '/' + localgoo[i]
+		localpath = strtrim(localpath,2) + '/'
+
+		undefine,lf,tns
+		dprint,dlevel=3,verbose=verbose,relpathnames,/phelp
+		file_loaded = spd_download(remote_file=!rbsp_efw.remote_data_dir+relpathnames,$
+		  local_path=!rbsp_efw.local_data_dir+localpath,$
+		  local_file=lf,/last_version)
+		tempfiles = !rbsp_efw.local_data_dir + localpath + lf
 
 	endif
 

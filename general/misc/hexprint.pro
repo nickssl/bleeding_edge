@@ -18,8 +18,8 @@
 ; :Author: davin  Jan 19, 2015
 ;
 ; $LastChangedBy: davin-mac $
-; $LastChangedDate: 2018-05-13 16:15:11 -0700 (Sun, 13 May 2018) $
-; $LastChangedRevision: 25212 $
+; $LastChangedDate: 2024-10-26 11:30:45 -0700 (Sat, 26 Oct 2024) $
+; $LastChangedRevision: 32904 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/misc/hexprint.pro $
 ;
 ;-
@@ -32,7 +32,7 @@ if size(/type,buffer) eq 7 && file_test(buffer,/regular) then begin   ; display 
    buffer2 = bytarr(nbytes < fi.size)
    readu,ifp,buffer2
    free_lun,ifp
-   hexprint,buffer2,unit=unit,filename=filename,decimal=decimal,ncolumns=ncolumns,binary=binary,format=sformat,start=start
+   hexprint,buffer2,unit=unit,filename=filename,decimal=decimal,ncolumns=ncolumns,binary=binary,format=sformat,start=start,nbytes=nbytes
    return
 endif
 

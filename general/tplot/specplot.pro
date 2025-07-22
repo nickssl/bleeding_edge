@@ -50,9 +50,9 @@
 ;
 ;See Also:  "XLIM", "YLIM", "ZLIM",  "OPTIONS",  "TPLOT", "DRAW_COLOR_SCALE"
 ;Author:  Davin Larson,  Space Sciences Lab
-; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-05-11 10:07:52 -0700 (Thu, 11 May 2023) $
-; $LastChangedRevision: 31852 $
+; $LastChangedBy: jimm $
+; $LastChangedDate: 2025-02-18 14:05:52 -0800 (Tue, 18 Feb 2025) $
+; $LastChangedRevision: 33138 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/tplot/specplot.pro $
 ;-
 pro specplot,x,y,z,limits=lim,data=data,overplot=overplot,overlay=overlay,$
@@ -191,6 +191,10 @@ str_element, opt, 'overplot_contour', success = conplt
 if keyword_set(conplt) then begin ;extract contour options
    str_element, opt, 'contour_options', value = c_options
 endif
+
+;Check for panel label, jmm, 2024-02-18
+str_element, opt, 'panel_label', success = plabel
+
 ;If autoscaling is on, make sure to autoscale outside the gap segment loop.
 ;Otherwise each gap segment will autoscale to a different range when datagap is set.
 ;(task# 4724)
@@ -321,7 +325,7 @@ for j=0L,gapcnt do begin
    if success && extend_y_edges then begin
      dprint,dlevel=4,'extending_y_edge'
      extend_y_dim = dimen(y1)
-     
+
      ;need 2 or more y-components for this to work
      if n_elements(extend_y_dim) eq 1 && extend_y_dim[0] gt 1 then begin
        y_diff_low = (y1[1]-y1[0])/2.
@@ -639,6 +643,11 @@ if not keyword_set(no_color_scale) then begin
     dprint, dlevel=0, 'Cannot draw color scale.  Either the data is out of '+ $
                       'range or top/bottom options must be set in tplot.'
   endelse
+endif
+
+;Apply panel_label last
+if plabel && is_struct(opt.panel_label) then begin
+   tplot_apply_panel_label, opt.panel_label
 endif
 
 ;copy from temp variable back to input variables

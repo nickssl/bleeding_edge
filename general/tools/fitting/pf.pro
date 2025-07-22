@@ -1,4 +1,5 @@
-pro pf,pp,_extra=ex,dimensions=dimensions
+pro pf,pp,_extra=ex,dimensions=dimensions,verbose=verbose
+if ~isa(pp) then return
 if n_elements(dimensions) ne 0  && dimensions eq 2 then begin
   xv = dgen(/xrange)
   yv = dgen(/yrange)

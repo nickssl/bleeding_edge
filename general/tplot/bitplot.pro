@@ -20,9 +20,9 @@
 ;    NUMBITS: the number of bits that will be plot
 ;    SYMSIZE: set the size of the symbol
 ;
-; $LastChangedBy: spfuser $
-; $LastChangedDate: 2017-12-19 11:16:22 -0800 (Tue, 19 Dec 2017) $
-; $LastChangedRevision: 24446 $
+; $LastChangedBy: ali $
+; $LastChangedDate: 2025-06-02 12:18:19 -0700 (Mon, 02 Jun 2025) $
+; $LastChangedRevision: 33356 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/tplot/bitplot.pro $
 ;-
 pro bitplot,x,y,psyms=psyms,overplot=overplot,di=di,limits=lim,data=data,numbits=nb,symsize=symsize
@@ -39,11 +39,14 @@ str_element,stuff,'labels',val=labels
 str_element,lim,'psyms',psyms
 str_element,lim,'symsize',symsize
 str_element,lim,'thick',thick
+str_element,lim,'negate',negate    
 labsize = 1.
 str_element,stuff,'labsize',val=labsize
 str_element,stuff,'colors',colors
 str_element,stuff,'psym_lim',psym_lim
 str_element,stuff,'xrange',xrange
+str_element,stuff,'panel_label',panel_label ;jmm, 2025-02-18
+
 chsize = !p.charsize
 if not keyword_set(chsize) then chsize = 1.
 
@@ -51,6 +54,7 @@ if size(/type, y) eq 5 then begin
   dprint, dlevel=1, 'Bitplot called on double precision variable. Exiting'
   return
 endif
+
 
 if not keyword_set(nb) then begin
 case size(/type,y) of
@@ -65,6 +69,9 @@ case size(/type,y) of
 endcase
 ; if nb=0 should this routine work at all?
 endif
+
+if keyword_set(negate) then y =  y xor negate            ; this could introduce a bug because it will change the value of y if it is a named variable
+
 
 if n_elements(di) eq 0 then di = 0
 if keyword_set(psym_lim) &&  ~keyword_set(psyms) then begin
@@ -88,9 +95,11 @@ if n_elements(colors) ne 0 then col = get_colors(colors)  $
 else col = !p.color
 ncol = n_elements(col)
 
-bit = 1l
+if nb gt 32 then bit = 1ll else bit = 1l
+prefix = replicate("  ",nb)
 for i=0,nb-1 do begin
   ind = where(y and bit,c)
+  if keyword_set(negate) && (bit and negate) then prefix[i] = " ~"
   if c ne 0 then $
      oplot,x[ind],replicate(i+di,n_elements(ind)),psym=psyms[i mod npsyms],col=col[i mod ncol],symsize=symsize,thick=thick
   bit = bit * 2
@@ -100,14 +109,21 @@ if keyword_set(labels) then begin
    charsize = !p.charsize
    if charsize eq 0 then charsize = 1.
    nlab = n_elements(labels)
+   if nlab ne nb then dprint,'label mismatch:',nlab,nb
    yp = indgen(nlab) + di
    xp = replicate(!x.crange[1],nlab)
    yw = !y.window
    xw = !x.window
+   ;prefix = "  "
    if not keyword_set(lbsize) then $
      lbsize = charsize < (yw[1]-yw[0])/(nlab+1) *!d.y_size/!d.y_ch_size $
    else lbsize = lbsize*charsize
-   xyouts,xp,yp,"  "+labels,charsize=lbsize,color= col[indgen(nlab) mod ncol]
+   xyouts,xp,yp,prefix+labels,charsize=lbsize,color= col[indgen(nlab) mod ncol]
 endif
+
+if is_struct(panel_label) then begin ;jmm, 2025-02-18
+   tplot_apply_panel_label, panel_label
+endif
+
 
 end

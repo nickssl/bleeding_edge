@@ -84,10 +84,10 @@ if N40(0) NE -1 then begin	; if there are points above interval deg N
             lab_en_al = 1.0
         endelse
         xyouts, ticklng(0), ticklat(0), $
-          strmid(time_to_str(ticktime(0)),11,8), $
+          strmid(time_string(ticktime(0)),11,8), $
           color=col_tags, align=lab_st_al
         xyouts, ticklng(nticks-1), ticklat(nticks-1), $
-          strmid(time_to_str(ticktime(nticks-1)),11,8), $
+          strmid(time_string(ticktime(nticks-1)),11,8), $
           color=col_tags, align=lab_en_al
 endif
 	
@@ -129,10 +129,10 @@ if S40(0) NE -1 then begin	; if there are points below -interval deg N
             lab_en_al = 1.0
         endelse        
 	xyouts, ticklng(0), ticklat(0), $
-          strmid(time_to_str(ticktime(0)),11,8), $
+          strmid(time_string(ticktime(0)),11,8), $
           color=col_tags, align=lab_en_al
 	xyouts, ticklng(nticks-1), ticklat(nticks-1), $
-          strmid(time_to_str(ticktime(nticks-1)),11,8), $
+          strmid(time_string(ticktime(nticks-1)),11,8), $
           color=col_tags, align=lab_en_al
 endif
 

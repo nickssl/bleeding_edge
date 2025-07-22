@@ -3,8 +3,8 @@
 ;  generic_object
 ;  This basic object can be inherited by other objects and defines some basic functions and operations
 ; $LastChangedBy: davin-mac $
-; $LastChangedDate: 2023-02-14 09:50:55 -0800 (Tue, 14 Feb 2023) $
-; $LastChangedRevision: 31498 $
+; $LastChangedDate: 2024-10-15 18:12:13 +0300 (Tue, 15 Oct 2024) $
+; $LastChangedRevision: 32887 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/misc/generic_object__define.pro $
 ;
 ; Written by Davin Larson October 2018
@@ -69,6 +69,7 @@ END
 
 function generic_object::GetAttr, name, default = value
   COMPILE_OPT IDL2
+  if ~isa(value) then value = !null
   strct = create_struct(name=typename(self))
   struct_assign , self, strct
   if isa(name,/string) eq 0 then return,strct

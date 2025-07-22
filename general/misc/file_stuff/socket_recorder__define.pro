@@ -114,6 +114,8 @@ end
 
 
 pro socket_recorder::timed_event
+  COMPILE_OPT IDL2
+
   if self.hfp gt 0 then begin
     wids = *self.wids
 
@@ -122,6 +124,7 @@ pro socket_recorder::timed_event
       if self.time_received ge self.next_filechange then begin
         dprint,dlevel=dlevel,time_string(self.time_received,prec=3)+ ' Time to change files.'
         if self.dfp then begin
+          dprint,'closing'
           self.dest_button_event   ; close old file
           self.dest_button_event   ; open  new file
         endif
@@ -138,8 +141,17 @@ pro socket_recorder::timed_event
       buffer = self.read_lun()
     endwhile
 
-    dprint,dlevel=self.dlevel+1,self.title_num+self.msg,/no_check
-
+    dprint,verbose=self.verbose,dlevel=self.dlevel+1,self.title_num+self.msg,/no_check
+    ;help,self.user_dict
+    handler = self.user_dict
+    ;help,handler
+    ;handler.handler,buffer
+    ;handler.decommutate,buffer
+   ; decommutate
+   ; decommutator = handler.decommutator
+   ; decommutator(buffer)
+    
+    
     widget_control,wids.output_text,set_value=msg
     widget_control,wids.poll_int,get_value = poll_int
     poll_int = float(poll_int)
@@ -309,13 +321,13 @@ PRO socket_recorder_proc,buffer,info=info
 
   n = n_elements(buffer)
   if n ne 0 then  begin
-    if debug(2) then begin
+    if debug(3) then begin
       dprint,time_string(info.time_received,prec=3) +''+ strtrim(n_elements(buffer))
       n = n_elements(buffer) < 512
       hexprint,buffer[0:n-1]    ;,swap_endian(uint(buffer,0,n_elements(buffer)/2))
     endif
   endif else print,format='(".",$)'
-
+  dprint,dlevel=2,phelp=2,info
   return
 end
 
@@ -461,7 +473,7 @@ function socket_recorder::init,base,title=title,ids=ids,host=host,port=port,file
     ids = create_struct(ids,'proc_base2',  widget_base(ids.proc_base ,/nonexclusive))
     ids = create_struct(ids,'proc_button', widget_button(ids.proc_base2,uname='PROC_BUTTON',value='Procedure:'))
     ids = create_struct(ids,'proc_name',   widget_text(ids.proc_base,xsize=35, uname='PROC_NAME', value = keyword_set(exec_proc) ? exec_proc :'socket_recorder_proc',/editable, /no_newline))
-    ids = create_struct(ids,'done',        WIDGET_BUTTON(ids.proc_base, VALUE='Done', UNAME='DONE'))
+    ids = create_struct(ids,'done',        WIDGET_BUTTON(ids.proc_base, VALUE='Exit', UNAME='DONE'))
     title_num = title+' ('+strtrim(ids.base,2)+'): '
 
     self.wids = ptr_new(ids)

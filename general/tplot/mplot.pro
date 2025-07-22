@@ -27,6 +27,7 @@
 ;    OVERPLOT: If non-zero then data is plotted over last plot.
 ;    NOXLAB:   if non-zero then xlabel tick marks are supressed.
 ;    COLORS:   array of colors used for each curve.
+;    median_filter:  N : applies an median filter of size N prior to plotting. 
 ;    NEG_COLORS  array of colors (or string)  If defined then data is plotted twice - once with 
 ;      positive values and second time with negative values. This is useful on log plots
 ;    NOCOLOR:  do not use color when creating plot.
@@ -37,9 +38,9 @@
 ;
 ;CREATED BY:	Davin Larson
 ;FILE:  mplot.pro
-; $LastChangedBy: hara $
-; $LastChangedDate: 2023-05-17 16:09:59 -0700 (Wed, 17 May 2023) $
-; $LastChangedRevision: 31866 $
+; $LastChangedBy: dmitchell $
+; $LastChangedDate: 2025-05-25 12:05:21 -0700 (Sun, 25 May 2025) $
+; $LastChangedRevision: 33339 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/tplot/mplot.pro $
 ;
 ;-
@@ -110,6 +111,8 @@ str_element,stuff,'charsize',value=charsize
 str_element,stuff,'charthick',value=charthick
 str_element,stuff,'axis',value=axis
 str_element,stuff,'reverse_order',rev_order
+str_element,stuff,'median_filter',median_filter
+str_element,stuff,'panel_label',panel_label
 
 extract_tags,plotstuff,stuff,/plot
 ;plotstuff = stuff
@@ -230,7 +233,10 @@ if keyword_set(notes) then begin
   xpos = !x.window[0] + .03*(!x.window[1]-!x.window[0])
   ypos = !y.window[1] - .03*(!y.window[1]-!y.window[0]) 
   xyouts,xpos,ypos,'!c'+notes,/normal, charsize=charsize
+endif
 
+if keyword_set(panel_label) then begin
+   tplot_apply_panel_label, panel_label
 endif
 
 str_element,stuff,'constant',constant
@@ -239,10 +245,14 @@ if n_elements(constant) ne 0 then begin
   str_element,stuff,'const_color',const_color
   if n_elements(const_color) ne 0 then ccols = get_colors(const_color) else ccols=!p.color
   str_element,stuff,'const_line',const_line
-  if n_elements(const_line) ne 0 then cline = const_line[0] else cline = 1
+  if n_elements(const_line) ne 0 then cline = const_line else cline = 1
+  str_element,stuff,'const_thick',const_thick
+  if n_elements(const_thick) ne 0 then cthick = const_thick else cthick = 1
   ncc = n_elements(constant)
   for i=0,ncc-1 do $
-    oplot,xrange,constant[i]*[1,1],color=ccols[i mod n_elements(ccols)],linestyle=cline
+    oplot,xrange,constant[i]*[1,1],color=ccols[i mod n_elements(ccols)],$
+                                   linestyle=cline[i mod n_elements(cline)],$
+                                   thick=cthick[i mod n_elements(cthick)]
 endif
 
 labbins = replicate(1,d2)
@@ -316,6 +326,7 @@ for n_=0,n_ind-1 do begin
     if n_linestyles ne 0 then linestyle = linestyles[n mod n_linestyles]
     xt = x[*,i]
     yt = y[*,n]
+    if (keyword_set(median_filter) && median_filter lt n_elements(yt)) then yt = median(yt,median_filter)
     if (keyword_set(nsmooth) && (nsmooth lt n_elements(yt))) then yt = smooth(yt,nsmooth,edge_truncate=0)
     oplot,xt,yt,color=c,nsum=nsum,linest=linestyle,_EXTRA = oplotstuff
     if isa(neg_colors) then begin

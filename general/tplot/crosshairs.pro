@@ -53,10 +53,10 @@ if keyword_set(fix) then begin
 endif
 if keyword_set(dot) then begin  ;change the cursor to a dot
   curs=intarr(16)
-  curs(14)=2^9
+  curs[14]=2^9
   mask=curs
-  mask([13,15])=2^9
-  mask(14)=mask(14)+2^8+2^10
+  mask[[13,15]]=2^9
+  mask[14]=mask[14]+2^8+2^10
   device,cursor_image=curs,cursor_mask=mask,cursor_xy=[1,1]
 endif
 if not keyword_set(nolegend) then leg  = 1 else leg  = 0
@@ -66,7 +66,7 @@ device, get_graphics = old, set_graphics = 6  ;Set xor
 if not keyword_set(color) then color = !d.n_colors -1
 if not keyword_set(legend) then $
   legend = [!d.x_size-22*!d.x_ch_size,!d.y_size-6*!d.y_ch_size] $
-else legend = convert_coord(legend(0),legend(1),/data,/to_dev)
+else legend = convert_coord(legend[0],legend[1],/data,/to_dev)
 
 flag  = 0
 
@@ -91,17 +91,17 @@ while ok do begin
   y0 = yd
   if (!MOUSE.BUTTON eq 1) and (old_button eq 0) then begin
     if flag eq 0 then begin
-      x = data(0)
-      y = data(1)
+      x = data[0]
+      y = data[1]
       flag = 1
     endif else begin
-      x = [x,data(0)]
-      y = [y,data(1)]
+      x = [x,data[0]]
+      y = [y,data[1]]
     endelse
     ndp = n_elements(x)
     numstr = strcompress(string('(',ndp,')'),/re)
     if prin then $
-      print,numstr,x(ndp-1),y(ndp-1),format='(a8,3x,"x: ",g,"      y: ",g)'
+      print,numstr,x[ndp-1],y[ndp-1],format='(a8,3x,"x: ",g,"      y: ",g)'
 
     if (oneclick) then ok = 0
   endif
@@ -127,8 +127,8 @@ middle:
   py = y0
   plots,[0,!d.x_size-1],[py,py], color=color, /dev, thick=1, lines=0
   plots,[px,px],[0,!d.y_size-1], color=color, /dev, thick=1, lines=0
-  s1 = string('x:',data(0))
-  s2 = string('y:',data(1))
+  s1 = string('x:',data[0])
+  s2 = string('y:',data[1])
   if leg then begin
     xyouts,legend[0],legend[1],                  s1, color=color, /dev, size=1.4
     xyouts,legend[0],legend[1] - 3*!d.y_ch_size, s2, color=color, /dev, size=1.4

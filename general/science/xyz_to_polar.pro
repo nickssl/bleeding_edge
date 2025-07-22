@@ -56,10 +56,12 @@ pro xyz_to_polar,data, $
     co_latitude=co_latitude,$
     tplotnames=tplotnames, $
     ph_0_360=ph_0_360, $
+    negate = negate,  $
     ph_hist=ph_hist
 
 switch size(/type,data) of
    2:           ; integers
+   3:
    7: begin     ; strings
       names = tnames(data,n)
       tplotnames=''
@@ -72,7 +74,7 @@ switch size(/type,data) of
         xyz_to_polar,struct,mag=mag_struct,theta=th_struct,phi=ph_struct, $
             tagname= tagname,clock=clock,  $
             max_value=max_value,min_value=min_value,$
-            co_latitude=co_latitude,ph_0_360=ph_0_360,ph_hist=ph_hist
+            co_latitude=co_latitude,ph_0_360=ph_0_360,ph_hist=ph_hist,negate=negate
         magnitude = names[i]+'_mag'
         theta     = names[i]+ (keyword_set(clock) ? '_con' : '_th')
         phi       = names[i]+ (keyword_set(clock) ? '_clk' : '_phi')
@@ -94,7 +96,7 @@ switch size(/type,data) of
       endif  else v = data.y
       xyz_to_polar,v,mag=mag_val,theta=theta_val,phi=phi_val,$
          max_value=max_value,min_value=min_value,missing=missing,$
-          co_latitude=co_latitude,ph_0_360=ph_0_360,ph_hist=ph_hist,clock=clock
+          co_latitude=co_latitude,ph_0_360=ph_0_360,ph_hist=ph_hist,clock=clock,negate=negate
       if keyword_set(tagname) then begin
 ;stop
          str_element,/add,data,tagname+'_mag',mag_val
@@ -134,6 +136,11 @@ switch size(/type,data) of
          y = data[1]
          z = data[2]
       endelse
+      if keyword_set(negate) then begin
+        x = -x
+        y = -y
+        z = -z
+      endif
       if keyword_set(clock) then $
       cart_to_sphere,z,-y,x,magnitude,theta,phi,$
          co_latitude=co_latitude,ph_0_360=ph_0_360,ph_hist=ph_hist $
