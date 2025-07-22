@@ -80,6 +80,7 @@
 ;            (can also manually degap)
 ;  subtract_bulk:  Flag to subtract bulk velocity (experimental)
 ;  remove_fpi_sw: Flag to remove the solar wind component from the FPI ion DFs prior to performing the calculations
+;  use_sdc_units: Flag to convert moments_3d pressure tensor and qflux outputs to nPa and mW/m^2 respectively, for compatibility with MMS SDC moments
 ;
 ;  display_object:  Object allowing dprint to export output messages
 ;
@@ -107,9 +108,9 @@
 ;          after photoelectron corrections; this functionality is now available by setting the keyword: /zero_negative_values
 ;
 ;
-;$LastChangedBy: egrimes $
-;$LastChangedDate: 2023-03-28 15:41:29 -0700 (Tue, 28 Mar 2023) $
-;$LastChangedRevision: 31681 $
+;$LastChangedBy: jwl $
+;$LastChangedDate: 2025-07-12 19:14:21 -0700 (Sat, 12 Jul 2025) $
+;$LastChangedRevision: 33459 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/particles/mms_part_products.pro $
 ;-
 pro mms_part_products, $
@@ -172,6 +173,7 @@ pro mms_part_products, $
 
                      silent=silent, $ ;suppress pop-up messages
                      remove_fpi_sw=remove_fpi_sw, $ ; remove the solar wind component from the FPI distribution data prior to performing the calculations
+                     sdc_units=sdc_units, $ ; Convert moment_3d pressure tensor output from eV/cm^3 to nPa, and heat flux to mW/m^2, for consistency with units used by MMS SDC moments
                      _extra=ex ;TBD: consider implementing as _strict_extra 
 
 
@@ -700,14 +702,14 @@ pro mms_part_products, $
   ;Moments Variables
   if ~undefined(moments) then begin
     moments.time = times
-    spd_pgs_moments_tplot, moments, prefix=tplot_prefix, suffix=suffix, tplotnames=tplotnames
+    spd_pgs_moments_tplot, moments, prefix=tplot_prefix, suffix=suffix, tplotnames=tplotnames, coords='DBCS', use_mms_sdc_units=sdc_units
   endif
 
   ;FAC Moments Variables
   if ~undefined(fac_moments) then begin
     fac_moments.time = times
     fac_mom_suffix = '_mag' + (undefined(suffix) ? '' : suffix)
-    spd_pgs_moments_tplot, fac_moments, /no_mag, prefix=tplot_prefix, suffix=fac_mom_suffix, tplotnames=tplotnames
+    spd_pgs_moments_tplot, fac_moments, /no_mag, prefix=tplot_prefix, suffix=fac_mom_suffix, tplotnames=tplotnames, coords='FA', use_mms_sdc_units=sdc_units
   endif
 
   ;Return transformed data structures

@@ -10,13 +10,13 @@
 ;     BAD EYES are replaced by NaNs
 ;
 ;
-; $LastChangedBy: egrimes $
-; $LastChangedDate: 2017-01-31 14:44:52 -0800 (Tue, 31 Jan 2017) $
-; $LastChangedRevision: 22696 $
+; $LastChangedBy: jwl $
+; $LastChangedDate: 2024-03-27 16:34:54 -0700 (Wed, 27 Mar 2024) $
+; $LastChangedRevision: 32511 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/feeps/mms_feeps_correct_energies.pro $
 ;-
 
-pro mms_feeps_correct_energies, probes = probes, data_rate = data_rate, level = level, suffix = suffix
+pro mms_feeps_correct_energies, probes = probes, data_rate = data_rate, level = level, suffix = suffix, keep_bad_eyes = keep_bad_eyes
     if undefined(suffix) then suffix = ''
     if undefined(level) then level = 'l2'
     if undefined(probes) then probes =  ['1', '2', '3', '4'] else probes = strcompress(string(probes), /rem)
@@ -35,7 +35,7 @@ pro mms_feeps_correct_energies, probes = probes, data_rate = data_rate, level = 
     
               get_data, var_name+suffix, data=d, dlimits=dl
               if is_struct(d) then begin
-                energy_map = mms_feeps_energy_table(probes[probe_idx], strmid(types[type_idx], 0, 3), long(sensors[sensor_idx]))
+                energy_map = mms_feeps_energy_table(probes[probe_idx], strmid(types[type_idx], 0, 3), long(sensors[sensor_idx]), keep_bad_eyes=keep_bad_eyes)
                 store_data, var_name+suffix, data={x: d.X, y: d.Y, v: energy_map}, dlimits=dl
               endif
               

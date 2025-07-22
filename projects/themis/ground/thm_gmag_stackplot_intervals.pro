@@ -80,7 +80,15 @@ if not keyword_set(no_data_load) then begin
    ;If NRSQ was loaded, take it out -- it's the same as NAQ
    del_data, '*nrsq*'
    del_data, '*pang*'
+   del_data, '*iglo*'
 endif
+; add low lat stations
+ll_sites=['dva', 'gua', 'hon', 'bsl', 'dtx', 'tuc', 'frn', 'frd', 'dmo', 'col', 'bou', $
+  'dbo', 'doh', 'dct', 'dat', 'dme', 'dhe', 'nes', 'kapu', 'pina', 'sept', $
+  'roth', 'atha', 'shu', 'gill', 'nain', 'sit']
+thm_load_gmag, site=ll_sites  
+
+tplot_names
 
 ;________________________________________________________________________________________________
 ;check that there is some valid data
@@ -127,6 +135,7 @@ for k=0,n_elements(dhr)-1 do begin
 
   ;  timespan, date, duration
   timespan, start_times[k], dhr[k], /hour
+  stations=['filler']
 
   ;________________________________________________________________________________________________
   ;this section is in place to make sure that we are only looking at data in the time range specified,
@@ -188,32 +197,52 @@ for k=0,n_elements(dhr)-1 do begin
      ;hi_lat_lon_index = reverse(sort(hi_lon))
      hi_lat_lon_index = sort(hi_lon)
      hi_stat = hi_stat[hi_lat_lon_index]
+     skip_hi = 0  ; set a flag to be checked in the loop below
   Endif Else Begin
      hi_stat = -1
      hi_lon = -1
      hi_lat_lon_index = -1
+     skip_hi = 1  ; set a flag to be checked in the loop below
   Endelse
   If (lo_index[0] Ne -1) Then Begin
      lo_stat = stations[lo_index]
      lo_lon = lons[lo_index]
      lo_lat_lon_index = sort(lo_lon)
      lo_stat = lo_stat[lo_lat_lon_index]
+     skip_lo = 0  ; set a flag to be checked in the loop below
   Endif Else Begin
      lo_stat = -1
      lo_lon = -1
      lo_lat_lon_index = -1
+     skip_lo = 1  ; set a flag to be checked in the loop below
   Endelse
-
+  
   ;________________________________________________________________________________________________
   ;manipulate data into tplot variables for "relative" stack plots
   ;________________________________________________________________________________________________
   
   for w=a,b do begin
   
-    if w eq 0 then stations = hi_stat else stations = lo_stat
+    ; Do we need to skip this latitude range?
+    ; 
+    ; The original code assigned hi_stat or lo_stat to the 'stations' variable.
+    ; But 'stations' is used outside this loop, and we don't want to clobber it
+    ; for the next iteration.  I changed this to a local variable loop_stations,
+    ; which seems to work.
+    ; JWL 12-30-2023
+    
+    if w eq 0 then begin
+      loop_stations = hi_stat
+      skip = skip_hi
+    endif else begin
+      loop_stations = lo_stat
+      skip = skip_lo
+    endelse
   
+    if skip eq 1 then continue  ; skip processing if no stations available
+    
     ;create tplot variables of components
-    num_elements = n_elements(stations)
+    num_elements = n_elements(loop_stations)
     h_axis_range = dblarr(2)
     d_axis_range = dblarr(2)
     z_axis_range = dblarr(2)
@@ -227,28 +256,28 @@ for k=0,n_elements(dhr)-1 do begin
     max_dev = [min(max_dev), max(max_dev)]
   
     for i = 0, num_elements-1 do begin
-      get_data, 'thg_mag_'+stations[i], data = dd
+      get_data, 'thg_mag_'+loop_stations[i], data = dd
       index_time = where(dd.x ge start_time and dd.x le end_time)
       themedian = strcompress(string(median(dd.y[index_time, 0], /even), format = '(f10.1)'), /remove_all)
       hdata = dd.y[index_time, 0]-median(dd.y[index_time, 0], /even)
       xclip, max_dev[0], max_dev[1], hdata, /clip_adjacent
       hdata = hdata+stack_shift*i
-      store_data, 'thg_mag_'+stations[i]+'_h_rel', data = {x:dd.x[index_time], y:hdata}, $
-        limits = {labels:[strupcase(stations[i])+'='+string(themedian)]}
+      store_data, 'thg_mag_'+loop_stations[i]+'_h_rel', data = {x:dd.x[index_time], y:hdata}, $
+        limits = {labels:[strupcase(loop_stations[i])+'='+string(themedian)]}
   
       themedian = strcompress(string(median(dd.y[index_time, 1], /even), format = '(f10.1)'), /remove_all)
       ddata = dd.y[index_time, 1]-median(dd.y[index_time, 1], /even)
       xclip, max_dev[0], max_dev[1], ddata, /clip_adjacent
       ddata = ddata+stack_shift*i
-      store_data, 'thg_mag_'+stations[i]+'_d_rel', data = {x:dd.x[index_time], y:ddata}, $
-        limits = {labels:[strupcase(stations[i])+'='+string(themedian)]}
+      store_data, 'thg_mag_'+loop_stations[i]+'_d_rel', data = {x:dd.x[index_time], y:ddata}, $
+        limits = {labels:[strupcase(loop_stations[i])+'='+string(themedian)]}
   
       themedian = strcompress(string(median(dd.y[index_time, 2], /even), format = '(f10.1)'), /remove_all)
       zdata = dd.y[index_time, 2]-median(dd.y[index_time, 2], /even)
       xclip, max_dev[0], max_dev[1], zdata, /clip_adjacent
       zdata = zdata+stack_shift*i
-      store_data, 'thg_mag_'+stations[i]+'_z_rel', data = {x:dd.x[index_time], y:zdata}, $
-        limits = {labels:[strupcase(stations[i])+'='+string(themedian)]}
+      store_data, 'thg_mag_'+loop_stations[i]+'_z_rel', data = {x:dd.x[index_time], y:zdata}, $
+        limits = {labels:[strupcase(loop_stations[i])+'='+string(themedian)]}
     
       if max(hdata) gt h_axis_range[1] then h_axis_range[1] = max(hdata)
       if max(ddata) gt d_axis_range[1] then d_axis_range[1] = max(ddata)
@@ -307,10 +336,10 @@ for k=0,n_elements(dhr)-1 do begin
     tplotvars_d = ['filler']
     tplotvars_z = ['filler']
 
-    for i = 0, n_elements(stations)-1 do begin
-      tplotvars_h = [tplotvars_h, tnames('thg_mag_'+stations[i]+'_h_rel')]
-      tplotvars_d = [tplotvars_d, tnames('thg_mag_'+stations[i]+'_d_rel')]
-      tplotvars_z = [tplotvars_z, tnames('thg_mag_'+stations[i]+'_z_rel')]
+    for i = 0, n_elements(loop_stations)-1 do begin
+      tplotvars_h = [tplotvars_h, tnames('thg_mag_'+loop_stations[i]+'_h_rel')]
+      tplotvars_d = [tplotvars_d, tnames('thg_mag_'+loop_stations[i]+'_d_rel')]
+      tplotvars_z = [tplotvars_z, tnames('thg_mag_'+loop_stations[i]+'_z_rel')]
     endfor
   
     store_data, 'BH', data = [tplotvars_h[1:*], 'BUFFER_TOP_H', 'BUFFER_BOT_H']

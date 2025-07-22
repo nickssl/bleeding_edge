@@ -34,9 +34,9 @@
 ;CREATED BY:      Takuya Hara on 2015-02-18.
 ;
 ;LAST MODIFICATION:
-; $LastChangedBy: hara $
-; $LastChangedDate: 2021-12-03 16:40:11 -0800 (Fri, 03 Dec 2021) $
-; $LastChangedRevision: 30448 $
+; $LastChangedBy: rjolitz $
+; $LastChangedDate: 2024-02-09 13:38:58 -0800 (Fri, 09 Feb 2024) $
+; $LastChangedRevision: 32442 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/models/mvn_model_bcrust_restore.pro $
 ;
 ;-
@@ -125,7 +125,7 @@ PRO mvn_model_bcrust_restore, var, orbit=orbit, silent=sl, verbose=vb, status=st
      kernels = mk.y
      IF N_ELEMENTS(kernels) GT 1 THEN kernels = STRJOIN(kernels, ' ')
      kernels = STRSPLIT(kernels, ' ', /extract)
-     kernels = spd_uniq(kernels)
+     ; kernels = spd_uniq(kernels)
   ENDIF 
   undefine, index, mk
 

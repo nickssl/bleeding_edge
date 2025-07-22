@@ -55,6 +55,7 @@
 ;         tt2000: flag for preserving TT2000 timestamps found in CDF files (note that many routines in
 ;                       SPEDAS (e.g., tplot.pro) do not currently support these timestamps)
 ;         ignore_telescopes: value (or array of values) representing telescope # to ignore while calculating omni-directional spectrograms
+;         keep_bad_eyes: If set, do not remove bad eyes (defaults to false)
 ;
 ; OUTPUT:
 ;  
@@ -94,9 +95,9 @@
 ;     
 ;     Please see the notes in mms_load_data for more information 
 ;
-;$LastChangedBy: egrimes $
-;$LastChangedDate: 2023-07-21 07:33:07 -0700 (Fri, 21 Jul 2023) $
-;$LastChangedRevision: 31958 $
+;$LastChangedBy: jwl $
+;$LastChangedDate: 2024-03-27 16:34:54 -0700 (Wed, 27 Mar 2024) $
+;$LastChangedRevision: 32511 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/feeps/mms_load_feeps.pro $
 ;-
 pro mms_load_feeps, trange = trange, probes = probes, datatype = datatype, $
@@ -110,7 +111,7 @@ pro mms_load_feeps, trange = trange, probes = probes, datatype = datatype, $
                   min_version = min_version, spdf = spdf, num_smooth = num_smooth, $
                   available = available, versions = versions, always_prompt = always_prompt, $
                   major_version=major_version, no_flatfield_corrections=no_flatfield_corrections, $
-                  tt2000=tt2000, ignore_telescopes=ignore_telescopes, download_only=download_only
+                  tt2000=tt2000, ignore_telescopes=ignore_telescopes, download_only=download_only, keep_bad_eyes=keep_bad_eyes
 
     if undefined(level) then level_in = 'l2' else level_in = level
     if undefined(probes) then probes_in = ['1'] else probes_in = probes
@@ -143,7 +144,9 @@ pro mms_load_feeps, trange = trange, probes = probes, datatype = datatype, $
       else varformat = varformat + ' *_spinsectnum *_pitch_angle'
     endif
     if ~undefined(varformat) && ~undefined(get_support_data) then undefine, get_support_data
-    
+
+    if undefined(keep_bad_eyes) then keep_bad_eyes=0
+        
     mms_load_data, trange = tr, probes = probes_in, level = level_in, instrument = 'feeps', $
         data_rate = data_rate_in, local_data_dir = local_data_dir, source = source, $
         datatype = datatype_in, get_support_data=get_support_data, $ ; support data is needed for spin averaging, etc.
@@ -158,7 +161,7 @@ pro mms_load_feeps, trange = trange, probes = probes, datatype = datatype, $
     if level_in eq 'l1a' then return ; avoid the following for L1a data
 
     ; correct energy tables based on probe, sensor head and sensor ID
-    mms_feeps_correct_energies, probes=probes_in, data_rate = data_rate_in, level = level_in, suffix = suffix
+    mms_feeps_correct_energies, probes=probes_in, data_rate = data_rate_in, level = level_in, suffix = suffix, keep_bad_eyes=keep_bad_eyes
     
     ; apply flat field corrections for ions
     if undefined(no_flatfield_corrections) then mms_feeps_flat_field_corrections, probes = probes_in, data_rate = data_rate_in, suffix = suffix
@@ -174,7 +177,7 @@ pro mms_load_feeps, trange = trange, probes = probes, datatype = datatype, $
         
         for data_units_idx = 0, n_elements(data_units)-1 do begin
           ; updated active eyes, 9/8/2017
-          eyes = mms_feeps_active_eyes(tr, this_probe, data_rate_in, this_datatype, level)
+          eyes = mms_feeps_active_eyes(tr, this_probe, data_rate_in, this_datatype, level, keep_bad_eyes=keep_bad_eyes)
           
           ; user requested to ignore a specific telescope
           if keyword_set(ignore_telescopes) then begin

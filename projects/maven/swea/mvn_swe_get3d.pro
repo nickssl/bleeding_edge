@@ -34,8 +34,8 @@
 ;                        0B = affected by low-energy anomaly
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-08-02 11:14:38 -0700 (Wed, 02 Aug 2023) $
-; $LastChangedRevision: 31975 $
+; $LastChangedDate: 2025-04-17 15:22:14 -0700 (Thu, 17 Apr 2025) $
+; $LastChangedRevision: 33264 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_get3d.pro $
 ;
 ;CREATED BY:    David L. Mitchell  03-29-14
@@ -84,8 +84,13 @@ function mvn_swe_get3d, time, archive=archive, all=all, sum=sum, units=units, bu
   if keyword_set(archive) then begin
     if (size(mvn_swe_3d_arc,/type) eq 8) then begin
       if keyword_set(all) then begin
-        tmin = min(time, max=tmax, /nan)
-        indx = where((mvn_swe_3d_arc.time ge tmin) and (mvn_swe_3d_arc.time le tmax), npts)
+        if (n_elements(time) eq 1) then begin
+          indx = nn2(mvn_swe_3d_arc.time, time, maxdt=32D)
+          if (indx eq -1) then npts = 0L else npts = 1L
+        endif else begin
+          tmin = min(time, max=tmax, /nan)
+          indx = where((mvn_swe_3d_arc.time ge tmin) and (mvn_swe_3d_arc.time le tmax), npts)
+        endelse
         if (npts gt 0L) then time = mvn_swe_3d_arc[indx].time $
                         else print,"No 3D archive data at specified time(s)."        
       endif else npts = n_elements(time)
@@ -98,8 +103,13 @@ function mvn_swe_get3d, time, archive=archive, all=all, sum=sum, units=units, bu
   endif else begin
     if (size(mvn_swe_3d,/type) eq 8) then begin
       if keyword_set(all) then begin
-        tmin = min(time, max=tmax, /nan)
-        indx = where((mvn_swe_3d.time ge tmin) and (mvn_swe_3d.time le tmax), npts)
+        if (n_elements(time) eq 1) then begin
+          indx = nn2(mvn_swe_3d.time, time, maxdt=32D)
+          if (indx eq -1) then npts = 0L else npts = 1L
+        endif else begin
+          tmin = min(time, max=tmax, /nan)
+          indx = where((mvn_swe_3d.time ge tmin) and (mvn_swe_3d.time le tmax), npts)
+        endelse
         if (npts gt 0L) then time = mvn_swe_3d[indx].time $
                         else print,"No 3D survey data at specified time(s)."
       endif else npts = n_elements(time)
@@ -166,8 +176,13 @@ function mvn_swe_get3d, time, archive=archive, all=all, sum=sum, units=units, bu
     endif
     
     if keyword_set(all) then begin
-      tmin = min(time, max=tmax, /nan)
-      indx = where((swe_3d_arc.time ge tmin) and (swe_3d_arc.time le tmax), npts)
+      if (n_elements(time) eq 1) then begin
+        indx = nn2(swe_3d_arc.time, time, maxdt=32D)
+        if (indx eq -1) then npts = 0L else npts = 1L
+      endif else begin
+        tmin = min(time, max=tmax, /nan)
+        indx = where((swe_3d_arc.time ge tmin) and (swe_3d_arc.time le tmax), npts)
+      endelse
       if (npts eq 0L) then begin
         print,"No 3D archive data at specified time(s)."
         return, 0
@@ -188,8 +203,13 @@ function mvn_swe_get3d, time, archive=archive, all=all, sum=sum, units=units, bu
     endif
 
     if keyword_set(all) then begin
-      tmin = min(time, max=tmax, /nan)
-      indx = where((swe_3d.time ge tmin) and (swe_3d.time le tmax), npts)
+      if (n_elements(time) eq 1) then begin
+        indx = nn2(swe_3d.time, time, maxdt=32D)
+        if (indx eq -1) then npts = 0L else npts = 1L
+      endif else begin
+        tmin = min(time, max=tmax, /nan)
+        indx = where((swe_3d.time ge tmin) and (swe_3d.time le tmax), npts)
+      endelse
       if (npts eq 0L) then begin
         print,"No 3D survey data at specified time(s)."
         return, 0
@@ -452,6 +472,10 @@ function mvn_swe_get3d, time, archive=archive, all=all, sum=sum, units=units, bu
   scale = reform((replicate(1., 64*96) # cc), 64, 96, npts)
   
   ddd.gf /= scale
+
+; Insert an estimate for the secondary contamination
+
+  if (max(ddd.bkg) lt 1.e-30) then mvn_swe_secondary, ddd
 
 ; Sum the data.  This is done by summing raw counts corrected by deadtime
 ; and then setting dtc to unity.  Also, note that summed 3D's can be 

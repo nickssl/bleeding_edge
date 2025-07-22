@@ -6,9 +6,9 @@
 ; 
 ; In the future this will include instructions for looking at flight data:  IN PROG 
 ; 
-; $LastChangedBy: orlando $
-; $LastChangedDate: 2022-07-27 14:03:43 -0700 (Wed, 27 Jul 2022) $
-; $LastChangedRevision: 30972 $
+; $LastChangedBy: phyllisw3 $
+; $LastChangedDate: 2024-03-25 15:00:30 -0700 (Mon, 25 Mar 2024) $
+; $LastChangedRevision: 32503 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SPP/sweap/SPAN/electron/spp_swp_spane_crib.pro $
 ;--------------------------------------------------------------------
 
@@ -1089,26 +1089,28 @@ pro spe_limit_hist, datavar, trange = trange
 end
   
   
-pro spplot_plw,trange,cursor=cursor,zero=zero,lim=lim ; borrowed from Davin crib 'spp_swp_span_crib'
+pro spplot_plw,trange,cursor=cursor,zero=zero,lim=lim,ebins=ebins; borrowed from Davin crib 'spp_swp_span_crib'
 
   if ~isa(lim) then begin
     ylim,lim,10,1e6,1
   endif
+  
+  if ~keyword_set(ebins) then ebins = [4,8,7,16] ; 
 
-  d3d1 = spp_swp_3dstruct('spa_eflux',trange=trange, cursor = cursor)
+  d3d1 = spp_swp_3dstruct('spa_sf0_L2', trange = trange, cursor = cursor, sortname = 'deflsort3d')
   wi,1
   wshow,1
-  spec3d,d3d1,lim=lim,/phi
+  spec3d,d3d1,lim=lim, /phi
 
   wi,2
   wshow,2
-  plot3d_new,d3d1,zero=zero
+  plot3d_new,d3d1,zero=zero, ebins = ebins
 
-  d3d2 = spp_swp_3dstruct('psp_swp_spb_sf0_L2_EFLUX',trange=trange, cursor = cursor)
+  d3d2 = spp_swp_3dstruct('spb_sf0_L2', trange = trange, sortname = 'deflsort3d')
   wi,3,/wshow
   spec3d,d3d2,lim=lim,/phi
   wi,4,/wshow
-  plot3d_new,d3d2,zero=zero
+  plot3d_new,d3d2,zero=zero, ebins = ebins, magf = d3d2.magf_sc
   timebar,trange
 
   wshow,2

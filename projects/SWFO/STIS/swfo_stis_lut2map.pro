@@ -19,6 +19,8 @@
 
 function swfo_stis_lut2map,mapname=mapname,lut=lut ,mapnum=mapnum ,  sensor=sensor
 
+  nbins = max(lut)+1   ; don't use this now
+  if nbins gt 256 then message,"Don't use this code"
 
   if keyword_set(mapname) or not keyword_set(lut) then lut = swfo_stis_create_lut(mapname,mapnum=mapnum)
   mapsize = (max(lut)+1) > 256
@@ -38,7 +40,7 @@ function swfo_stis_lut2map,mapname=mapname,lut=lut ,mapnum=mapnum ,  sensor=sens
     nrg_meas_avg:nan    , nrg_meas_delta:nan, $
     nrg_proton_avg:nan  , nrg_proton_delta:nan, $
     nrg_electron_avg:nan, nrg_electron_delta:nan }
-  bmaps = replicate(bmap,256)
+  bmaps = replicate(bmap,nbins)
   remap = indgen(16)
   ;remap[[0,1,10,11]] = 0    ; allow
   remap[[0,1]] = 0                  ; Non events  'x'
@@ -99,8 +101,8 @@ function swfo_stis_lut2map,mapname=mapname,lut=lut ,mapnum=mapnum ,  sensor=sens
 
   if keyword_set(sensor) then begin
     bmaps.sens = sensor
-    erange = fltarr(2,256)
-    for i=0,255 do   erange[*,i] = 59.5 / cbin59_5[bmaps[i].det,bmaps[i].tid,sensor-1] * bmaps[i].adc
+    erange = fltarr(2,nbins)
+    for i=0,nbins-1 do   erange[*,i] = 59.5 / cbin59_5[bmaps[i].det,bmaps[i].tid,sensor-1] * bmaps[i].adc
     bmaps.nrg_meas_avg    = average(erange,1)
 
     bmaps.nrg_meas_delta   = reform(erange[1,*]-erange[0,*])  ;/2

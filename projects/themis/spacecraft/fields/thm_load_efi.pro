@@ -50,9 +50,9 @@
 ;    through to THM_CAL_EFI.PRO, W.M.Feuerstein, 4/7/2008 (M).
 ;  Fixed crash on passing an argument for RELPATHNAMES_ALL, WMF, 4/9/2008 (Tu).
 ;  Added _extra keyword to ease the passing of keywords to thm_cal_efi
-; $LastChangedBy: egrimes $
-; $LastChangedDate: 2018-12-21 11:50:27 -0800 (Fri, 21 Dec 2018) $
-; $LastChangedRevision: 26397 $
+; $LastChangedBy: jimm $
+; $LastChangedDate: 2025-05-08 11:29:53 -0700 (Thu, 08 May 2025) $
+; $LastChangedRevision: 33301 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/spacecraft/fields/thm_load_efi.pro $
 ;-
 
@@ -110,7 +110,8 @@ pro thm_load_efi, probe = probe, datatype = datatype, trange = trange, $
 
 ;  vl2datatypes = ['vaf', 'vap', 'vaw', 'vbf', 'vbp', 'vbw', $
    vl2datatypes = ['eff_dot0', 'efs_dot0', 'eff_q_mag', 'eff_q_pha', $
-                  'efs_q_mag', 'efs_q_pha', 'eff_e12_efs', 'eff_e34_efs']
+                  'efs_q_mag', 'efs_q_pha', 'eff_e12_efs', 'eff_e34_efs', $
+                  'efp', 'efw']
 
   thm_load_proc_arg, sname=probe, datatype=datatype, proc_type=type, msg_out=msg_out, $
                      level=level, verbose=verbose, no_download=no_download, $
@@ -120,7 +121,7 @@ pro thm_load_efi, probe = probe, datatype = datatype, trange = trange, $
                      vdatatypes = strjoin(vl1datatypes, ' '), $
                      file_vdatatypes = strjoin(vl1datafiles, ' '), $
                      vL2datatypes= strjoin(vl2datatypes, ' '), $
-                     file_vL2datatypes= 'efi', $
+                     file_vL2datatypes= 'efi efi efi efi efi efi efi efi efp efw', $
                      vtypes='raw calibrated', deftype = 'calibrated', $
                      vlevels = 'l1 l2', $
                      deflevel = 'l1', $

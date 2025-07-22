@@ -30,9 +30,9 @@
 ;           directories, if they are not there
 ;           cg, 2008-5-6, reset default default directory
 ;
-; $LastChangedBy: egrimes $
-; $LastChangedDate: 2020-04-02 14:24:09 -0700 (Thu, 02 Apr 2020) $
-; $LastChangedRevision: 28485 $
+; $LastChangedBy: nikos $
+; $LastChangedDate: 2024-11-13 13:45:30 -0800 (Wed, 13 Nov 2024) $
+; $LastChangedRevision: 32962 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/common/thm_config.pro $
 ;
 ;-
@@ -52,7 +52,7 @@ pro thm_config,caching=caching,colortable=colortable,$
 ; !themis.remote_data_dir = 'http://cdpp.cesr.fr/themisdata/'             ; In France
 ; !themis.remote_data_dir = 'http://rhea.iwf.oeaw.ac.at/themisdata/'      ; In Austria, Does not include ground data!
 ;!themis.remote_data_dir = 'http://sprg.ssl.berkeley.edu/data/themis/'   ; use as backup web server
-!themis.remote_data_dir = 'http://themis.ssl.berkeley.edu/data/themis/'
+!themis.remote_data_dir = 'https://themis.ssl.berkeley.edu/data/themis/'
 
 ;!themis.use_wget=1   ; uncomment to use experimental wget routine
 ;instead of file_http_copy (not recommended)

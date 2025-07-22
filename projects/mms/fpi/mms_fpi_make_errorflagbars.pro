@@ -45,6 +45,7 @@
 ;     bit 11 = compression pipeline error
 ;     Bit 12 = spintone calculation error (DBCS only)
 ;     Bit 13 = significant (>=20%) penetrating radiation (DIS only)
+;     Bit 14 = high MMS3 spintone due to DIS008 anomaly (DIS only)
 ;      
 ;   For DES/DIS moments (Fast):
 ;     bit 0 = manually flagged interval --> contact the FPI team for direction when utilizing this data; further correction is required
@@ -61,14 +62,15 @@
 ;     bit 11 = compression pipeline error
 ;     Bit 12 = spintone calculation error (DBCS only)
 ;     Bit 13 = significant (>=20%) penetrating radiation (DIS only)
+;     Bit 14 = high MMS3 spintone due to DIS008 anomaly (DIS only)
 ;
 ;     Original by Naritoshi Kitamura
 ;     
 ;     June 2016: minor updates by egrimes
 ;     
-; $LastChangedBy: egrimes $
-; $LastChangedDate: 2022-03-16 11:59:00 -0700 (Wed, 16 Mar 2022) $
-; $LastChangedRevision: 30682 $
+; $LastChangedBy: jwl $
+; $LastChangedDate: 2024-09-12 11:27:33 -0700 (Thu, 12 Sep 2024) $
+; $LastChangedRevision: 32829 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/fpi/mms_fpi_make_errorflagbars.pro $
 ;-
 
@@ -85,13 +87,13 @@ PRO mms_fpi_make_errorflagbars, tname, level = level
   if ~is_struct(dl) then return
   
   if strmid(dl.cdf.gatt.data_type,3,4,/rev) eq 'moms' or level eq 'ql' then begin
-    flags=string(d.y,format='(b014)')
-    flagline=fltarr(n_elements(d.x),14)
+    flags=string(d.y,format='(b015)')
+    flagline=fltarr(n_elements(d.x),15)
     flagline_others=fltarr(n_elements(d.x))
     flagline_all=fltarr(n_elements(d.x))
     for j=0l,n_elements(flags)-1l do begin
-      for i=0,13 do begin
-        if fix(strmid(flags[j],13-i,1)) eq 0 then begin
+      for i=0,14 do begin
+        if fix(strmid(flags[j],14-i,1)) eq 0 then begin
           flagline[j,i]=!values.f_nan
           if flagline_all[j] ne 1.0 then flagline_all[j]=!values.f_nan else flagline_all[j]=1.0
           if inst eq 'DES' then begin
@@ -110,11 +112,11 @@ PRO mms_fpi_make_errorflagbars, tname, level = level
         endelse
       endfor
     endfor
-    labels_full=['Contact FPI team','Saturation','SCpot>20V','no SCpot','>10% Cold','>25% Hot','High Mach#','Low Density','Onboard Mag','L2pre Mag','Photoelectrons','Compression', 'Spintones', 'Radiation']
+    labels_full=['Contact FPI team','Saturation','SCpot>20V','no SCpot','>10% Cold','>25% Hot','High Mach#','Low Density','Onboard Mag','L2pre Mag','Photoelectrons','Compression', 'Spintones', 'Radiation','MMS3 Spintones']
     if inst eq 'DES' then begin
       store_data,tname+'_flagbars_full',data={x:d.x,y:[[flagline[*,0]],[flagline[*,1]-0.1],[flagline[*,2]-0.2],[flagline[*,3]-0.3],[flagline[*,4]-0.4],[flagline[*,5]-0.5],[flagline[*,6]-0.6],[flagline[*,7]-0.7],[flagline[*,8]-0.8],[flagline[*,9]-0.9],[flagline[*,10]-1.0],[flagline[*,11]-1.1],[flagline[*,12]-1.2]]}
       ylim,tname+'_flagbars_full',-0.15,1.25,0
-      options,tname+'_flagbars_full',colors=[0,6,4,3,2,1,3,0,2,4,6,0,2],labels=labels_full,ytitle=inst+'!C'+rate,thick=3,panel_size=0.8,xstyle=4,ystyle=4,ticklen=0,labflag=-1,psym=-6,symsize=0.3,datagap=gap
+      options,tname+'_flagbars_full',colors=[0,6,4,3,2,1,3,0,2,4,6,0,2],labels=labels_full[0:12],ytitle=inst+'!C'+rate,thick=3,panel_size=0.8,xstyle=4,ystyle=4,ticklen=0,labflag=-1,psym=-6,symsize=0.3,datagap=gap
       store_data,tname+'_flagbars_main',data={x:d.x,y:[[flagline[*,1]-0.2],[flagline[*,4]-0.4],[flagline[*,5]-0.6],[flagline_others-0.8]]}
       ylim,tname+'_flagbars_main',0.1,0.9,0
       options,tname+'_flagbars_main',colors=[6,2,1,0],labels=['Saturation','Cold (>10%)','Hot (>25%)','Others'],ytitle=inst+'!C'+rate,xstyle=4,ystyle=4,ticklen=0,thick=4,panel_size=0.5,labflag=-1,psym=-6,symsize=0.2,datagap=gap
@@ -127,9 +129,10 @@ PRO mms_fpi_make_errorflagbars, tname, level = level
       ylim,tname+'_flagbars_mini',0.9,1.1,0
       options,tname+'_flagbars_mini',colors=0,labels='Flagged',xstyle=4,ystyle=4,ticklen=0,thick=4,panel_size=0.1,labflag=-1,psym=-6,symsize=0.2,datagap=gap,labsize=1
     endif else begin
-      store_data,tname+'_flagbars_full',data={x:d.x,y:[[flagline[*,0]],[flagline[*,1]-0.1],[flagline[*,2]-0.2],[flagline[*,3]-0.3],[flagline[*,4]-0.4],[flagline[*,5]-0.5],[flagline[*,6]-0.6],[flagline[*,7]-0.7],[flagline[*,8]-0.8],[flagline[*,9]-0.9],[flagline[*,10]-1.0],[flagline[*,11]-1.1],[flagline[*,12]-1.2],[flagline[*,13]-1.3]]}
-      ylim,tname+'_flagbars_full',-0.15,1.35,0
-      options,tname+'_flagbars_full',colors=[0,6,4,3,2,1,3,0,2,4,6,0,2,200],labels=labels_full,ytitle=inst+'!C'+rate,thick=3,panel_size=0.8,xstyle=4,ystyle=4,ticklen=0,labflag=-1,psym=-6,symsize=0.3,datagap=gap
+      store_data,tname+'_flagbars_full',data={x:d.x,y:[[flagline[*,0]],[flagline[*,1]-0.1],[flagline[*,2]-0.2],[flagline[*,3]-0.3],[flagline[*,4]-0.4],[flagline[*,5]-0.5],[flagline[*,6]-0.6],[flagline[*,7]-0.7],$
+        [flagline[*,8]-0.8],[flagline[*,9]-0.9],[flagline[*,10]-1.0],[flagline[*,11]-1.1],[flagline[*,12]-1.2],[flagline[*,13]-1.3],[flagline[*,14]-1.4]]}
+      ylim,tname+'_flagbars_full',-0.16,1.35,0
+      options,tname+'_flagbars_full',colors=[0,6,4,3,2,1,3,0,2,4,6,0,2,200,6],labels=labels_full,ytitle=inst+'!C'+rate,thick=3,panel_size=0.8,xstyle=4,ystyle=4,ticklen=0,labflag=-1,psym=-6,symsize=0.3,datagap=gap
       store_data,tname+'_flagbars_main',data={x:d.x,y:[[flagline[*,1]-0.2],[flagline[*,13]-0.4],[flagline[*,5]-0.6],[flagline_others-0.8]]}
       ylim,tname+'_flagbars_main',0.1,0.9,0
       options,tname+'_flagbars_main',colors=[6,200,1,0],labels=['Saturation','Radiation','Hot (>25%)','Others'],ytitle=inst+'!C'+rate,xstyle=4,ystyle=4,ticklen=0,thick=4,panel_size=0.5,labflag=-1,psym=-6,symsize=0.2,datagap=gap

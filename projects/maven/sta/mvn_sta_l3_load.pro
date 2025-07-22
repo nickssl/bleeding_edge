@@ -27,10 +27,12 @@
 ;     mvn_sta_l3_density_quality_flag.
 ;
 ;Set coltab as a float/integer to the desired color table, so that tplot variable labels can be colored correctly. If not set, the default
-;     value of 43 is used, via loadct2, 43.
+;     value of 43 is used, via loadct2, 43. Note: in the latest version this keyword no longer works.
 ;
 ;Set /qualc if you are using Mike Chaffins qualcolors colortable software. This supercedes the coltab keyword. If qualc is not set, 
-;     then the keyword coltab is used instead, which defaults to 43 if not set.
+;     then the keyword coltab is used instead, which defaults to 43 if not set. Note: this routine used to run loadct2, if qualc was not set. This
+;     no longer happens: the user must run loadct2 before running this routine, if they want to set a specific colortable. If this routine cannot find
+;     an structure of array colors to use (which is obtained through either loadct2 or qualcolors), then it will use placeholder values, to avoid a crash.
 ;     NOTE: If you use the qualcolors software, you may get a red background when loading the data if you don't use the /qualc keyword. 
 ;           To fix this, run the following:
 ;               @'qualcolors'
@@ -138,6 +140,7 @@
 ;2021-10-12: CMF + KGH disabled anc keyword as still sorting through last bugs. Will reactive when ready - hopefully a few weeks.
 ;2021-11:11: KGH added workaround to fix problem with anc keyword -- recreate 'problem' tplot variables at the end of this code rather than storing them in the anc files. 
 ;2022-06-27: CMF: added filesloaded keyword to output list of filenames loaded.
+;2024-02-28: CMF: removed the default behavior to use loadct2 command. The user must run this themselves beforehand now. The keyword coltab now no longer works as a result.
 ;-
 ;
 
@@ -177,6 +180,13 @@ if getenv('MAVENPFP_USER_PASS') eq '' then begin
 endif else passwd = getenv('MAVENPFP_USER_PASS')
 
 ;/disks/data/maven/data/sci/sta/l3/  density  temperature
+
+;The default for this routine is to use get_colors(); if this doesn't work, use this backup array of color indices:
+colsbestguess = create_struct('black'      ,     0   , $  
+                              'magenta'    ,     20  , $
+                              'blue'       ,     50  , $
+                              'red'        ,     250 , $
+                              'green'      ,     170)
 
 ;Get timerange from timespan:
 get_timespan, tr
@@ -317,8 +327,9 @@ if not keyword_set(leavecolors) then begin  ;only fix colors if requested
     endif else begin
         ;Not qualcolors:
         if keyword_set(coltab) then ct = coltab else ct = 43 ;default if coltab not set
-        loadct2, ct
+        ;loadct2, ct  ;as of 2024-02-28, CMF disabled this - users must set it themselves.
         cols = get_colors()  ;get list of table colors   
+        if size(cols,/type) ne 8 then cols=colsbestguess
         cols5 = [cols.black, cols.magenta, cols.blue, cols.red, cols.green]   ;note, 43 doesn't have purple - use magenta instead. 
         cols3 = [cols.blue, cols.red, cols.green]
     endelse
@@ -354,8 +365,9 @@ if keyword_set(anc) and keyword_set(temp) then begin
       endif else begin
        ;Not qualcolors:
         if keyword_set(coltab) then ct = coltab else ct = 43 ;default if coltab not set
-        loadct2, ct
+        ;loadct2, ct  ;CMF disabled on 2024-02-28
         cols = get_colors() 
+        if size(cols,/type) ne 8 then cols=colsbestguess
         str_element, cols, 'orange', 200, /add ; best guess       
       endelse     
   endif else begin

@@ -4,8 +4,8 @@
 ;   spp_fld_rfs_hires_load_l1
 ;
 ; $LastChangedBy: pulupa $
-; $LastChangedDate: 2023-09-21 12:05:16 -0700 (Thu, 21 Sep 2023) $
-; $LastChangedRevision: 32114 $
+; $LastChangedDate: 2023-09-28 13:18:16 -0700 (Thu, 28 Sep 2023) $
+; $LastChangedRevision: 32147 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SPP/fields/l1/l1_rfs_hires/spp_fld_rfs_hires_load_l1.pro $
 ;
 ;-
@@ -16,7 +16,7 @@ pro spp_fld_rfs_hires_load_l1, file, prefix = prefix, color = color, varformat =
   ; TODO improve this check for valid CDF file and add to other routines
   if n_elements(file) lt 1 or file[0] eq '' then return
 
-  if file.Contains('lusee') then lusee = 1 else lusee = 0
+  if file[0].Contains('lusee') then lusee = 1 else lusee = 0
   rfs_freqs = spp_fld_rfs_freqs(/lfr, plasma = rfs_plasma, lusee = lusee)
 
   lfr_flag = strpos(prefix, 'lfr') ne -1

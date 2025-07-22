@@ -35,16 +35,19 @@
 ;   applied).  use_eclipse_corrections=1 applies partial eclipse
 ;   corrections (not recommended, used only for internal SOC processing).
 ;   use_eclipse_corrections=2 applies all available eclipse corrections.
-
+; check_l1b: if set, then look for L1B data files that include
+;            estimates for Bz. This is the deafult for THEMIS E 
+;            after 2024-06-01 (date subject to change....)
+;
 ;Example:
 ;   thg_load_fit,/get_suppport_data,probe=['a', 'b']
 ;Modifications:
 ;  J. McFadden passed through the NO_CAL kw to THM_CAL_FIT.PRO, WMF, 6/27/2008.
 ;Notes:
 ;
-; $LastChangedBy: nikos $
-; $LastChangedDate: 2016-11-16 15:45:58 -0800 (Wed, 16 Nov 2016) $
-; $LastChangedRevision: 22364 $
+; $LastChangedBy: jimm $
+; $LastChangedDate: 2024-11-20 11:24:00 -0800 (Wed, 20 Nov 2024) $
+; $LastChangedRevision: 32968 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/spacecraft/fields/thm_load_fit.pro $
 ;-
 
@@ -52,7 +55,8 @@ pro thm_load_fit_post, sname=probe, datatype=dt, level=level, $
     tplotnames=tplotnames, $
     suffix=suffix, proc_type=proc_type, coord=coord, $
     delete_support_data=delete_support_data,sigma=sigma,$
-    _extra=_extra,no_cal=no_cal,use_eclipse_corrections=use_eclipse_corrections
+    no_cal=no_cal,use_eclipse_corrections=use_eclipse_corrections, $
+    _extra=_extra
     
   if not keyword_set(coord) then coord='dsl'
   for l=0, n_elements(tplotnames)-1 do begin
@@ -80,7 +84,8 @@ pro thm_load_fit_post, sname=probe, datatype=dt, level=level, $
   endif
   
   if (level eq 'l1' ) and (~keyword_set(proc_type) || strmatch(proc_type, 'calibrated')) then begin
-    thm_cal_fit,/verbose,probe=probe,datatype=dt,in_suf=suffix,out_suf=suffix,coord=coord,no_cal=no_cal,use_eclipse_corrections=use_eclipse_corrections
+     thm_cal_fit,/verbose,probe=probe,datatype=dt,in_suf=suffix,out_suf=suffix,coord=coord,$
+                 no_cal=no_cal,use_eclipse_corrections=use_eclipse_corrections,_extra=_extra
   endif
   
   if keyword_set(delete_support_data) then begin
@@ -101,7 +106,8 @@ pro thm_load_fit,probe=probe, datatype=datatype, trange=trange, $
     relpathnames_all=relpathnames_all,no_download=no_download,$
     varnames=varnames, valid_names = valid_names, files=files, $
     progobj=progobj,type=type, suffix=suffix,coord=coord,sigma=sigma,$
-    no_cal=no_cal, true_dsl=true_dsl, use_eclipse_corrections=use_eclipse_corrections,_extra = _extra
+    no_cal=no_cal, true_dsl=true_dsl, use_eclipse_corrections=use_eclipse_corrections, $
+    _extra = _extra
     
   if ~keyword_set(probe) then probe = ['a', 'b', 'c', 'd', 'e']
     
@@ -260,7 +266,6 @@ pro thm_load_fit,probe=probe, datatype=datatype, trange=trange, $
   ;from thm_load_fft
   ;
   if(lvl eq 'l1' and not keyword_set(valid_names)) then begin
-  
   
     ;the lines below help deal with variation in datatypes variable
     if size(datatype,/n_dim) eq 0 && datatype[0] eq '' then begin

@@ -69,15 +69,18 @@
 ;  cal_get_dac_dat = Returns the raw data from directly after the DAC(non-linearity offset) calibration is applied.  For verification.
 ;  cal_get_spin_dat = Returns the raw data from directly after the spin harmonic(solar array current) calibration is applied.  For verification.
 ;  interpolate_cal = if it is set, then thm_cal values are interpolated to 10 min time intervals
+; check_l1b: if set, then look for L1B data files that include
+;            estimates for Bz. This is the deafult for THEMIS E 
+;            after 2024-06-01 (date subject to change....)
 ;  
 ;Example:
 ;   thg_load_fgm,probe=['a','b']
 ;Notes:
 ;  This routine is (should be) platform independent.
 ;
-; $LastChangedBy: egrimes $
-; $LastChangedDate: 2021-04-06 15:13:54 -0700 (Tue, 06 Apr 2021) $
-; $LastChangedRevision: 29855 $
+; $LastChangedBy: jimm $
+; $LastChangedDate: 2024-11-20 11:24:00 -0800 (Wed, 20 Nov 2024) $
+; $LastChangedRevision: 32968 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/spacecraft/fields/thm_load_fgm.pro $
 ;-
 
@@ -205,7 +208,8 @@ pro thm_load_fgm_post, sname=probe, datatype=dt, level=lvl, $
                      cal_get_fulloffset=cal_get_fulloffset,$
                      cal_get_dac_dat=cal_get_dac_dat,$
                      cal_get_spin_dat=cal_get_spin_dat,$
-                     use_eclipse_corrections=use_eclipse_corrections
+                     use_eclipse_corrections=use_eclipse_corrections, $
+                     _extra = _extra
                     
         ;; delete support data
         if keyword_set(delete_support_data) then begin
@@ -233,7 +237,9 @@ pro thm_load_fgm, probe = probe, datatype = datatype, trange = trange, $
                   progobj = progobj, cal_spin_harmonics = cal_spin_harmonics, $
                   cal_dac_offset = cal_dac_offset, cal_tone_removal = cal_tone_removal, $
                   cal_get_fulloffset = cal_get_fulloffset, cal_get_dac_dat = cal_get_dac_dat, $
-                  cal_get_spin_dat = cal_get_spin_dat, use_eclipse_corrections=use_eclipse_corrections,_extra = _extra
+                  cal_get_spin_dat = cal_get_spin_dat, $
+                  use_eclipse_corrections=use_eclipse_corrections, $
+                  _extra = _extra
 
   if ~keyword_set(probe) then probe = ['a', 'b', 'c', 'd', 'e']
 

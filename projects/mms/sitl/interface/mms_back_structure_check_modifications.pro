@@ -136,9 +136,12 @@ mod_warning_text = 'WARNING: The segments at the following times have a modified
                     fom_percent_str + ' percent: '
                     
 if count_del_warnings gt 0 then begin
-  del_warning_times = strarr(count_del_warnings)
-  create_time_strings, new_backstr.start[loc_del_warning[c]], stemp
-  del_warning_times[c] = stemp
+  del_warning_times = strarr(count_del_warnings)  
+  cmax = n_elements(loc_del_warning)
+  for c=0,cmax-1 do begin
+    create_time_strings, new_backstr.start[loc_del_warning[c-1]], stemp
+    del_warning_times[c-1] = stemp
+  endfor
 endif else begin
   del_warning_times = ''
 endelse

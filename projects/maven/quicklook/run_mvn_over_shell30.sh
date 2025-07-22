@@ -27,7 +27,8 @@ if (! -e /mydisks/home/maven/muser/MVN_OVER_SHELL30lock.txt) then
     echo exit >> run_mvn_over_shell30.bm
 
     idl run_mvn_over_shell30.bm > /mydisks/home/maven/muser/run_mvn_over_shell30.txt &
-#else close quietly
+else
+    echo "Overshell30 Process not started" | mailx -s "Overshell30 process not started" jimm@ssl.berkeley.edu
 endif 
 
 

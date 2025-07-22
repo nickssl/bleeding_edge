@@ -24,8 +24,8 @@
 ;
 ;
 ; $LastChangedBy: nikos $
-; $LastChangedDate: 2023-09-25 22:41:22 -0700 (Mon, 25 Sep 2023) $
-; $LastChangedRevision: 32131 $
+; $LastChangedDate: 2023-10-05 10:06:20 -0700 (Thu, 05 Oct 2023) $
+; $LastChangedRevision: 32173 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/goesr/goesr_overview_plot.pro $
 ;-
 
@@ -336,13 +336,13 @@ pro goesr_overview_plot, date = date, probe = probe_in, directory = directory, d
     get_data, goesgsm, data=tmp_gsm
     if is_struct(tmp_gsm) then begin
       data_att = {project:'GOES', observatory:'g'+probe, instrument:'mag', units:'RE', coord_sys:'gsm', st_type:'pos'}
-      dlimits = {data_att: data_att, colors: [2,4,6], labels: ['x','y','z']+'_gsm', ytitle:'GSM'}
-      store_data, outnames[0], data={x:tmp_gsm.x, y:tmp_gsm.y[*,0]/earth_radius}, dlimits=dlimits
-      options, outnames[0], ytitle='X-GSM', /add
-      store_data, outnames[1], data={x:tmp_gsm.x, y:tmp_gsm.y[*,1]/earth_radius}, dlimits=dlimits
-      options, outnames[1], ytitle='Y-GSM', /add
-      store_data, outnames[2], data={x:tmp_gsm.x, y:tmp_gsm.y[*,2]/earth_radius}, dlimits=dlimits
-      options, outnames[2], ytitle='Z-GSM', /add
+      dlimits0 = {data_att: data_att, colors: [2], labels: 'x_gsm', ytitle:'X-GSM'}
+      dlimits1 = {data_att: data_att, colors: [4], labels: 'y_gsm', ytitle:'Y-GSM'}
+      dlimits2 = {data_att: data_att, colors: [6], labels: 'z_gsm', ytitle:'Z-GSM'}
+      store_data, outnames[0], data={x:tmp_gsm.x, y:tmp_gsm.y[*,0]/earth_radius}, dlimits=dlimits0
+      store_data, outnames[1], data={x:tmp_gsm.x, y:tmp_gsm.y[*,1]/earth_radius}, dlimits=dlimits1
+      store_data, outnames[2], data={x:tmp_gsm.x, y:tmp_gsm.y[*,2]/earth_radius}, dlimits=dlimits2
+
       time_clip, outnames, tr[0], tr[1], replace=1, error=error
     endif else begin
       dprint,'No GSM position data found'

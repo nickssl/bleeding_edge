@@ -18,20 +18,21 @@
 ;      Uses append_array.pro
 ;
 ; EXAMPLE:
-;        IDL> data_structure = mvn_mag_sts_read( filename, header = header)  
-;        
+;        IDL> data_structure = mvn_mag_sts_read( filename, header = header)
+;
 ;
 ; HISTORY:
 ;
 ; VERSION:
-;   $LastChangedBy: nikos $
-;   $LastChangedDate: 2015-11-18 14:02:09 -0800 (Wed, 18 Nov 2015) $
-;   $LastChangedRevision: 19410 $
+;   $LastChangedBy: ali $
+;   $LastChangedDate: 2023-10-21 18:50:42 -0700 (Sat, 21 Oct 2023) $
+;   $LastChangedRevision: 32205 $
 ;   $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/mag/mvn_mag_l1_sts_read.pro $
 ;-
 
 
 function mvn_mag_l1_sts_read, filename, header_info = header_info
+  message,'obsolete, replaced by mvn_mag_sts_read'
 
 
   ;###########################################################################

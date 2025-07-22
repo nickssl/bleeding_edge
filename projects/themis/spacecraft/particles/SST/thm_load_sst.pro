@@ -32,14 +32,27 @@
 ;  /NO_TIME_CLIP: Disables time clipping, which is the default
 ;Example:
 ;   thg_load_sst,/get_suppport_data,probe=['a', 'b']
+;   
+;Notes on SST attenuator status bits (e.g thx_*_atten variables from L1 SST data):
+;
+;atten_flags are a 4-bit value for the attenuator flags
+;Defined as MSB,Open Equatorial Attenuator,Closed Equatorial Attenuator,Open Polar Attenuator,Closed Polar Attenuator, LSB
+;With MSB/LSB not representing actual bits, but as labels to clarify bit order.
+;Some examples:
+; 0x5: both attenuators closed
+; 0xA: both attenuators open
+; 0x6: equatorial closed, polar open  (Occurs during stuck atten error on themis D)
+; 0xf: Error state. Invalid data.
+; 0x9: equatorial open, polar closed (This should never actually happen)
+;
 ;Notes:
 ; Written by Davin Larson, Dec 2006
 ; Updated to use thm_load_xxx by KRB, 2007-2-5
 ; Update removed to not use thm_load_xxx by DEL
 ;
-; $LastChangedBy: jimm $
-; $LastChangedDate: 2018-11-29 10:02:16 -0800 (Thu, 29 Nov 2018) $
-; $LastChangedRevision: 26182 $
+; $LastChangedBy: jwl $
+; $LastChangedDate: 2025-02-11 15:44:23 -0800 (Tue, 11 Feb 2025) $
+; $LastChangedRevision: 33123 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/spacecraft/particles/SST/thm_load_sst.pro $
 ;-
 
@@ -445,7 +458,7 @@ if size(/type,datatype0) gt 0 then datatype = datatype0 ;keep input vars from be
 
 vb = keyword_set(verbose) ? verbose : 0
 vb = vb > my_themis.verbose
-dprint,dlevel=4,verbose=vb,'Start; $Id: thm_load_sst.pro 26182 2018-11-29 18:02:16Z jimm $'
+dprint,dlevel=4,verbose=vb,'Start; $Id: thm_load_sst.pro 33123 2025-02-11 23:44:23Z jwl $'
 
 vprobes = ['a','b','c','d','e'];,'f']
 vlevels = ['l1','l2']

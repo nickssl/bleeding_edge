@@ -72,8 +72,8 @@
 ;       QUIET:    Shhh.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-08-17 09:29:47 -0700 (Thu, 17 Aug 2023) $
-; $LastChangedRevision: 32011 $
+; $LastChangedDate: 2024-05-01 09:13:11 -0700 (Wed, 01 May 2024) $
+; $LastChangedRevision: 32542 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/swe_lowe_cluster.pro $
 ;
 ;CREATED BY:    David L. Mitchell
@@ -189,7 +189,7 @@ pro swe_lowe_cluster, width=width, npts=npts, lambda=lambda, frac=frac, diag=dia
     mvn_swe_n1d, /mom, erange=erange[i:(i+1)], minden=1.e-5
     get_data, 'mvn_swe_spec_dens', data=dat, alim=lim
     j = where((dat.x ge trange[0]) and (dat.x lt trange[1]))
-    dat = {x:dat.x[j], y:dat.y[j], dy:dat.dy[j], ytitle:dat.ytitle}
+    dat = {x:dat.x[j], y:dat.y[j], dy:dat.dy[j]}
     store_data, var[i], data=dat, lim=lim
 
 ; Spline smooth pseudo density, ignoring lowest FRAC of values, then normalize

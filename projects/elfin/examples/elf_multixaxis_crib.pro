@@ -109,6 +109,7 @@ stop
 ; AACGM coord's are not same as IGRF MLT and MLAT which take the true equator to determine mlt/mlat. Using AACGM-V2 here
 ; Note that AACGM_v2 here is done as the result of a GEO-CGM mapping using spherical harmonic expansion, but confirmed to be close by tracing
 aacgmidl_v2 ; initializes AACGM routines
+aacgm_v2 ; initializes aacgm v2 routines
 cotrans,'el'+sclet+'_pos_gei','elx_pos_geo',/GEI2GEO
 get_data,'elx_pos_geo',data=elx_pos_geo ; local
 cart_to_sphere,elx_pos_geo.y[*,0],elx_pos_geo.y[*,1],elx_pos_geo.y[*,2],rgeo,theta_geo,phi_geo; by default phi is -180 to 180.; theta is -90 to 90.

@@ -60,9 +60,9 @@
 ; Suggestions for this crib sheet:
 ;     https://github.com/spedas/bleeding_edge/issues
 ;
-; $LastChangedBy: egrimes $
-; $LastChangedDate: 2023-08-14 12:51:35 -0700 (Mon, 14 Aug 2023) $
-; $LastChangedRevision: 31999 $
+; $LastChangedBy: jwl $
+; $LastChangedDate: 2025-02-11 10:51:34 -0800 (Tue, 11 Feb 2025) $
+; $LastChangedRevision: 33122 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/examples/advanced/mms_wavpol_crib.pro $
 ;-
 
@@ -151,7 +151,7 @@ store_data,mms_scm_name+'_fac_waveangle',data={x:time,y:val,v:val_freq}
 get_data,mms_scm_name+'_fac_elliptict',time,val,val_freq
 val[index_deg_pol] = !VALUES.F_NAN
 store_data,mms_scm_name+'_fac_elliptict',data={x:time,y:val,v:val_freq}
-get_data,mms_scm_name+'_fac_elliptict',time,val,val_freq
+get_data,mms_scm_name+'_fac_helict',time,val,val_freq
 val[index_deg_pol] = !VALUES.F_NAN
 store_data,mms_scm_name+'_fac_helict',data={x:time,y:val,v:val_freq}
 
@@ -200,7 +200,7 @@ zlim,'*_powspec',0.0,0.0,1
 zlim,'*_degpol',0.7,1.,0
 zlim,'*_waveangle',0.,90.,0
 zlim,'*_elliptict',-1.0,1.0,0
-zlim,'*_helict',-1.0,1.0,0
+zlim,'*_helict',0.,1.0,0
 
 tplot_options, 'xmargin', [15, 15]
 tplot_options,title= 'MMS'+sc+' '+ fgm_data_rate+' FGM data, '+scm_data_rate +' SCM data used for polarisation analysis'

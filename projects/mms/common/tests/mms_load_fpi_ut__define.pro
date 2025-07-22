@@ -9,9 +9,9 @@
 ; to work / expect this test to fail if you don't have those files
 ; 
 ; 
-; $LastChangedBy: egrimes $
-; $LastChangedDate: 2019-03-27 12:48:45 -0700 (Wed, 27 Mar 2019) $
-; $LastChangedRevision: 26920 $
+; $LastChangedBy: jwl $
+; $LastChangedDate: 2023-10-26 15:20:30 -0700 (Thu, 26 Oct 2023) $
+; $LastChangedRevision: 32208 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/common/tests/mms_load_fpi_ut__define.pro $
 ;-
 
@@ -445,12 +445,12 @@ end
 
 function mms_load_fpi_ut::test_ang_ang_elec
   @error_is_pass
-  mms_fpi_ang_ang, '2015-10-15/13:06:30', species='elec'
+  mms_fpi_ang_ang, '2015-10-15/13:06:30', species='elec',/png
   return, 1
 end
 
 function mms_load_fpi_ut::test_ang_ang_e
-  mms_fpi_ang_ang, '2015-10-15/13:06:30', species='e'
+  mms_fpi_ang_ang, '2015-10-15/13:06:30', species='e',/png
   return, 1
 end
 

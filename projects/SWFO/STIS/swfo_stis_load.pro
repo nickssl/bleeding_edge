@@ -1,11 +1,11 @@
-;$LastChangedBy: ali $
-;$LastChangedDate: 2023-06-07 15:47:19 -0700 (Wed, 07 Jun 2023) $
-;$LastChangedRevision: 31890 $
+;$LastChangedBy: davin-mac $
+;$LastChangedDate: 2024-10-27 01:24:49 -0700 (Sun, 27 Oct 2024) $
+;$LastChangedRevision: 32908 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/swfo_stis_load.pro $
 
 pro swfo_stis_load,file_type=file_type,station=station,host=host, ncdf_resolution=ncdf_resolution , $
   trange=trange,opts=opts,make_ncdf=make_ncdf,make_ccsds=make_ccsds, debug=debug,run_proc=run_proc, $
-  offline=offline,no_exec=no_exec,reader_object=rdr
+  offline=offline,no_exec=no_exec,reader_object=rdr,no_widget=no_widget
   
 
   if keyword_set(debug) then stop
@@ -39,11 +39,42 @@ pro swfo_stis_load,file_type=file_type,station=station,host=host, ncdf_resolutio
       'S1':     opts.host = 'swifgse1.ssl.berkeley.edu'
       'S2':     opts.host = 'hermroute3.ssl.berkeley.edu'
       'S3':     opts.host = 'swifroute2.ssl.berkeley.edu'
+      'cleantent': opts.host = 'snout2router.ssl.berkeley.edu'
+      'Ball-BAT' :  opts.host = '136.152.31.185'
+      ;'Ball' :  opts.host = '136.152.17.167'
+      'Ball' :  opts.host =  'sweapsoc' ;'10.136.128.47';'136.152.28.121' ; '136.152.31.195'
+      'Ball2' :  opts.host =  'sweapsoc';,'10.136.128.47';'136.152.28.121' ; '136.152.31.195'
+      'STIS' :  opts.host =  'swifgse1.ssl.berkeley.edu'
     endcase
     
 
     ss_type = opts.station+'/'+opts.file_type
-    case ss_type of
+    case ss_type of 
+      'Ball-BAT/cmblk': begin
+        opts.port       = 2225
+        opts.reldir     = 'swfo/data/sci/stis/prelaunch/realtime/'
+        opts.fileformat = 'Ball-BAT/cmblk/YYYY/MM/DD/swfo_stis_cmblk_YYYYMMDD_hh.dat.gz'
+      end
+      'Ball/cmblk': begin
+        opts.port       = 2125
+        opts.reldir     = 'swfo/data/sci/stis/prelaunch/realtime/'
+        opts.fileformat = 'Ball/cmblk/YYYY/MM/DD/swfo_stis_cmblk_YYYYMMDD_hh.dat.gz'
+      end
+      'Ball2/cmblk': begin
+        opts.port       = 2125
+        opts.reldir     = 'swfo/data/sci/stis/prelaunch/realtime/'
+        opts.fileformat = 'Ball2/cmblk/YYYY/MM/DD/swfo_stis_cmblk_YYYYMMDD_hh.dat.gz'
+      end
+      'STIS/cmblk': begin
+        opts.port       = 2228
+        opts.reldir     = 'swfo/data/sci/stis/prelaunch/realtime/'
+        opts.fileformat = 'Ball/cmblk/YYYY/MM/DD/swfo_stis_cmblk_YYYYMMDD_hh.dat.gz'
+      end
+      'Ball/ccsds': begin
+        opts.port       = 2125
+        opts.reldir     = 'swfo/data/sci/stis/prelaunch/realtime/'
+        opts.fileformat = 'Ball/ccsds/YYYY/MM/DD/swfo_stis_ccsds_YYYYMMDD_hh.dat.gz'
+      end
       'S0/cmblk': begin
         opts.port       = 2025
         opts.reldir     = 'swfo/data/sci/stis/prelaunch/realtime/'
@@ -142,6 +173,11 @@ pro swfo_stis_load,file_type=file_type,station=station,host=host, ncdf_resolutio
         res = strtrim(fix(ncdf_resolution),2)   ; '1800'
         level = 'L0B'
       end
+      'cleantent/ptp': begin
+      opts.port =       22628
+      opts.reldir     = 'swx/s\st/prelaunch/realtime/'
+      opts.fileformat = 'cleantent/ptp_reader/YYYY/MM/DD/ptp_reader_YYYYMMDD_hh.dat'
+      end
       else: begin
         dprint,'Undefined: '+ss_type
         opts.port = 0
@@ -207,7 +243,11 @@ pro swfo_stis_load,file_type=file_type,station=station,host=host, ncdf_resolutio
         swfo_ptp_recorder,_extra=opts.tostruct(), exec_proc='swfo_ptp_lun_read',destination=opts.fileformat,directory=directory,set_file_timeres=3600d
       end
       'gsemsg': begin
-        rdr = swfo_raw_tlm(_extra= opts.tostruct())
+        if 1 then begin
+          rdr = gsemsg_reader(_extra= opts.tostruct(),mission='SWFO')          
+        endif else begin
+          rdr = swfo_raw_tlm(_extra= opts.tostruct())
+        endelse
         opts.rdr = rdr
         
         if keyword_set(make_ccsds) then begin   ; this is a special hook to create ccsds files from gsemsg files
@@ -225,17 +265,42 @@ pro swfo_stis_load,file_type=file_type,station=station,host=host, ncdf_resolutio
         
       end
       'ptp': begin
-        dprint,dlevel=0, 'Warning:  This file type is Obsolete and the code is not tested;
-        if opts.haskey('filenames') then begin
-          swfo_ptp_file_read,opts.filenames,file_type=opts.file_type  ;,/no_clear
-        endif
-        swfo_apdat_info,/all,/rt_flag
-        swfo_apdat_info,/all,/print
-        swfo_recorder,port=opts.port, host=opts.host, exec_proc='swfo_gsemsg_lun_read',destination=opts.fileformat,directory=directory,set_file_timeres=3600d
+        
+        if 0 then begin
+          rdr  = cmblk_reader( _extra = opts.tostruct(),name='SWFO_Ball_cmblk')
+          opts.rdr = rdr
+          if opts.haskey('filenames') then begin
+            if keyword_set(test) then begin
+              hs = rdr.get_handlers()
+              foreach h , hs do begin
+                h.exec_proc=0
+              endforeach
+            endif
+
+            rdr.file_read, opts.filenames        ; Load in the files
+          endif
+          swfo_apdat_info,/all,/create_tplot_vars
+          tplot_options,title='Real Time (PTP)'
+          
+        endif else begin
+          dprint,dlevel=0, 'Warning:  This file type is Obsolete and the code is not tested;
+          if opts.haskey('filenames') then begin
+            opts.file_type = 'ptp_file'
+            swfo_ptp_file_read,opts.filenames,file_type=opts.file_type  ;,/no_clear
+          endif
+          swfo_apdat_info,/all,/rt_flag
+          swfo_apdat_info,/all,/print
+          swfo_recorder,port=opts.port, host=opts.host, exec_proc='swfo_gsemsg_lun_read',destination=opts.fileformat,directory=directory,set_file_timeres=3600d          
+        endelse
       end
       'cmblk': begin        
-        rdr  = cmblk_reader( _extra = opts.tostruct(),name='SWFO_cmblk')
-        rdr.add_handler, 'raw_tlm',  swfo_raw_tlm(name='SWFO_raw_telem',/no_widget)
+        rdr  = cmblk_reader( _extra = opts.tostruct(),name='SWFO_Ball_cmblk',no_widget=no_widget)
+        if 1 then begin  ;new method
+          rdr.add_handler, 'raw_tlm',  gsemsg_reader(name='SWFO_reader',/no_widget,mission='SWFO')   
+          rdr.add_handler, 'raw_ball', ccsds_reader(/no_widget,name='BALL_reader', _extra = opts.tostruct() , sync_pattern = ['2b'xb,  'ad'xb ,'ca'xb, 'fe'xb], sync_mask= [0xef,0xff,0xff,0xff] )  
+        endif else begin
+          rdr.add_handler, 'raw_tlm',  swfo_raw_tlm(name='SWFO_raw_telem',/no_widget)          
+        endelse
      ;   rdr.add_handler, 'KEYSIGHTPS' ,  gse_keysight(name='Keysight',/no_widget,tplot_tagnames='*')
      ;   rdr.add_handler,'IONGUN1',  json_reader(name='IonGun1',no_widget=1,tplot_tagnames='*')
      ;   rdr.add_handler,'IONGUN',  json_reader(name='IonGun',no_widget=1,tplot_tagnames='*')
@@ -244,6 +309,13 @@ pro swfo_stis_load,file_type=file_type,station=station,host=host, ncdf_resolutio
      ;   rdr.add_handler,'GSE_KPA',    kpa_object   ; gse_keithley(name='pico',/no_widget,tplot_tagnames='*')
         opts.rdr = rdr
         if opts.haskey('filenames') then begin
+          if keyword_set(test) then begin
+            hs = rdr.get_handlers()
+            foreach h , hs do begin
+              h.exec_proc=0
+            endforeach
+          endif
+            
           rdr.file_read, opts.filenames        ; Load in the files
         endif
         swfo_apdat_info,/all,/create_tplot_vars
@@ -279,7 +351,7 @@ pro swfo_stis_load,file_type=file_type,station=station,host=host, ncdf_resolutio
     endcase
 
     str_element,opts,'exec_text',exec_text
-    if ~keyword_set(no_exec) && keyword_set(exec_text) then begin
+    if ~keyword_set(no_exec) && ~keyword_set(no_widget) && keyword_set(exec_text) then begin
       exec, exec_text = exec_text;,title=opts.title
     endif
 

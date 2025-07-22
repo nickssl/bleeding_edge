@@ -47,8 +47,8 @@
 ;   Tplot variable "EFlux_ratio": store the flux ratio for two directions
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2017-01-09 16:43:10 -0800 (Mon, 09 Jan 2017) $
-; $LastChangedRevision: 22549 $
+; $LastChangedDate: 2024-10-24 11:30:20 -0700 (Thu, 24 Oct 2024) $
+; $LastChangedRevision: 32897 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_shape_par_pad.pro $
 ;
 ;CREATED BY:    Shaosui Xu  06-22-16
@@ -115,7 +115,7 @@ Pro mvn_swe_shape_par_pad, burst=burst, spec=spec, $
           get_data,'mvn_B_1sec_iau_mars',data=mag_geo
         endif
     endif
-    bdx = nn(mag_geo.x, trange)
+    bdx = nn2(mag_geo.x, trange)
     B_elev = mag_geo.elev[bdx]
     B_azim = mag_geo.azim[bdx]
 
@@ -154,7 +154,7 @@ Pro mvn_swe_shape_par_pad, burst=burst, spec=spec, $
         parange[n,1]=min(pad.pa_max[63,*])
 
         if dopot then begin
-            ipot = swe_sc_pot[nn(swe_sc_pot.time, pad.time)].potential
+            ipot = swe_sc_pot[nn2(swe_sc_pot.time, pad.time)].potential
             pots[n] = ipot
             if ipot eq ipot and finite(ipot) then begin;and ipot le -2
                 mvn_swe_pot_conve, pad.energy[*,0], Fp, outEn, Fpc, ipot

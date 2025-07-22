@@ -137,8 +137,8 @@
 ;CREATED BY:      Takuya Hara on 2014-09-24.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-02-27 08:18:17 -0800 (Mon, 27 Feb 2023) $
-; $LastChangedRevision: 31549 $
+; $LastChangedDate: 2025-06-23 16:19:42 -0700 (Mon, 23 Jun 2025) $
+; $LastChangedRevision: 33412 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_pad_resample.pro $
 ;
 ;-
@@ -373,11 +373,13 @@ PRO mvn_swe_pad_resample, var, mask=mask, stow=stow, ddd=ddd, pad=pad,  $
                           snap=plot, tplot=tplot, map3d=map3d, swia=swia, $
                           mbins=mbins, sc_pot=sc_pot, symdir=symdir, interpolate=interpolate, $
                           cut=cut, spec=spec, pstyle=pstyle, silent=sil, verbose=vb, $
-                          hires=hires, fbdata=fbdata, tabnum=tabnum, burst=burst
+                          hires=hires, fbdata=fbdata, tabnum=tabnum, burst=burst, $
+                          success=success
   COMPILE_OPT idl2
   @mvn_swe_com
   nan = !values.f_nan 
 
+  success = 0
   fifb = string("15b) ;"
   IF keyword_set(sil) THEN silent = sil ELSE silent = 0
   IF keyword_set(vb) THEN verbose = vb ELSE verbose = 0
@@ -465,7 +467,7 @@ PRO mvn_swe_pad_resample, var, mask=mask, stow=stow, ddd=ddd, pad=pad,  $
 ; Hires PAD data (select data by table number)
 
   dwell = 0
-  if ((tabnum eq 7) or (tabnum eq 8)) then begin
+  if ((tabnum ge 7) and (tabnum le 9)) then begin
     dtype = 0  ; only PAD data for now
     if keyword_set(archive) then begin
       idx = where(a3.lut eq tabnum, ndat)
@@ -487,6 +489,7 @@ PRO mvn_swe_pad_resample, var, mask=mask, stow=stow, ddd=ddd, pad=pad,  $
     case tabnum of
         7  : erange = 199.
         8  : erange = 49.
+        9  : erange = 125.
       else : begin
                print, ptrace()
                print, "  This should be impossible!  TABNUM: ",tabnum
@@ -624,8 +627,26 @@ PRO mvn_swe_pad_resample, var, mask=mask, stow=stow, ddd=ddd, pad=pad,  $
 ; Loop through data in time sequence
 
   FOR i=0L,(ndat-1L) DO BEGIN
+
+     IF i EQ 0L THEN BEGIN
+        t0 = SYSTIME(/sec)
+        dt = SYSTIME(/sec) - t0
+        undefine, t0
+     ENDIF 
+
      IF keyword_set(dtype) THEN BEGIN
         ddd = mvn_swe_get3d(dat_time[idx[i]], units=units, archive=archive)
+        if (size(ddd,/type) ne 8) then begin
+          pa = dformat
+          if (nchan gt 1) then pa = replicate(pa, nchan)
+          GOTO, skip_spec
+        endif
+        if (not ok) then begin
+          pa = dformat
+          if (nchan gt 1) then pa = replicate(pa, nchan)
+          GOTO, skip_spec
+        endif
+        dtime = ddd.time
         dname = ddd.data_name
         energy = average(ddd.energy, 2)
         tabok = ddd.lut eq tabnum
@@ -637,7 +658,6 @@ PRO mvn_swe_pad_resample, var, mask=mask, stow=stow, ddd=ddd, pad=pad,  $
             mvn_swe_convert_units, ddd, units
           endif
         endif
-        dtime = ddd.time
 
         IF keyword_set(swia) THEN $
            ddd = mvn_swe_pad_resample_swia(ddd, archive=archive, interpolate=interpolate, $
@@ -654,11 +674,22 @@ PRO mvn_swe_pad_resample, var, mask=mask, stow=stow, ddd=ddd, pad=pad,  $
         IF keyword_set(map3d) THEN ddd = mvn_swe_pad_resample_map3d(ddd, prf=interpolate)
      ENDIF ELSE BEGIN
         pad = mvn_swe_getpad(dat_time[idx[i]], units=units, archive=archive)
+        if (size(pad,/type) ne 8) then begin
+          pa = dformat
+          if (nchan gt 1) then pa = replicate(pa, nchan)
+          GOTO, skip_spec
+        endif
+        dtime = pad.time
         dname = pad.data_name
         energy = average(pad.energy, 2)
         tabok = pad.lut eq tabnum
         IF (hflg) THEN pad = mvn_swe_padmap_32hz(pad, fbdata=fbdata, verbose=verbose)
         if (dwell) then pad = swe_pad32hz_unpack(pad)
+        if (size(pad,/type) ne 8) then begin
+          pa = dformat
+          if (nchan gt 1) then pa = replicate(pa, nchan)
+          GOTO, skip_spec
+        endif
         if keyword_set(sc_pot) then begin
           pot = swe_sc_pot[nn2(swe_sc_pot.time, pad.time)].potential
           if (finite(pot)) then begin
@@ -668,9 +699,8 @@ PRO mvn_swe_pad_resample, var, mask=mask, stow=stow, ddd=ddd, pad=pad,  $
           endif
         endif
 
-        dtime = pad.time
-
         for j=0,(nchan-1) do begin
+         ; print, 'Block check'
           ;; pad.data *= REBIN(TRANSPOSE(obins[pad.k3d]), pad.nenergy, pad.nbins)
           pad[j].data *= REBIN(TRANSPOSE(mobins[pad[j].k3d, boom[i]]), pad[j].nenergy, pad[j].nbins)
           block = WHERE(~FINITE(mobins[pad[j].k3d, boom[i]]), nblock)
@@ -684,15 +714,10 @@ PRO mvn_swe_pad_resample, var, mask=mask, stow=stow, ddd=ddd, pad=pad,  $
 ;            dprint, tblk, dlevel=2, verbose=3-silent
 ;            undefine, iblk, tblk
           ENDIF ELSE tblk = 'Removed blocked bin(s): none             '
+          ; stop
           undefine, block, nblock
         endfor
      ENDELSE 
-
-     IF i EQ 0L THEN BEGIN
-        t0 = SYSTIME(/sec)
-        dt = SYSTIME(/sec) - t0
-        undefine, t0
-     ENDIF 
 
      pa = dformat
      if (nchan gt 1) then pa = replicate(pa, nchan)
@@ -759,19 +784,31 @@ PRO mvn_swe_pad_resample, var, mask=mask, stow=stow, ddd=ddd, pad=pad,  $
            pa = mvn_swe_pad_resample_prf(pad, dtype, silent=silent, archive=archive, map3d=map3d, $
                                          nbins=nbins, nene=nene, edx=edx, dformat=dformat, energy=energy) $
         ELSE BEGIN
+         ; print, 'pad branch'
+         ; stop
           pa.time = pad.time
+          ; Make a new equally spaced array for the pitch angle for the data
+          ; to be discretized into:
           xax = (0.5*(180./nbins) + FINDGEN(nbins) * (180./nbins)) * !DTOR
           for m=0,(nchan-1) do begin
             ; Resampling
+            ; Iterate over (requested) energies:
             FOR j=0, nene-1 DO BEGIN
                tot = DBLARR(nbins)
                variance = tot
                index = tot
+               ; Iterate over # old pitch angle bins
                FOR k=0, pad[m].nbins-1 DO BEGIN
+                  ; For each en/PA, get the non-NaN fluxes:
                   l = WHERE(~FINITE(pad[m].data[edx[j], k]), cnt)
                   IF cnt EQ 0 THEN BEGIN
+                     ; indices between min pa and max pa to fill in the resampled struc:
                      l = WHERE((xax GE pad[m].pa_min[edx[j],k]) AND (xax LE pad[m].pa_max[edx[j],k]), cnt)
+                     ; print, l
+                     ; stop
+
                      IF cnt GT 0 THEN BEGIN
+                        ; if there are any:
                         tot[l] += pad[m].data[edx[j], k]
                         variance[l] += pad[m].var[edx[j], k]
                         index[l] += 1.
@@ -780,6 +817,8 @@ PRO mvn_swe_pad_resample, var, mask=mask, stow=stow, ddd=ddd, pad=pad,  $
                   undefine, l, cnt
                ENDFOR 
                undefine, k
+
+;              stop
 
                pa[m].avg[j,*] = tot/index               ; average signal of overlapping PA bins
                pa[m].nbins[j,*] = index                 ; normalization factor (# overlapping PA bins)
@@ -822,6 +861,8 @@ PRO mvn_swe_pad_resample, var, mask=mask, stow=stow, ddd=ddd, pad=pad,  $
         IF keyword_set(silent) THEN prt = 0
      ENDIF  
   ENDFOR
+  
+  success = 1  ; found data and resampled
   undefine, i
   IF ndat GT 1 THEN PRINT, ' '
 

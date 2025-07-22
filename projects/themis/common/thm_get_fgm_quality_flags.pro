@@ -23,7 +23,8 @@
 ;
 ;NOTES:
 ;Quality flags:
-;     1:boom not deployed, 2:in shadow, 3:uncorrected shadow, 4:noisy waveforms
+;     1:boom not deployed, 2:in shadow, 3:uncorrected shadow, 4:noisy
+;     waveforms, 8:Bz estimated from spin-plane components
 ;
 ;FGM/SCM boom deploy:
 ;THEMIS_A: 2007/056 21:00
@@ -59,9 +60,9 @@
 ;spd_qf_list__define
 ;
 ;HISTORY:;
-;$LastChangedBy: nikos $
-;$LastChangedDate: 2015-08-03 13:08:10 -0700 (Mon, 03 Aug 2015) $
-;$LastChangedRevision: 18369 $
+;$LastChangedBy: jimm $
+;$LastChangedDate: 2024-11-20 12:14:41 -0800 (Wed, 20 Nov 2024) $
+;$LastChangedRevision: 32969 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/common/thm_get_fgm_quality_flags.pro $
 ;-
 
@@ -139,6 +140,14 @@ function thm_get_fgm_quality_flags, probe, trange=trange
     fgm_qf = fgm_qf->qf_merge(fgm_qf4)
   endif
   
+;Bz estimated from spin-plane components
+  If(probe Eq 'e') Then Begin
+     If(trange[0] Gt time_double('2024-06-01')) Then Begin
+        fgm_qf0= obj_new('SPD_QF_LIST', t_start=[trange[0]], t_end=[trange[1]], qf_bits=[8])
+        fgm_qf = fgm_qf->qf_merge(fgm_qf0)
+     Endif
+  Endif
+
   
   fgm_qf = fgm_qf->qf_time_slice(trange[0],trange[1])
 

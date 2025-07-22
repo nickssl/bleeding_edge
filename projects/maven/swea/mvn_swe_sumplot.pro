@@ -68,8 +68,8 @@
 ;       BURST:        Plot a color bar showing PAD burst coverage.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-08-22 13:45:38 -0700 (Tue, 22 Aug 2023) $
-; $LastChangedRevision: 32055 $
+; $LastChangedDate: 2025-01-03 14:09:26 -0800 (Fri, 03 Jan 2025) $
+; $LastChangedRevision: 33043 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_sumplot.pro $
 ;
 ;CREATED BY:    David L. Mitchell  07-24-12
@@ -831,6 +831,22 @@ pro mvn_swe_sumplot, vnorm=vflg, cmdcnt=cmdcnt, sflg=sflg, pad_e=pad_e, a4_sum=a
 
   endif
 
+; Quality flag
+
+  vname = 'swe_quality'
+  store_data,vname,data={x:mvn_swe_engy.time, y:mvn_swe_engy.quality}
+  options,vname,'panel_size',0.25
+  options,vname,'ytitle','SWEA!cQuality'
+  ylim,vname,-0.5,2.5,0
+  options,vname,'ystyle',1
+  options,vname,'yticks',4
+  options,vname,'ytickv',[0,1,2]
+  options,vname,'yticknames',['0','1','2']
+  options,vname,'linestyle',0
+  options,vname,'psym',4
+  options,vname,'colors',[4]
+  pans = [pans,vname]
+
 ; Energy Spectra, Survey (APID A4)
 
   if (size(mvn_swe_engy,/type) ne 8) then if (size(a4,/type) eq 8) then mvn_swe_makespec
@@ -893,8 +909,11 @@ pro mvn_swe_sumplot, vnorm=vflg, cmdcnt=cmdcnt, sflg=sflg, pad_e=pad_e, a4_sum=a
       TClab[5] = 'A4'
     endif
 
+; Overlay a small "x" on every spectrum with quality=0 (disabled)
+; This is superceded by a separate small panel showing the quality flag
+
     str_element, mvn_swe_engy, 'quality', flag
-    if (min(flag) eq 0B) then begin
+    if (0 and min(flag) eq 0B) then begin
       y = replicate(!values.f_nan, n_elements(x))
       i = where(flag eq 0B, count)
       if (count gt 0L) then y[i] = 4.4
@@ -1069,6 +1088,7 @@ pro mvn_swe_sumplot, vnorm=vflg, cmdcnt=cmdcnt, sflg=sflg, pad_e=pad_e, a4_sum=a
   options,'dC_lab','labflag',1
   options,'dC_lab','labels',TClab
   options,'dC_lab','colors',TCcol
+  options,'dC_lab','color_table',43
   pdC[0] = 'dC_lab'
   pdT[0] = 'dC_lab'
 
@@ -1174,7 +1194,7 @@ pro mvn_swe_sumplot, vnorm=vflg, cmdcnt=cmdcnt, sflg=sflg, pad_e=pad_e, a4_sum=a
       initct, cols.color_table, reverse=cols.color_reverse
       tplot,pans,trange=[tmin,tmax]
       timebar,t_cfg,/line
-      img = tvrd()
+      img = tvrd(true=1)
       tvlct,red,green,blue,/get
       write_image,path+pngname,itype,img,red,green,blue
       print,"done"

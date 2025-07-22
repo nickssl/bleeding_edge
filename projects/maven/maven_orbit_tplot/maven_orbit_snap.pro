@@ -51,6 +51,36 @@
 ;                   1 : Use a small MAG-MOLA image
 ;                   2 : Use a large MAG-MOLA image
 ;                   3 : Use a large dBr-topology image
+;                   4 : Use a Langlais Br at 160 km image (electron footpoint)
+;                   5 : Use a Langlais Br at 250 km image (less detail)
+;
+;       LLIM:     Limits structure for the Langlais image.  Use this to set
+;                 the window size (xsize), xrange, yrange, xticks, yticks, etc.
+;                 Any keywords accepted by CONTOUR and SPECPLOT are allowed.
+;                 The image is generated dynamically, so you can zoom into a
+;                 particular region.  When specifying window size, only the
+;                 horizontal dimension (xsize) is used.  The vertical dimension
+;                 (ysize) is calculated so that the pixels/degree is the same 
+;                 in both X and Y.
+;
+;                 The Langlais map is shown as a shaded contour plot.  Default
+;                 contour levels (LLIM.LEVELS) are [10,30,50,70] nT.  Positive
+;                 contours (+LLIM.LEVELS) are blue, and negative contours
+;                 (-LLIM.LEVELS) are red.  Shading is a washed-out red-to-blue
+;                 color scale to allow overlays.  You can control this by setting
+;                 the tag WASH in the LLIM structure:
+;
+;                   LLIM.WASH > 50  (more color)
+;                   LLIM.WASH = 50  (default)
+;                   LLIM.WASH < 50  (less color)
+;                   LLIM.WASH =  0  (no color, contours only)
+;
+;                 You can choose the magnetic field vector component to plot:
+;
+;                   LLIM.COMPONENT = 'BR'  ; radial component (default)
+;                   LLIM.COMPONENT = 'BT'  ; north component
+;                   LLIM.COMPONENT = 'BP'  ; east component
+;                   LLIM.COMPONENT = 'B'   ; magnitude
 ;
 ;       NPOLE:    Plot the position of the spacecraft (PREC=1) or periapsis
 ;                 (PREC=0) on a north polar projection (lat > 55 deg).  The
@@ -71,13 +101,14 @@
 ;                      4 : Plot EUV shadow at electron absorption altitude.
 ;
 ;       NOERASE:  Don't erase previously plotted positions.  Can be used to build
-;                 up a visual representation of sampling.
+;                 up complex plots.
 ;
 ;       NODOT:    Do not plot a filled circle at periapsis or spacecraft location.
 ;
 ;       NOORB:    Do not plot the orbit.
 ;
-;       SCSYM:    Symbol for the spacecraft.  Default = 1 (plus symbol).
+;       SCSYM:    Symbol for the spacecraft.  Default = 1 (plus symbol).  Filled
+;                 circles are obtained with SCSYM = 8.
 ;
 ;       RESET:    Initialize all plots.
 ;
@@ -90,7 +121,8 @@
 ;       TIMES:    An array of times for snapshots.  Snapshots are overlain onto
 ;                 a single version of the plot.  For evenly spaced times, this
 ;                 produces a "spirograph" effect.  This overrides the interactive
-;                 entry of times with the cursor.  Sets KEEP, NOERASE, and RESET.
+;                 entry of times with the cursor.  Sets KEEP and NOERASE.  Also
+;                 sets RESET if necessary.
 ;
 ;       TCOLORS:  Color index for every element of TIMES.
 ;
@@ -102,7 +134,7 @@
 ;
 ;       BCLIP:    Maximum amplitude for plotting B whisker.
 ;
-;       MSCALE:   To change the scale/length of magnetic field lines, the default
+;       MSCALE:   To change the scale/length of magnetic field whiskers, the default
 ;                 value is set to 0.05
 ;
 ;       VDIR:     Set keyword to a tplot variable containing MSO vectors for a whisker
@@ -114,6 +146,17 @@
 ;
 ;       VSCALE:   To change the scale/length of vector lines, the default value is
 ;                 set to 0.05.
+;
+;       BAZEL:    Show the azimuth of the magnetic field vector at the spacecraft
+;                 location on the Mars topography-crustal magnetic field plot.
+;                 Whiskers are a fixed length and do not scale with the field
+;                 amplitude or projection.  The value of this keyword is used to
+;                 scale the whisker lengths.
+;
+;       CAZEL:    If set, the BAZEL whisker colors are set according to the current
+;                 color table.  For table 1074 (reverse): blue = radial out, and
+;                 red = radial in.  If not set, all the whiskers are the same color
+;                 as the spacecraft symbol (see keyword COLOR).  Default = 0.
 ;
 ;       THICK:    Line thickness.
 ;
@@ -127,12 +170,15 @@
 ;
 ;       PSNAME:   Name of a postscript plot.  Works only for orbit plots.
 ;
-;       LANDERS:  Plot the locations of landers.  Can also be an 2 x N array
-;                 of surface locations (lon, lat) in the IAU_Mars frame.
+;       LANDERS:  Plot the locations of landers.  Can also be an array of surface
+;                 locations [lon1, lat1, lon2, lat2, ...] in the IAU_Mars frame.
+;                 (east longitude, units = deg).  Longitude range can be [-180, 180]
+;                 or [0, 360].  Default is all existing landing sites, from
+;                 Viking 1 to present.
 ;
 ;       SLAB:     Text labels for each of the landers.  If LANDERS is a scalar,
 ;                 then this provides a 1- or 2-character label for each lander.
-;                 If LANDERS is a 2 x N array, SLAB should be an N-element string
+;                 If LANDERS is an 2N array, SLAB should be an N-element string
 ;                 array.  Set SLAB to zero to disable text labels and just plot
 ;                 symbols instead.  Text labels are centered in longitude with
 ;                 the baseline at latitude.
@@ -146,9 +192,12 @@
 ;       ARANGE:   Altitude range (km) for plotting orbit segments.  Both inbound 
 ;                 and outbound segments are plotted.
 ;
+;       BLACK:    Force a black background for the orbit projection plots so it's
+;                 easier to see the colors.
+;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-07-16 13:22:52 -0700 (Sun, 16 Jul 2023) $
-; $LastChangedRevision: 31955 $
+; $LastChangedDate: 2025-05-25 09:52:41 -0700 (Sun, 25 May 2025) $
+; $LastChangedRevision: 33336 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/maven_orbit_tplot/maven_orbit_snap.pro $
 ;
 ;CREATED BY:	David L. Mitchell  10-28-11
@@ -159,7 +208,7 @@ pro maven_orbit_snap, prec=prec, mhd=mhd, hybrid=hybrid, latlon=latlon, xz=xz, m
     magnify=magnify, Bclip=Bclip, Vdir=Vdir, Vclip=Vclip, Vscale=Vscale, Vrange=Vrange, $
     alt=alt2, psname=psname, nolabel=nolabel, xy=xy, yz=yz, landers=landers, slab=slab, $
     scol=scol, tcolors=tcolors, noorb=noorb, monitor=monitor, wscale=wscale, ssize=ssize, $
-    black=black, iono=iono, arange=arange
+    black=black, iono=iono, arange=arange, bazel=bazel, llim=llim2, cazel=cazel
 
   @maven_orbit_common
   @putwin_common
@@ -191,7 +240,7 @@ pro maven_orbit_snap, prec=prec, mhd=mhd, hybrid=hybrid, latlon=latlon, xz=xz, m
            'COLOR','RESET','CYL','TIMES','NODOT','TERMINATOR','THICK','BDIR', $
            'MSCALE','SCSYM','MAGNIFY','BCLIP','VDIR','VCLIP','VSCALE','VRANGE', $
            'ALT2','PSNAME','NOLABEL','XY','YZ','LANDERS','SLAB','SCOL','TCOLORS', $
-           'NOORB','MONITOR','WSCALE','BLACK','ARANGE']
+           'NOORB','MONITOR','WSCALE','BLACK','ARANGE','BAZEL','CAZEL','LLIM']
   for j=0,(n_elements(ktag)-1) do begin
     i = strmatch(tlist, ktag[j]+'*', /fold)
     case (total(i)) of
@@ -220,6 +269,29 @@ pro maven_orbit_snap, prec=prec, mhd=mhd, hybrid=hybrid, latlon=latlon, xz=xz, m
   if keyword_set(reset) then reset = 1 else reset = 0
   if keyword_set(nodot) then dodot = 0 else dodot = 1
   if keyword_set(noorb) then doorb = 0 else doorb = 1
+  doazel = 0
+  if keyword_set(bazel) then begin
+    get_data,'mvn_mag_azel',data=dat,index=i
+    if (i gt 0) then begin
+      j = where(finite(dat.y[*,1]) and finite(dat.y[*,0]), ngud, ncomplement=nbad)
+      if (nbad gt 0L) then print,strcompress("BAZEL: ignoring " + string(nbad) + " bad times.")
+      bt = dat.x[j]
+      baz = dat.y[j,1]*!dtor
+      bel = (dat.y[j,0]/2. - 90.)*!dtor
+      bx = cos(baz)*cos(bel)
+      by = sin(baz)*cos(bel)
+      bz = sin(bel)
+      d2bx = spl_init(bt,bx,/double)
+      d2by = spl_init(bt,by,/double)
+      d2bz = spl_init(bt,bz,/double)
+      dat = 0
+      doazel = 1
+      bscale = bazel[0]
+    endif else begin
+      print,"Tplot variable mvn_mag_azel not found."
+      print,"Run mvn_mag_tplot before using keyword BAZEL."
+    endelse
+  endif
   if (size(terminator,/type) gt 0) then doterm = fix(round(terminator)) < 3 else doterm = 0
   if keyword_set(wscale) then begin
     wscale = float(wscale[0])
@@ -237,6 +309,7 @@ pro maven_orbit_snap, prec=prec, mhd=mhd, hybrid=hybrid, latlon=latlon, xz=xz, m
   doalt = keyword_set(alt2)
   dolab = ~keyword_set(nolabel)
   if (n_elements(arange) ge 2) then begin
+    hmin = min(arange, max=hmax)
     amin = min((arange + R_m)/R_m, max=amax)
     arflg = 1
   endif else arflg = 0
@@ -244,10 +317,11 @@ pro maven_orbit_snap, prec=prec, mhd=mhd, hybrid=hybrid, latlon=latlon, xz=xz, m
   ok = 0
   sites = 0
   nsites = 0
-  sz = size(landers)
-  if (((sz[0] eq 1) or (sz[0] eq 2)) and (sz[1] eq 2)) then begin
-    sites = landers
+  if (n_elements(landers) gt 1) then begin
     nsites = n_elements(landers)/2
+    sites = reform(landers[0:(2*nsites-1)], 2, nsites)
+    i = where(sites[0,*] lt 0., count)
+    if (count gt 0L) then sites[0,i] += 360.
     if (size(slab,/type) eq 7) then begin
       nlab = n_elements(slab)
       if (nlab ne nsites) then begin
@@ -268,11 +342,25 @@ pro maven_orbit_snap, prec=prec, mhd=mhd, hybrid=hybrid, latlon=latlon, xz=xz, m
     sites[*,4] = [354.473,  -1.946]  ; Opportunity Rover (2004-2018)
     sites[*,5] = [234.100,  68.150]  ; Phoenix Lander (May-Nov 2008)
     sites[*,6] = [137.200,  -4.600]  ; Curiosity Rover (MSL 2012-)
-    sites[*,7] = [135.000,   4.500]  ; InSight Lander (2018-)
+    sites[*,7] = [135.000,   4.500]  ; InSight Lander (2018-2022)
     sites[*,8] = [ 77.500,  18.400]  ; Perserverence Rover (2021-)
     sites[*,9] = [110.318,  24.748]  ; Zhurong Rover (Tianwen-1, Jun 2021)
     if (size(slab,/type) gt 0) then dolab = keyword_set(slab) else dolab = 1
-    if (dolab) then slab = ['V1','V2','Pa','S','O','Ph','C','I','Pe','Z'] else slab = 0
+    if (dolab) then begin
+      slab = ['V1','V2','Pa','S','O','Ph','C','I','Pe','Z']
+      print,"Lander Key:"
+      print,"  V1 = Viking 1 (1976-1982)"
+      print,"  V2 = Viking 2 (1976-1980)"
+      print,"  Pa = Pathfinder (1997)"
+      print,"  S  = Spirit (2004-2010)"
+      print,"  O  = Opportunity (2004-2018)"
+      print,"  Ph = Phoenix (2008)"
+      print,"  C  = Curiosity (2012-)"
+      print,"  I  = InSight (2018-)"
+      print,"  Pe = Perserverence (2021-)"
+      print,"  Z  = Zhurong (2021-)"
+      print,""
+    endif else slab = 0
   endif
   ncol = n_elements(scol)
   if (ncol eq 1) then defcol = scol else defcol = 6
@@ -284,7 +372,8 @@ pro maven_orbit_snap, prec=prec, mhd=mhd, hybrid=hybrid, latlon=latlon, xz=xz, m
     times = time_double(times)
     ntimes = n_elements(times)
     if (n_elements(tcolors) ne ntimes) then tcolors = replicate(color, ntimes)
-;   reset = 1
+    device, window_state=ws
+    reset = (ws[29] eq 0)
     noerase = 1
     keep = 1
     tflg = 1
@@ -328,17 +417,28 @@ pro maven_orbit_snap, prec=prec, mhd=mhd, hybrid=hybrid, latlon=latlon, xz=xz, m
 
   if keyword_set(latlon) then gflg = 1 else gflg = 0
   
+  mbig = 0
   dbr = 0
+  lang = 0
   if (size(mars,/type) gt 0) then begin
     mflg = mars
     case mflg of
         1  : mbig = 0
         2  : mbig = 1
         3  : dbr = 1
+        4  : lang = 1
+        5  : lang = 2
       else : mflg = 0
     endcase
   endif else mflg = 0
-  
+
+  llim = {xrange:[0,360], yrange:[-90,90], xsize:1200, scale:1.0, levels:[10,30,50,70], $
+          xticks:4, xminor:3, yticks:2, yminor:3, xtitle:'East Longitude', ytitle:'Latitude'}
+  if (size(llim2,/type) eq 8) then begin
+    ktag = tag_names(llim2)
+    for i=0,(n_elements(ktag)-1) do str_element, llim, ktag[i], llim2.(i), /add_replace
+  endif
+
   if keyword_set(orbit) then oflg = 1 else oflg = 0
   
   if keyword_set(cyl) then cyflg = 1 else cyflg = 0
@@ -405,7 +505,8 @@ pro maven_orbit_snap, prec=prec, mhd=mhd, hybrid=hybrid, latlon=latlon, xz=xz, m
   endif
 
   if (mflg gt 0) then begin                                          ; GEO Lat-Lon on MAG-MOLA map
-    if (~noerase or reset) then mag_mola_orbit, -100., -100., big=mbig, dbr=dbr, rwin=Owin, /reset
+    if (~noerase or reset) then mag_mola_orbit, -100., -100., big=mbig, dbr=dbr, lang=lang, llim=llim, $
+                                                rwin=Owin, /reset
   endif
 
   if keyword_set(mhd) then begin                                     ; MHD simulation
@@ -637,7 +738,7 @@ pro maven_orbit_snap, prec=prec, mhd=mhd, hybrid=hybrid, latlon=latlon, xz=xz, m
       xsc = x[i]
       ysc = y[i]
 
-      plot,xm,ym,xrange=xrange,yrange=yrange,/xsty,/ysty,/noerase, $
+      plot,xm,ym,xrange=xrange,yrange=yrange,/xsty,/ysty,/noerase,/isotropic, $
            xtitle='X (Rp)',ytitle='Y (Rp)',charsize=csize,title=msg,thick=thick
       msg = ''
       oplot,xm,ym,color=6,thick=thick
@@ -818,7 +919,7 @@ pro maven_orbit_snap, prec=prec, mhd=mhd, hybrid=hybrid, latlon=latlon, xz=xz, m
       xsc = x[i]
       zsc = z[i]
 
-      plot,xm,ym,xrange=xrange,yrange=yrange,/xsty,/ysty,/noerase, $
+      plot,xm,ym,xrange=xrange,yrange=yrange,/xsty,/ysty,/noerase,/isotropic, $
            xtitle='X (Rp)',ytitle='Z (Rp)',charsize=csize,title=msg,thick=thick
       msg = ''
       oplot,xm,ym,color=6,thick=thick
@@ -991,7 +1092,7 @@ pro maven_orbit_snap, prec=prec, mhd=mhd, hybrid=hybrid, latlon=latlon, xz=xz, m
       ysc = y[i]
       zsc = z[i]
 
-      plot,xm,ym,xrange=xrange,yrange=yrange,/xsty,/ysty,/noerase, $
+      plot,xm,ym,xrange=xrange,yrange=yrange,/xsty,/ysty,/noerase,/isotropic, $
            xtitle='Y (Rp)',ytitle='Z (Rp)',title=msg,charsize=csize,thick=thick
       msg = ''
       oplot,xm,ym,color=6,thick=thick
@@ -1113,7 +1214,7 @@ pro maven_orbit_snap, prec=prec, mhd=mhd, hybrid=hybrid, latlon=latlon, xz=xz, m
        z = zo
        s = sqrt(y*y + z*z)
 
-       plot,xm,ym,xrange=xrange,yrange=[0,yrange[1]],/xsty,/ysty,/noerase, $
+       plot,xm,ym,xrange=xrange,yrange=[0,yrange[1]],/xsty,/ysty,/noerase,/isotropic, $
             xtitle='X (Rp)',ytitle='S (Rp)',charsize=csize/2.,title=title,thick=thick
        oplot,xm,ym,color=6,thick=thick
        if keyword_set(iono) then oplot,xi,yi,line=2,thick=thick
@@ -1260,9 +1361,25 @@ pro maven_orbit_snap, prec=prec, mhd=mhd, hybrid=hybrid, latlon=latlon, xz=xz, m
 ;     if (ntimes gt 0) then j = tcolors[k]
       if (doterm gt 0) then ttime = trange[0] else ttime = 0
       if (doalt) then sc_alt = hgt[i] else sc_alt = 0
-      mag_mola_orbit, lon[i], lat[i], big=mbig, noerase=noerase, title=title, color=j, $
+      if (doazel) then begin
+        bxi = spl_interp(bt,bx,d2bx,tref,/double)
+        byi = spl_interp(bt,by,d2by,tref,/double)
+        bzi = spl_interp(bt,bz,d2bz,tref,/double)
+        bazel = dblarr(n_elements(tref),3)
+        bazel[*,0] = bxi
+        bazel[*,1] = byi
+        bazel[*,2] = bzi
+      endif else bazel = 0
+      lon_i = lon[i]
+      lat_i = lat[i]
+      if (arflg) then if ((hgt[i] lt hmin) or (hgt[i] gt hmax)) then begin
+          lon_i = !values.f_nan
+          lat_i = !values.f_nan
+      endif
+      mag_mola_orbit, lon_i, lat_i, big=mbig, noerase=noerase, title=title, color=j, $
                       terminator=ttime, psym=scsym, shadow=(doterm - 1), alt=sc_alt, $
-                      sites=sites, slab=slab, scol=scol, dbr=dbr
+                      sites=sites, slab=slab, scol=scol, dbr=dbr, lang=lang, llim=llim, $
+                      bazel=bazel, cazel=cazel, bscale=bscale
     endif
 
 ; Put up Mars North polar plot

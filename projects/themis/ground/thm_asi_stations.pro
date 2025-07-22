@@ -51,9 +51,9 @@
 ;                        1.6 10/09/08 added NRSQ
 ;
 ; VERSION:
-;   $LastChangedBy: hfrey $
-;   $LastChangedDate: 2008-11-19 14:50:04 -0800 (Wed, 19 Nov 2008) $
-;   $LastChangedRevision: 4004 $
+;   $LastChangedBy: jwl $
+;   $LastChangedDate: 2023-12-30 17:48:10 -0800 (Sat, 30 Dec 2023) $
+;   $LastChangedRevision: 32328 $
 ;   $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/ground/thm_asi_stations.pro $
 ;     
 ;-

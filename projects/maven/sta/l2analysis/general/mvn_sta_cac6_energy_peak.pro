@@ -1,10 +1,12 @@
 ;+
-;Routine uses c6 data to produce two tplot variable products. The routine finds the peak eflux bin at each timestep, and produces:
+;Routine uses c6 and c8 data to produce two tplot variable products. The routine finds the peak eflux bin at each timestep, and produces:
 ;
-;mvn_sta_c6_anode_perc: three rows: top: the % of eflux in the peak eflux bin; middle: the % of eflux in the top two eflux bins; 
+;mvn_sta_ca_anode_perc: three rows: top: the % of eflux in the peak eflux bin; middle: the % of eflux in the top two eflux bins; 
 ;                       bottom: the % of eflux in the top three eflux bins. This is a function of energy only, eflux is summed over all masses.
 ;
 ;mvn_sta_c6_energypeak: the energy (in eV) that the peak eflux lies in at each timestep. Again, eflux is summed over all masses.
+;
+;mvn_sta_ca_anode_peak: the anode INDEX that the peak energy flux lies in. I believe STATIC anodes start at zero as well.
 ;
 ;trange: [a,b]: UNIX double start and stop times to calculate parameters over. If not set, entire time range available is used.
 ;
@@ -49,6 +51,7 @@ endelse
 
 ;ARRAYS:
 ca_arr = fltarr(neleCA,3)
+ca_panode_arr = fltarr(neleCA) ;index of anode peak eflux lies in
 c6_en_arr = fltarr(neleC6)  ;energy of peak eflux bin
 
 for tt = 0l, neleCA -1l do begin
@@ -71,7 +74,8 @@ for tt = 0l, neleCA -1l do begin
   ca_arr[tt,0] = 100.*efluxtmp2[0]/efluxTOT
   ca_arr[tt,1] = 100.*total(efluxtmp2[0:1],/nan)/efluxTOT
   ca_arr[tt,2] = 100.*total(efluxtmp2[0:2],/nan)/efluxTOT
-
+  
+  ca_panode_arr[tt] = imax ;index of anode with peak eflux
 endfor
 
 ;Loop over c6 and find energy of peak eflux:
@@ -92,6 +96,11 @@ store_data, tname, data={x: ddca.x[iTIME_ca], y: ca_arr}
   options, tname, labflag=1
   ylim, tname, 0, 105
   options, tname, ytitle='STA ca!Canode perc [%]'
+
+tname='mvn_sta_ca_panode_index'
+store_data, tname, data={x: ddca.x[iTIME_ca], y: ca_panode_arr}
+  ylim, tname, -1, 16
+  options, tname, ytitle='STA ca!Canode index!Cpeak eflux'
 
 tname = 'mvn_sta_c6_energypeak'
 store_data, tname, data={x: ddc6.x[iTIME_c6], y: c6_en_arr}

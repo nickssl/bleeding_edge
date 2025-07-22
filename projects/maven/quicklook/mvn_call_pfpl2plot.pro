@@ -33,8 +33,8 @@
 ;Added call to mvn_pfpl2_longplot, 2019-12-10, jmm
 ;Added call to mvn_spaceweather_overplot, 2023-09-05, jmm
 ; $LastChangedBy: jimm $
-; $LastChangedDate: 2023-09-06 16:06:50 -0700 (Wed, 06 Sep 2023) $
-; $LastChangedRevision: 32086 $
+; $LastChangedDate: 2023-09-26 14:32:36 -0700 (Tue, 26 Sep 2023) $
+; $LastChangedRevision: 32134 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/quicklook/mvn_call_pfpl2plot.pro $
 ;-
 Pro mvn_call_pfpl2plot, time_in = time_in, $
@@ -275,6 +275,8 @@ Pro mvn_call_pfpl2plot, time_in = time_in, $
            file_delete, ofile1
         Endif
      Endelse
+;reset all tplot options, by using options input for only title
+     tplot_options, options = {title:''}
   Endfor
 
   SKIP_ALL:

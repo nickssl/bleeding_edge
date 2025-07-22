@@ -9,7 +9,6 @@
 ;   spacecraft is in darkness (expect negative potential) or below 250 km
 ;   altitude (expect small or negative potential).
 ;
-; 
 ;AUTHOR: 
 ;	David L. Mitchell
 ;
@@ -39,6 +38,12 @@
 ;              to the spacecraft potential at higher energies (often 
 ;              observed downstream of the shock).  Default = 6 eV.
 ;
+;   BIAS:      Bias applied to the energy of the maximum slope in the 
+;              SWE+ method.  This corrects for the common situation in
+;              which the maximum slope that is used to locate the
+;              photoelectron line does not quite match the optimal value
+;              of the potential.  Default = +0.5 energy bins.
+;
 ;   DDD:       Use 3D data to calculate potential.  Allows bin masking,
 ;              but lower cadence and typically lower energy resolution.
 ;
@@ -65,7 +70,7 @@
 ;
 ;   QLEVEL:    Minimum quality level for processing.  Filters out the vast
 ;              majority of spectra affected by the sporadic low energy
-;              anomaly below 28 eV.  The validity levels are:
+;              anomaly below 28 eV.  The quality levels are:
 ;
 ;                0B = Data are affected by the low-energy anomaly.  There
 ;                     are significant systematic errors below 28 eV.
@@ -95,8 +100,8 @@
 ;          keyword, and stored as a TPLOT variable.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-08-13 13:53:20 -0700 (Sun, 13 Aug 2023) $
-; $LastChangedRevision: 31992 $
+; $LastChangedDate: 2024-07-26 13:45:34 -0700 (Fri, 26 Jul 2024) $
+; $LastChangedRevision: 32769 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_sc_pot.pro $
 ;
 ;-
@@ -104,7 +109,7 @@
 pro mvn_swe_sc_pot, potential=pot, erange=erange2, thresh=thresh2, dEmax=dEmax2, $
                     ddd=ddd, abins=abins, dbins=dbins, obins=obins2, mask_sc=mask_sc, $
                     badval=badval2, angcorr=angcorr, minflux=minflux2, pans=pans, $
-                    fill=fill, reset=reset, qlevel=qlevel
+                    fill=fill, bias=bias2, reset=reset, qlevel=qlevel, diag=diag
 
   compile_opt idl2
   
@@ -128,6 +133,7 @@ pro mvn_swe_sc_pot, potential=pot, erange=erange2, thresh=thresh2, dEmax=dEmax2,
   if (n_elements(erange2)  gt 1) then Espan = float(minmax(erange2))
   if (size(thresh2,/type)  gt 0) then thresh = float(thresh2)
   if (size(dEmax2,/type)   gt 0) then dEmax = float(dEmax2)
+  if (size(bias2,/type)   gt 0) then bias = float(bias2)
   if (size(minflux2,/type) gt 0) then minflux = float(minflux2)
   if (size(badval2,/type)  gt 0) then badval = float(badval2)
   qlevel = (n_elements(qlevel) gt 0) ? byte(qlevel[0]) : 1B
@@ -263,7 +269,7 @@ pro mvn_swe_sc_pot, potential=pot, erange=erange2, thresh=thresh2, dEmax=dEmax2,
 ; Estimate the potentials using the SWE+ method
 
   print,"Estimating positive potentials from SWEA alone."
-  phi = mvn_swe_sc_pospot(e,f)
+  phi = mvn_swe_sc_pospot(e,f,diag=diag)
 
 ; Oversample 3D grid to SPEC grid, if necessary
 
@@ -291,35 +297,37 @@ pro mvn_swe_sc_pot, potential=pot, erange=erange2, thresh=thresh2, dEmax=dEmax2,
     pot[indx].method = -1
   endif
 
-; Filter out shadow regions
+; Filter out shadow regions (this is done in mvn_scpot)
 
-  get_data, 'wake', data=wake, index=i
-  if (i eq 0) then begin
-    maven_orbit_tplot, /shadow, /loadonly
+  if (0) then begin
     get_data, 'wake', data=wake, index=i
-  endif
-  if (i gt 0) then begin
-    shadow = interpol(float(finite(wake.y)), wake.x, mvn_swe_engy.time)
-    indx = where(shadow gt 0., count)
-    if (count gt 0L) then begin
-      pot[indx].potential = badphi
-      pot[indx].method = -1
+    if (i eq 0) then begin
+      maven_orbit_tplot, /shadow, /loadonly
+      get_data, 'wake', data=wake, index=i
     endif
-  endif
+    if (i gt 0) then begin
+      shadow = interpol(float(finite(wake.y)), wake.x, mvn_swe_engy.time)
+      indx = where(shadow gt 0., count)
+      if (count gt 0L) then begin
+        pot[indx].potential = badphi
+        pot[indx].method = -1
+      endif
+    endif
 
-; Filter out altitudes below 250 km
+; Filter out altitudes below 250 km (this is done in mvn_scpot)
 
-  get_data, 'alt', data=alt, index=i
-  if (i eq 0) then begin
-    maven_orbit_tplot, /current, /loadonly
     get_data, 'alt', data=alt, index=i
-  endif
-  if (i gt 0) then begin
-    altitude = spline(alt.x, alt.y, mvn_swe_engy.time)
-    indx = where(altitude lt 250., count)
-    if (count gt 0L) then begin
-      pot[indx].potential = badphi
-      pot[indx].method = -1
+    if (i eq 0) then begin
+      maven_orbit_tplot, /loadonly
+      get_data, 'alt', data=alt, index=i
+    endif
+    if (i gt 0) then begin
+      altitude = spline(alt.x, alt.y, mvn_swe_engy.time)
+      indx = where(altitude lt 250., count)
+      if (count gt 0L) then begin
+        pot[indx].potential = badphi
+        pot[indx].method = -1
+      endif
     endif
   endif
 

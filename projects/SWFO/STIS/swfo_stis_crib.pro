@@ -6,9 +6,9 @@
 ; These tools are not intended as a final product but can be used to create high level ouput.
 ;
 ;
-; $LastChangedBy: davin-mac $
-; $LastChangedDate: 2023-03-13 02:11:23 -0700 (Mon, 13 Mar 2023) $
-; $LastChangedRevision: 31620 $
+; $LastChangedBy: rjolitz $
+; $LastChangedDate: 2025-06-03 15:59:53 -0700 (Tue, 03 Jun 2025) $
+; $LastChangedRevision: 33366 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/swfo_stis_crib.pro $
 ; $ID: $
 ;-
@@ -118,8 +118,8 @@ adc_map = swfo_stis_adc_map(data =str )
 adc = adc_map.adc[*,0]
 dadc = adc_map.dadc[*,0]
 
-plot,dadc/adc,/ylog,psy=-1,ytitle='Delta Energy / Energy',xtitle='Bin number',title='STIS Energy Bins (NONLUT; LOG; TRANSLATE=16)
-plot,adc / 2.^15 * 8000.,/ylog,psy=-1,ytitle='Electronic Energy (keV)',xtitle='Bin number',title='STIS Energy Bins (NONLUT; LOG; TRANSLATE=16)
+plot,dadc/adc,/ylog,psy=-1,ytitle='Delta Energy / Energy',xtitle='Bin number',title='STIS Energy Bins (NONLUT; LOG; TRANSLATE=16)'
+plot,adc / 2.^15 * 8000.,/ylog,psy=-1,ytitle='Electronic Energy (keV)',xtitle='Bin number',title='STIS Energy Bins (NONLUT; LOG; TRANSLATE=16)'
 
 rebin = intarr(48)
 nrg = adc / 2.^15 * 8000    ; aiming for 8MeV full scale

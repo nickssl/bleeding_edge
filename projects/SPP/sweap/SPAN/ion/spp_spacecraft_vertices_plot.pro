@@ -217,10 +217,10 @@ PRO spp_spacecraft_vertices_plot, plot_sc1=plot_sc1, plot_sc2=plot_sc2, plot_sc3
       ;;!P.MULTI = [0,0,3]
 
       ;; Temp
-      vtmp = vertex
-      vtmpi = vertex
-      vtmpa = vertex
-      vtmpb = vertex
+      vtmp = inst.vertex
+      vtmpi = inst.vertex
+      vtmpa = inst.vertex
+      vtmpb = inst.vertex
       
 
       ;; SPAN-Ai
@@ -442,7 +442,7 @@ PRO spp_spacecraft_vertices_plot, plot_sc1=plot_sc1, plot_sc2=plot_sc2, plot_sc3
       ;; Left: PSP/coordinates
       
       
-      ;; Right: Mollweide rojection
+      ;; Right: Mollweide projection
       
       
       ;; Apply SPAN-I rotation

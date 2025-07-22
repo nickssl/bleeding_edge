@@ -66,8 +66,8 @@
 ;HISTORY:
 ; 2022-11-14, jmm, jimm@ssl.berkeley.edu
 ; $LastChangedBy: jimm $
-; $LastChangedDate: 2023-09-19 14:54:55 -0700 (Tue, 19 Sep 2023) $
-; $LastChangedRevision: 32106 $
+; $LastChangedDate: 2023-10-30 16:00:06 -0700 (Mon, 30 Oct 2023) $
+; $LastChangedRevision: 32212 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/spacecraft/particles/ESA/thm_get_l2_esadist.pro $
 Function thm_get_l2_esadist, time, probe0, datatype0, $
                              START=st,EN=en,ADVANCE=adv,$
@@ -324,7 +324,7 @@ Function thm_get_l2_esadist, time, probe0, datatype0, $
      nenergy=all_dat.nenergy[en_ind]
      nbins=all_dat.nbins[an_ind]
 ;     bins=intarr(nenergy,nbins) & bins[1:nenergy-1,*]=1
-     bins = reform(all_dat.bins[ind,0:nenergy-1,*])
+     bins = reform(all_dat.bins[ind,0:nenergy-1,0:nbins-1])
      energy = reform(all_dat.energy[0:nenergy-1,en_ind])#replicate(1.,nbins)
      denergy = reform(all_dat.denergy[0:nenergy-1,en_ind])#replicate(1.,nbins)
      an_eff = total(all_dat.an_eff#replicate(1.,nbins)*all_dat.an_map[*,0:nbins-1,an_ind],1)

@@ -9,17 +9,19 @@
 ;                 blocks and tplot variables.
 ;
 ;KEYWORDS:
+;      LOADONLY:  Insert potential information into SPEC data but do not refresh
+;                 the tplot window.
 ;
 ;CREATED BY:      D. L. Mitchell
 ;
 ;LAST MODIFICATION:
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-08-22 13:47:16 -0700 (Tue, 22 Aug 2023) $
-; $LastChangedRevision: 32056 $
+; $LastChangedDate: 2025-06-23 10:26:29 -0700 (Mon, 23 Jun 2025) $
+; $LastChangedRevision: 33408 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_addpot.pro $
 ;
 ;-
-pro mvn_swe_addpot
+pro mvn_swe_addpot, loadonly=loadonly
 
   @mvn_swe_com
   @mvn_scpot_com
@@ -66,14 +68,16 @@ pro mvn_swe_addpot
       j = where(topt.varnames eq 'swe_a4', count)
       if (count gt 0) then begin
         topt.varnames[j] = 'swe_a4_pot'
-        replot = 1
+        replot = ~keyword_set(loadonly)
       endif
     endif
   endif
 
   get_data,'swe_a4_mask',index=i
   if (i gt 0) then begin
-    store_data,'swe_a4_mask',data=['swe_a4','flag','swe_pot_overlay']
+    get_data,'swe_flag',index=j
+    if (j gt 0) then store_data,'swe_a4_mask',data=['swe_a4','swe_flag','swe_pot_overlay'] $
+                else store_data,'swe_a4_mask',data=['swe_a4','swe_pot_overlay']
     ylim,'swe_a4_mask',3,5000,1
 
     tplot_options, get=topt

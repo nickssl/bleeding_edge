@@ -16,17 +16,68 @@
 ;
 ;       CENTER:        Longitude and latitude of the center [lon, lat].
 ;
-;       MAP:           Mapping projection.  See plot3d_options for details.
+;       MAP:           Mapping projection, which is passed to plot3d_options.  See
+;                      the manual page for map_set for a list of projections:
+;                        aitoff (default)
+;                        cylindrical
+;                        lambert
+;                        mercator
+;                        mollweide
+;                        orthographic
+;                        ... etc.
 ;
 ;       ZLOG:          If set, use a log color scale.
 ;
-;       ZRANGE:        Range for color bar.
+;       ZRANGE:        Range for color bar.  [Does not work correctly.]
 ;
-;       SPEC:          Plot energy spectra using spec3d.
+;       SPEC:          Plot energy spectra for the 3D bins.
+;                        0 = Don't plot any spectra.  Default.
+;                        1 = All 96 spectra are overplotted in a single frame
+;                            with rainbow color scheme (blue: low bin numbers,
+;                            red: high bin numbers).
+;                        2 = Spectra are grouped and averaged using PGROUP and
+;                            then overplotted in a single frame with a rainbow
+;                            color scheme (as above).
+;                        3 = Spectra are grouped and averaged using PGROUP and
+;                            then plotted in an NxM grid of frames (one spectrum
+;                            per frame), where N is the number of phi bins (see 
+;                            PGROUP), and M is the number of theta bins (always 6).
+;                            The spectrum for each frame is shown in green and the
+;                            average spectrum over all 3D bins is shown in red.
+;                            Note: The window for this plot should be as large as
+;                            possible to accommodate the many frames.  Best is to
+;                            devote and entire external monitor for this plot.
+;                            Once the snapshot window appears, you can move and
+;                            resize it as needed.  If you are using 'win', and
+;                            it's enabled, then 'win' will automatically make the
+;                            snapshot window as large it can while maintaining a
+;                            reasonable aspect ratio for each frame.
+;
+;       PGROUP:        If SPEC > 1, then group the 3D bins in the phi (anode)
+;                      dimension to generate fewer spectra.  This keyword should
+;                      have one of five values: 1, 2, 4, 8, 16, where the number
+;                      indicates the number of adjacent anode bins to be grouped
+;                      and averaged together.  Default = 1 (no grouping).
+;
+;       RESULT:        Returns the plot data from SPEC > 1, with the grouping set
+;                      by PGROUP.
+;
+;       QRATIO:        If set, the Y axis for the SPEC plots becomes the ratio of
+;                      bad spectra (QUALITY=0) to good spectra (QUALITY=2) within
+;                      a selected time range with a linear Y axis.  Sets SUM = 1
+;                      to obtain a sufficient number of good and bad spectra, and
+;                      keyword QLEVEL is ignored.  Try to select time ranges
+;                      during which conditions are steady and the s/c potential
+;                      is constant.
+;
+;       THICK:         Line thickness for the SPEC plots.  Default = 1.
 ;
 ;       POT:           Plot the spacecraft potential on the SPEC plots.
 ;
-;       UNITS:         Units for the spec3d.
+;       SCP:           Temporarily override any other estimates of the spacecraft 
+;                      potential and force it to be this value.
+;
+;       UNITS:         Data units for SPEC plots.  Default = 'crate'.
 ;
 ;       ENERGY:        One or more energies to plot.  Overrides EBINS.
 ;
@@ -50,7 +101,7 @@
 ;                        smo = [n_energy, n_phi, n_theta]  ; default = [1,1,1]
 ;
 ;                      This routine takes into account the 360-0 degree wrap when 
-;                      smoothing.
+;                      smoothing, so there is no artificial seam.
 ;
 ;       SYMDIR:        Calculate and overplot the symmetry direction of the 
 ;                      electron distribution.
@@ -98,18 +149,22 @@
 ;                      format accepted by time_double.  (This disables the
 ;                      interactive time range selection.)
 ;
-;       COLOR_TABLE:  Use this color table for all plots.
+;       COLOR_TABLE:   Use this color table for plot3d.  Default is table 34
+;                      (rainbow).  This allows masked bins (black) to be 
+;                      distinguished from bins with low signal (violet).
 ;
 ;       REVERSE_COLOR_TABLE:  Reverse the color table (except for fixed colors).
 ;
-;       QLEVEL:       Minimum quality level to plot (0-2, default=0):
-;                        2B = good
-;                        1B = uncertain
-;                        0B = affected by low-energy anomaly
+;       LINE_COLORS:   Set the line colors. (See line_colors.pro for more info.)
+;
+;       QLEVEL:        Minimum quality level to plot (0-2, default=0):
+;                         2B = good
+;                         1B = uncertain
+;                         0B = affected by low-energy anomaly
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-07-04 13:40:37 -0700 (Tue, 04 Jul 2023) $
-; $LastChangedRevision: 31935 $
+; $LastChangedDate: 2025-04-18 14:04:25 -0700 (Fri, 18 Apr 2025) $
+; $LastChangedRevision: 33268 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/swe_3d_snap.pro $
 ;
 ;CREATED BY:    David L. Mitchell  07-24-12
@@ -123,7 +178,8 @@ pro swe_3d_snap, spec=spec, keepwins=keepwins, archive=archive, ebins=ebins, $
                  labsize=labsize, trange=trange2, tsmo=tsmo, wscale=wscale, zlog=zlog, $
                  zrange=zrange, monitor=monitor, esum=esum, color_table=color_table, $
                  reverse_color_table=reverse_color_table, line_colors=line_colors, $
-                 qlevel=qlevel
+                 qlevel=qlevel, qratio=qratio, pgroup=pgroup, result=result, thick=thick, $
+                 scp=scp
 
   @mvn_swe_com
   @putwin_common
@@ -142,6 +198,7 @@ pro swe_3d_snap, spec=spec, keepwins=keepwins, archive=archive, ebins=ebins, $
   bad3d.quality = 255B
 
   if (size(windex,/type) eq 0) then win, config=0  ; win acts like window
+  colstr = get_colors()
 
 ; Load any keyword defaults
 
@@ -152,7 +209,7 @@ pro swe_3d_snap, spec=spec, keepwins=keepwins, archive=archive, ebins=ebins, $
            'SYMDIAG','POWER','MAP','ABINS','DBINS','OBINS','MASK_SC','BURST', $
            'PLOT_SC','PADMAP','POT','PLOT_FOV','LABSIZE','TRANGE2','TSMO', $
            'WSCALE','ZLOG','ZRANGE','MONITOR','ESUM','COLOR_TABLE', $
-           'REVERSE_COLOR_TABLE','QLEVEL']
+           'REVERSE_COLOR_TABLE','QLEVEL','QRATIO','PGROUP','THICK']
   for j=0,(n_elements(ktag)-1) do begin
     i = strmatch(tlist, ktag[j]+'*', /fold)
     case (total(i)) of
@@ -168,8 +225,7 @@ pro swe_3d_snap, spec=spec, keepwins=keepwins, archive=archive, ebins=ebins, $
 
 ; Process keywords
 
-  if keyword_set(archive) then aflg = 1 else aflg = 0
-  if keyword_set(burst) then aflg = 1
+  aflg = keyword_set(archive) or keyword_set(burst)
 
   if (n_elements(abins) ne 16) then abins = replicate(1B, 16)
   if (n_elements(dbins) ne  6) then dbins = replicate(1B, 6)
@@ -180,29 +236,75 @@ pro swe_3d_snap, spec=spec, keepwins=keepwins, archive=archive, ebins=ebins, $
   endif else obins = byte(obins # [1B,1B])
   if (size(mask_sc,/type) eq 0) then mask_sc = 1
   if keyword_set(mask_sc) then obins = swe_sc_mask * obins
-  if keyword_set(plot_sc) then plot_sc = 1 else plot_sc = 0
-  if keyword_set(plot_fov) then fov = 1 else fov = 0
-  if not keyword_set(labsize) then labsize = 1.
-  if (size(wscale,/type) eq 0) then wscale = 1.
+  plot_sc = keyword_set(plot_sc)
+  fov = keyword_set(plot_fov)
+  pot = (n_elements(pot) gt 0) ? keyword_set(pot) : 1
+  labsize = (n_elements(labsize) gt 0) ? float(labsize[0]) : 1.
+  wscale = (n_elements(wscale) gt 0) ? float(wscale[0]) : 1.
+  thick = (n_elements(thick) gt 0) ? float(thick[0]) : 1.
 
   omask = replicate(1.,96,2)
   indx = where(obins eq 0B, count)
   if (count gt 0L) then omask[indx] = !values.f_nan
   omask = reform(replicate(1.,64) # reform(omask, 96*2), 64, 96, 2)
 
+  zrange = (n_elements(zrange) gt 1) ? float(zrange[0:1]) : [0.,0.]
   if (size(units,/type) ne 7) then units = 'crate'
+
+  plist = ['aitoff','albers','azimuthal','conic','cylindrical','gnomic', $
+           'goodeshomolosine','hammer','lambert','mercator','miller_cylindrical', $
+           'mollweide','orthographic','robinson','satellite','sinusoidal', $
+           'stereographic','transverse_mercator']
+
   if (size(map,/type) ne 7) then map = 'ait'
-  if not keyword_set(zrange) then zrange = [0.,0.]
-  plot3d_options, map=map
-  
+  i = strmatch(plist, map+'*', /fold)
+  case (total(i)) of
+      0  : begin
+             print, "Map projection not recognized: ", map
+             pname = 'aitoff'
+           end
+      1  : pname = (plist[where(i eq 1)])[0]
+    else : begin
+             print, "Map projection ambiguous: ", map
+             pname = 'aitoff'
+           end
+  endcase
+  print, "Using " + pname + " projection."
+  plot3d_options, map=pname
+
+  xrange = [3.,5000.]
+  ylog = 1
+  zlog = keyword_set(zlog)
+
   case strupcase(units) of
-    'COUNTS' : yrange = [1.,1.e5]
-    'RATE'   : yrange = [1.,1.e5]
-    'CRATE'  : yrange = [1.,1.e6]
-    'FLUX'   : yrange = [1.,1.e8]
-    'EFLUX'  : yrange = [1.e4,1.e9]
-    'DF'     : yrange = [1.e-19,1.e-8]
-    else     : yrange = [0.,0.]
+    'COUNTS' : begin
+                 yrange = [1.,1.e5]
+                 ytitle = 'Raw Counts'
+               end
+    'RATE'   : begin
+                 yrange = [1.,1.e5]
+                 ytitle = 'Uncorrected Count Rate'
+               end
+    'CRATE'  : begin
+                 yrange = [1.,1.e6]
+                 ytitle = 'Count Rate'
+               end
+    'FLUX'   : begin
+                 yrange = [1.,1.e8]
+                 ytitle = 'Flux'
+               end
+    'EFLUX'  : begin
+                 yrange = [1.e4,1.e9]
+                 ytitle = 'Energy Flux'
+               end
+    'DF'     : begin
+                 yrange = [1.e-19,1.e-8]
+                 ytitle = 'Distribution Function'
+               end
+    else     : begin
+                 yrange = [0.,0.]
+                 ytitle = 'Unknown Units'
+               end
   endcase
 
   case n_elements(center) of
@@ -220,7 +322,8 @@ pro swe_3d_snap, spec=spec, keepwins=keepwins, archive=archive, ebins=ebins, $
            end
   endcase
 
-  if keyword_set(spec) then sflg = 1 else sflg = 0
+  sflg = keyword_set(spec) ? fix(spec[0]) > 0 < 3 : 0
+  pgroup = keyword_set(pgroup) ? fix(pgroup[0]) > 1 < 16 : 1
   if keyword_set(keepwins) then kflg = 0 else kflg = 1
   if (keyword_set(padmag) and (size(a2,/type) eq 8)) then pflg = 1 else pflg = 0
   if (size(ebins,/type) eq 0) then ebins = reverse(4*indgen(16))
@@ -228,8 +331,21 @@ pro swe_3d_snap, spec=spec, keepwins=keepwins, archive=archive, ebins=ebins, $
   if not keyword_set(power) then power = 3.
   if keyword_set(symdiag) then dflg = 1 else dflg = 0
   if keyword_set(padmap) then dopam = 1 else dopam = 0
+  sum = keyword_set(sum)
   esum = keyword_set(esum)
   qlevel = (n_elements(qlevel) gt 0L) ? byte(qlevel[0]) : 0B
+  qratio = keyword_set(qratio)
+
+  if (qratio) then begin
+    xrange = [3.,300.]
+    yrange = [0.,2.]
+    zrange = [0.,0.]
+    zlog = 0
+    ylog = 0
+    ytitle = 'Ratio (BAD/GOOD)'
+    sum = 1
+    qlevel = 0B
+  endif
 
   case n_elements(trange2) of
        0 : tflg = 0
@@ -251,17 +367,10 @@ pro swe_3d_snap, spec=spec, keepwins=keepwins, archive=archive, ebins=ebins, $
     dosmo = 1
   endif else dosmo = 0
 
-  if keyword_set(sum) then begin
-    npts = 2
-    doall = 1
-  endif else begin
-    npts = 1
-    doall = 0
-  endelse
+  if (sum) then npts = 2 else npts = 1
 
   if keyword_set(tsmo) then begin
     npts = 1
-    doall = 1
     dotsmo = 1
     dtsmo = double(tsmo)/2D
   endif else dotsmo = 0
@@ -293,7 +402,7 @@ pro swe_3d_snap, spec=spec, keepwins=keepwins, archive=archive, ebins=ebins, $
 
   Twin = !d.window
 
-  undefine, mnum
+  undefine, mnum, Dwin, Swin, Fwin, Pwin
   if (size(monitor,/type) gt 0) then begin
     if (~windex) then win, /config
     mnum = fix(monitor[0])
@@ -301,10 +410,32 @@ pro swe_3d_snap, spec=spec, keepwins=keepwins, archive=archive, ebins=ebins, $
     if (size(secondarymon,/type) gt 0) then mnum = secondarymon
   endelse
 
-  win, /free, monitor=mnum, xsize=800, ysize=600, dx=10, dy=10, scale=wscale
-  Dwin = !d.window
+; If there's a large number of energy spectrum plots AND if the user has win enabled
+; AND if the user has at least 3 monitors, then use the entire secondary monitor to
+; display the energy spectrum plots and place the 3D plot(s) in the tertiary monitor.
+; Otherwise, the user has to resize and reposition the spectrum window manually before
+; selecting the first time range.
 
-  if (sflg) then begin
+  win, stat=2, /silent, config=cfg
+  if (cfg.enable) then begin
+    if ((sflg eq 3) and (cfg.nmons gt 2)) then begin
+      if (cfg.tmon lt 0) then cfg.tmon = primarymon
+      mons = indgen(cfg.nmons)
+      mnum = minmax(where(mons ne cfg.tmon))
+      s = (mnum[1] eq (cfg.nmons - 1)) ? 1 : -1
+      win, /free, monitor=mnum[0], xsize=800, ysize=600, dx=(-s)*10, dy=10, scale=wscale
+      Dwin = !d.window
+      win, /free, monitor=mnum[1], /yfull, aspect=0.8*(16./pgroup)/6., dx=s*10
+      Swin = !d.window
+    endif
+  endif
+
+  if (size(Dwin,/type) eq 0) then begin
+    win, /free, monitor=mnum, xsize=800, ysize=600, dx=10, dy=10, scale=wscale
+    Dwin = !d.window
+  endif
+
+  if ((sflg gt 0) and (size(Swin,/type) eq 0)) then begin
     win, /free, xsize=450, ysize=600, rel=Dwin, dx=10, scale=wscale
     Swin = !d.window
   endif
@@ -331,11 +462,6 @@ pro swe_3d_snap, spec=spec, keepwins=keepwins, archive=archive, ebins=ebins, $
     line_colors, lines, previous_lines=plines
   endif
 
-  cols = get_colors()
-  if (cols.color_table ge 1000) then cols = get_qualcolors()
-  cbot = (cols.bottom_c ge 0) ? cols.bottom_c : 7
-  ctop = (cols.top_c ge 0) ? cols.top_c : 254
-
   got3d = 0
   if (size(ddd,/type) eq 8) then begin
     str_element, ddd[0], 'apid', apid, success=ok
@@ -356,7 +482,7 @@ pro swe_3d_snap, spec=spec, keepwins=keepwins, archive=archive, ebins=ebins, $
 
     if (size(trange,/type) eq 2) then begin  ; Abort before first time select.
       wdelete,Dwin                           ; Don't keep empty windows.
-      if (sflg) then wdelete,Swin
+      if (sflg gt 0) then wdelete,Swin
       if (dflg) then wdelete,Fwin
       if (dopam) then wdelete,Pwin
       wset,Twin
@@ -380,12 +506,32 @@ pro swe_3d_snap, spec=spec, keepwins=keepwins, archive=archive, ebins=ebins, $
     wset, Dwin
 
     if (~got3d) then begin
-      ddd = mvn_swe_get3d(trange,archive=aflg,all=doall,/sum,units=units,qlevel=qlevel)
-      if (size(ddd,/type) ne 8) then begin
+      ddd = mvn_swe_get3d(trange,archive=aflg,/all,sum=0,units=units,qlevel=qlevel)
+      if (size(ddd,/type) eq 8) then begin
+        if (qratio) then begin
+          bndx = where(ddd.quality eq 0, nbad)
+          gndx = where(ddd.quality eq 2, ngud)
+          if ((nbad gt 0) and (ngud gt 0)) then begin
+            b3d = mvn_swe_3dsum(ddd[bndx])
+            g3d = mvn_swe_3dsum(ddd[gndx])
+            ddd = b3d
+            ddd.data /= g3d.data
+            ddd.sc_pot = (n_elements(scp) gt 0) ? float(scp[0]) : g3d.sc_pot
+          endif else begin
+            print,"Can't calculate BAD/GOOD ratio."
+            ddd = bad3d
+            ddd.time = mean(trange)
+            ddd.end_time = max(trange)
+          endelse
+        endif else begin
+          ddd = mvn_swe_3dsum(ddd)
+          if (n_elements(scp) gt 0) then ddd.sc_pot = float(scp[0])
+        endelse
+      endif else begin
         ddd = bad3d
         ddd.time = mean(trange)
         ddd.end_time = max(trange)
-      endif
+      endelse
     endif
 
     if (size(ddd,/type) eq 8) then begin
@@ -446,7 +592,10 @@ pro swe_3d_snap, spec=spec, keepwins=keepwins, archive=archive, ebins=ebins, $
         plot,[-1],[-1],xrange=[0,1],yrange=[0,1],xsty=5,ysty=5
         xyouts,0.5,0.4,tsp,/norm,align=0.5,charsize=csize2*1.5
         xyouts,0.5,0.5,"NO VALID DATA",/norm,align=0.5,charsize=csize2*1.5
-      endif else plot3d_new, ddd, lat, lon, ebins=ebins, zrange=zrange, log=keyword_set(zlog)
+      endif else begin
+        plot3d_new, ddd, lat, lon, ebins=ebins, zrange=zrange, log=keyword_set(zlog)
+        xyouts, 0.95, 0.98, /norm, align=1, pname + " projection", charsize=csize2
+      endelse
 
       if (pflg) then begin
         dt = min(abs(a2.time - mean(ddd.time)),j)
@@ -579,7 +728,7 @@ pro swe_3d_snap, spec=spec, keepwins=keepwins, archive=archive, ebins=ebins, $
         for k=0,(count-1) do begin
           i = ib[k]
           j = jb[k]
-          oplot,[mean(az[i:i+1])],[mean(el[j:j+1])],psym=7,color=5
+          oplot,[mean(az[i:i+1])],[mean(el[j:j+1])],psym=7,symsize=3,thick=2,color=5
         endfor
 
         az = Baz*!radeg
@@ -590,12 +739,120 @@ pro swe_3d_snap, spec=spec, keepwins=keepwins, archive=archive, ebins=ebins, $
         oplot,[az],[el],psym=4,symsize=2
       endif
 
-      if (sflg) then begin
-        wset, Swin
-        bins = where(obins eq 1B, count)
-        spec3d, ddd, units=units, limits={yrange:yrange, ystyle:1, ylog:1, psym:10},bins=bins
-        if keyword_set(pot) then oplot, [ddd.sc_pot, ddd.sc_pot], yrange, line=1, color=6
-      endif
+      case (sflg) of
+        1 : begin
+              wset, Swin
+              bins = where(obins[*,boom] eq 1B, count)
+              limits = {yrange:yrange, ystyle:1, ylog:ylog, psym:0, thick:thick, ytitle:ytitle}
+              spec3d, ddd, units=units, limits=limits, bins=bins
+              if (pot) then oplot, [ddd.sc_pot, ddd.sc_pot], yrange, line=2, color=6
+            end
+        2 : begin
+              wset, Swin
+              di = 2^ddd.group
+              n_e = ddd.nenergy/di
+              x = swe_swp[di*indgen(n_e),ddd.group]
+              nspec = ddd.nbins/pgroup
+              tsp = ddd.time + [-ddd.delta_t, ddd.delta_t]/2D
+              result = {x:x, y:fltarr(n_e,nspec), brange:intarr(2,nspec), trange:tsp, $
+                        xtitle:'Energy (eV)', ytitle:ytitle}
+              indx = indgen(pgroup)
+              y = average(ddd.data[*,indx],2,/nan)
+              if (di gt 1) then begin
+                z = x
+                for i=0,(n_e-1) do z[i] = average(y[(i*di):(i*di + (di-1))],/nan)
+                y = z
+              endif
+              result.brange[*,0] = minmax(indx)
+              result.y[*,0] = y
+
+              delta_t = ddd.end_time - ddd.time
+              tstart = time_string(ddd.time - delta_t)
+              tend   = time_string(ddd.end_time)
+              title  = tstart + ' - ' + strmid(tend,11)
+
+              initct, 43, previous_ct=pct2, previous_rev=prev2
+                plot, x, y, xrange=xrange, /xlog, /xsty, yrange=yrange, /ysty, ylog=ylog, $
+                      charsize=1.5, xtitle='Energy (eV)', ytitle=ytitle, title=title, thick=thick
+                cbot = 40
+                oplot, x, y, color=cbot, thick=thick
+
+                cscale = float(colstr.top_c - cbot)/float(nspec - 1)
+                for k=1,(nspec-1) do begin
+                  j = indx + k*pgroup
+                  y = average(ddd.data[*,j],2,/nan)
+                  if (di gt 1) then begin
+                    z = x
+                    for i=0,(n_e-1) do z[i] = average(y[(i*di):(i*di + (di-1))],/nan)
+                    y = z
+                  endif
+                  result.brange[*,k] = minmax(j)
+                  result.y[*,k] = y
+                  clr = (round(k*cscale) + cbot) > cbot < colstr.top_c
+                  oplot, x, y, color=clr, thick=thick
+                endfor
+              initct, pct2, rev=prev2
+
+              if (qratio) then oplot, minmax(x), [1.,1.], line=1
+              if (pot) then oplot, [ddd.sc_pot, ddd.sc_pot], yrange, line=2, color=6
+            end
+        3 : begin
+              wset, Swin
+              di = 2^ddd.group
+              n_e = ddd.nenergy/di
+              x = swe_swp[di*indgen(n_e),ddd.group]
+              yavg = average(ddd.data,2,/nan)
+              if (di gt 1) then begin
+                z = x
+                for i=0,(n_e-1) do z[i] = average(yavg[(i*di):(i*di + (di-1))],/nan)
+                yavg = z
+              endif
+              if (qratio) then yavg[*] = 1.
+              nspec = ddd.nbins/pgroup
+              tsp = ddd.time + [-ddd.delta_t, ddd.delta_t]/2D
+              indx = indgen(pgroup)
+              nrows = 16/pgroup
+              ncols = 6
+              result = {x:x, y:fltarr(n_e,nspec), brange:intarr(2,nspec), trange:tsp, $
+                        xtitle:'Energy (eV)', ytitle:ytitle}
+              pndx = reverse(reform(indgen(nrows*ncols),nrows,ncols),2)
+              !p.multi = [0, nrows, ncols]
+              for k=0,(nspec-1) do begin
+                j = indx + pndx[k]*pgroup
+                y = average(ddd.data[*,j],2,/nan)
+                if (di gt 1) then begin
+                  z = x
+                  for i=0,(n_e-1) do z[i] = average(y[(i*di):(i*di + (di-1))],/nan)
+                  y = z
+                endif
+                result.brange[*,k] = minmax(j)
+                result.y[*,k] = y
+                plot, [0.1], [1.], yrange=yrange, /ysty, ylog=ylog, charsize=1.8, $
+                         xrange=xrange, /xlog, /xsty, xtitle='Energy (eV)', ytitle=ytitle
+                igud = where(finite(y), ngud)
+                if (ngud gt 0L) then begin
+                  oplot, x, yavg, color=6, line=0, thick=1
+                  oplot, x, y, color=4, thick=thick
+                  if (pot) then oplot, [ddd.sc_pot, ddd.sc_pot], yrange, line=2, color=6
+                endif else begin
+                  xs = exp(mean(alog(xrange)))
+                  ys = ylog ? exp(mean(alog(yrange))) : mean(yrange)
+                  xyouts, xs, ys, 'NO DATA', charsize=1.5, align=0.5
+                endelse
+                if (pgroup gt 1) then begin
+                  i = pndx[k]*pgroup + [0, pgroup-1]
+                  msg = strcompress(string(i[0], i[1], format='(i,"-",i)'),/remove_all)
+                endif else msg = strtrim(string(pndx[k]),2)
+                f = 0.90  ; normalized X
+                xs = exp(f*alog(xrange[1]) + (1. - f)*alog(xrange[0]))
+                f = 0.85  ; normalized Y
+                ys = ylog ? exp(f*alog(yrange[1]) + (1. - f)*alog(yrange[0])) : f*yrange[1] + (1. - f)*yrange[0]
+                xyouts, xs, ys, msg, charsize=1.5, align=1, color=4
+              endfor
+              !p.multi = 0
+            end
+        else : ; do nothing
+      endcase
     endif
 
 ; Get the next button press
@@ -616,7 +873,7 @@ pro swe_3d_snap, spec=spec, keepwins=keepwins, archive=archive, ebins=ebins, $
 
   if (kflg) then begin
     wdelete, Dwin
-    if (sflg) then wdelete, Swin
+    if (sflg gt 0) then wdelete, Swin
     if (dflg) then wdelete, Fwin
     if (dopam) then wdelete, Pwin
   endif

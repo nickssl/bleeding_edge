@@ -47,9 +47,10 @@ PRO spp_spacecraft_vertices_mollweide, x, y, lambda, phi, r, label
 
 END
 
-
+; flap_sp - Flap Angle (degrees) for solar panels
+; fthr_sp - Feather Angle (degrees) for solar panels
 PRO spp_spacecraft_vertices, plot_sc1=plot_sc1, plot_sc2=plot_sc2, plot_sc3=plot_sc3, $
-                             spi=spi, spa=spa, spb=spb, moll=moll, vertex=vertex
+                             spi=spi, spa=spa, spb=spb, moll=moll, vertex=vertex,flap_sp=flap_sp,fthr_sp=fthr_sp
 
 
    ;; Initiate Common Block
@@ -269,7 +270,91 @@ PRO spp_spacecraft_vertices, plot_sc1=plot_sc1, plot_sc2=plot_sc2, plot_sc3=plot
                            [ 31.00,-1264.60, 1524.10],$
                            [ 31.00, -495.30, 1524.10],$
                            [-31.00, -495.30, 1524.10]]
-   
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; Rotate Solar Panels if feather angle for solar panels is set
+  if isa(fthr_sp) then begin
+    ; Check for separate flap angles
+    fthr_sp1 = fthr_sp[0]
+    if n_elements(fthr_sp) gt 1 then fthr_sp2 = fthr_sp[1] else fthr_sp2 = fthr_sp[0]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SOLAR PANEL 1
+    ; Set origin points for rotation
+    sp1_len       = (find_dim(spp_solar_panel1))[1]
+    spstr1_len    = (find_dim(spp_solar_panel1_str))[1]
+    sp1_origin    = ([0.00, 495.30, 1533.60] # (intarr(sp1_len)+1))
+    spstr1_origin = ([0.00, 495.30, 1533.60] # (intarr(spstr1_len)+1))
+    ; Change coordinate system
+    new_sp1    =  spp_solar_panel1 - sp1_origin
+    new_spstr1 =  spp_solar_panel1_str - spstr1_origin
+    ; Rotate CCW around x axis
+    ang1      = (fthr_sp1)*!DPI/180.0
+    fthr_rot1 = [[ cos(ang1), 0.0, sin(ang1)],$
+                 [       0.0, 1.0,       0.0],$
+                 [-sin(ang1), 0.0, cos(ang1)] ]
+    ; Perform operation and move to original coordinate system
+    spp_solar_panel1     = (fthr_rot1 # new_sp1) + sp1_origin
+    spp_solar_panel1_str = (fthr_rot1 # new_spstr1) + spstr1_origin
+    ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SOLAR PANEL 2
+    ; Set origin points for rotation
+    sp2_len       = (find_dim(spp_solar_panel2))[1]
+    spstr2_len    = (find_dim(spp_solar_panel2_str))[1]
+    sp2_origin    = ([0.00, -495.30, 1533.60] # (intarr(sp2_len)+1))
+    spstr2_origin = ([0.00, -495.30, 1533.60] # (intarr(spstr2_len)+1))
+    ; Change coordinate system
+    new_sp2    =  spp_solar_panel2 - sp2_origin
+    new_spstr2 =  spp_solar_panel2_str - spstr2_origin
+    ; Rotate CW around x axis (need to flip angle for correct direction)
+    ang2      = (-fthr_sp2)*!DPI/180.0
+    fthr_rot2 = [[ cos(ang2), 0.0, sin(ang2)],$
+                 [       0.0, 1.0,       0.0],$
+                 [-sin(ang2), 0.0, cos(ang2)] ]
+    ; Perform operation and move to original coordinate system
+    spp_solar_panel2     = (fthr_rot2 # new_sp2) + sp2_origin
+    spp_solar_panel2_str = (fthr_rot2 # new_spstr2) + spstr2_origin
+  endif
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ; Rotate Solar Panels if flap angle for solar panels is set
+  if isa(flap_sp) then begin
+   ; Check for separate flap angles
+   flap_sp1 = flap_sp[0]
+    if n_elements(flap_sp) gt 1 then flap_sp2 = flap_sp[1] else flap_sp2 = flap_sp[0]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SOLAR PANEL 1
+    ; Set origin points for rotation
+    sp1_len       = (find_dim(spp_solar_panel1))[1]
+    spstr1_len    = (find_dim(spp_solar_panel1_str))[1]
+    sp1_origin    = ([0.00, 495.30, 1533.60] # (intarr(sp1_len)+1))
+    spstr1_origin = ([0.00, 495.30, 1533.60] # (intarr(spstr1_len)+1))
+    ; Change coordinate system
+    new_sp1    =  spp_solar_panel1 - sp1_origin 
+    new_spstr1 =  spp_solar_panel1_str - spstr1_origin
+    ; Rotate CCW around x axis 
+    ang1      = (flap_sp1)*!DPI/180.0
+    flap_rot1 = [[1.0,           0.0,           0.0],$
+                [0.0, cos(ang1),-sin(ang1)],$
+                [0.0, sin(ang1), cos(ang1)] ]
+    ; Perform operation and move to original coordinate system
+    spp_solar_panel1     = (flap_rot1 # new_sp1) + sp1_origin
+    spp_solar_panel1_str = (flap_rot1 # new_spstr1) + spstr1_origin
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; SOLAR PANEL 2
+    ; Set origin points for rotation
+    sp2_len       = (find_dim(spp_solar_panel2))[1]
+    spstr2_len    = (find_dim(spp_solar_panel2_str))[1]
+    sp2_origin    = ([0.00, -495.30, 1533.60] # (intarr(sp2_len)+1))
+    spstr2_origin = ([0.00, -495.30, 1533.60] # (intarr(spstr2_len)+1))
+    ; Change coordinate system
+    new_sp2    =  spp_solar_panel2 - sp2_origin 
+    new_spstr2 =  spp_solar_panel2_str - spstr2_origin
+    ; Rotate CW around x axis (need to flip angle for correct direction)
+    ang2      = (-flap_sp2)*!DPI/180.0
+    flap_rot2 = [[1.0,           0.0,           0.0],$
+                [0.0, cos(ang2),-sin(ang2)],$
+                [0.0, sin(ang2), cos(ang2)] ]
+    ; Perform operation and move to original coordinate system
+    spp_solar_panel2     = (flap_rot2 # new_sp2) + sp2_origin
+    spp_solar_panel2_str = (flap_rot2 # new_spstr2) + spstr2_origin 
+  endif
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
    sol_ind = [$
              0,1,2,3,0,$  ;; TOP
              4,5,6,7,4,$  ;; BOTTOM

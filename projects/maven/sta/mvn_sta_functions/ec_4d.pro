@@ -19,7 +19,7 @@
 ;					0,1=exclude,include
 ;	MASS:	intarr(nm)	optional, 
 ;PURPOSE:
-;	Returns the characteristic energy, Ec in eV, corrects for spacecraft potential if dat.sc_pot exists
+;	Returns the analyzer characteristic energy, Ec in eV, of the ions - the analyzer energy of the peak. 
 ;NOTES:	
 ;	Function normally called by "get_4dt" to 
 ;	generate time series data for "tplot.pro".

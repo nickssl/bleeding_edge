@@ -18,8 +18,8 @@
 ;HISTORY:
 ; 24-Oct-2022, jmm, Hacked from fa_esa_cmn_l2vararr
 ; $LastChangedBy: jimm $
-; $LastChangedDate: 2023-04-25 12:46:34 -0700 (Tue, 25 Apr 2023) $
-; $LastChangedRevision: 31798 $
+; $LastChangedDate: 2023-10-30 16:00:06 -0700 (Mon, 30 Oct 2023) $
+; $LastChangedRevision: 32212 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/spacecraft/particles/ESA/thm_esa_cmn_l2vararr.pro $
 ;-
 Function thm_esa_cmn_l2vararr, data_name
@@ -47,10 +47,10 @@ Function thm_esa_cmn_l2vararr, data_name
           ['AN_IND', 'AN_IND', 'Y'], $
           ['EN_IND', 'EN_IND', 'Y'], $
           ['MD_IND', 'MD_IND', 'Y'], $
-          ['NENERGY', 'NENERGY', 'Y'], $
+          ['NENERGY', 'NENERGY', 'N'], $
           ['ENERGY', 'ENERGY', 'N'], $
           ['DENERGY', 'DENERGY', 'N'], $
-          ['NBINS', 'NBINS', 'Y'], $
+          ['NBINS', 'NBINS', 'N'], $
           ['THETA', 'THETA', 'N'], $
           ['DTHETA', 'DTHETA', 'N'], $
           ['PHI', 'PHI', 'N'], $
@@ -63,6 +63,7 @@ Function thm_esa_cmn_l2vararr, data_name
           ['REL_GF', 'REL_GF', 'Y'], $
           ['AN_EFF', 'AN_EFF', 'N'], $
           ['EN_EFF', 'EN_EFF', 'N'], $
+          ['AN_EN_EFF', 'AN_EN_EFF', 'N'], $
           ['GEOM_FACTOR', 'GEOM_FACTOR', 'N'], $
           ['DEAD', 'DEAD', 'N'], $
           ['MASS', 'MASS', 'N'], $
@@ -71,6 +72,7 @@ Function thm_esa_cmn_l2vararr, data_name
           ['MAGF', 'MAGF', 'Y'], $
           ['BKG_PSE', 'BKG_PSE', 'Y'], $
           ['BKG_PEI', 'BKG_PEI', 'Y'], $
+          ['BKG_PEE', 'BKG_PEE', 'Y'], $
           ['BKG', 'BKG', 'Y'], $
           ['BKG_ARR', 'BKG_ARR', 'N'], $
           ['BINS', 'BINS', 'Y'], $

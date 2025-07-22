@@ -4,8 +4,8 @@
 ;   spp_fld_rfs_cross_load_l1
 ;
 ; $LastChangedBy: pulupa $
-; $LastChangedDate: 2023-09-21 12:05:16 -0700 (Thu, 21 Sep 2023) $
-; $LastChangedRevision: 32114 $
+; $LastChangedDate: 2023-09-28 13:18:16 -0700 (Thu, 28 Sep 2023) $
+; $LastChangedRevision: 32147 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SPP/fields/l1/l1_rfs_cross/spp_fld_rfs_cross_load_l1.pro $
 ;
 ;-
@@ -105,7 +105,7 @@ pro spp_fld_rfs_cross_load_l1, file, prefix = prefix, color = color, varformat =
 
   receiver_str = 'RFS'
 
-  if file.Contains('lusee') then lusee = 1 else lusee = 0
+  if file[0].Contains('lusee') then lusee = 1 else lusee = 0
   rfs_freqs = spp_fld_rfs_freqs(lfr = lfr_flag, lusee = lusee)
 
   cdf2tplot, /get_support_data, file, prefix = prefix, varformat = varformat

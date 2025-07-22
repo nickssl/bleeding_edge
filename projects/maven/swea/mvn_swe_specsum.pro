@@ -18,8 +18,8 @@
 ;                        0B = affected by low-energy anomaly
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-07-06 13:42:55 -0700 (Thu, 06 Jul 2023) $
-; $LastChangedRevision: 31939 $
+; $LastChangedDate: 2024-07-04 13:35:32 -0700 (Thu, 04 Jul 2024) $
+; $LastChangedRevision: 32721 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_specsum.pro $
 ;
 ;CREATED BY:    David L. Mitchell  03-29-14
@@ -69,7 +69,7 @@ function mvn_swe_specsum, spec, qlevel=qlevel
   specsum.data = total(spec.data/spec.dtc, 2, /nan)/nrm  ; corrected counts
   specsum.var = total(var/spec.dtc, 2, /nan)/nrm         ; variance of sum
   specsum.dtc = 1.         ; summing corrected counts is not reversible
-  specsum.bkg = total(spec.bkg, 2)/float(npts)
+  specsum.bkg = total(spec.bkg, 2)/nrm
 
   specsum.sc_pot = mean(spec.sc_pot, /nan)
   specsum.magf[0] = mean(spec.magf[0], /nan)

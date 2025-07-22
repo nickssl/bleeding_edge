@@ -15,7 +15,7 @@
 ;CREATED BY:
 ;	J.McFadden	2016-10-28
 ;LAST MODIFICATION:
-;	J.McFadden	2016-10-28
+;	J.McFadden	2020-01-24
 ;-
 pro mvn_sta_set_th_offset2,time
 
@@ -150,8 +150,24 @@ endif
 ;**************************************************************************************************************************************
 ; Below are the current calibrations
 
-	e0=3.8 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; default
+	e0=5.8 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; default
 
+if time gt time_double('2015-05-20/00:00') then begin
+	e0=5.8 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 3 ram horizontal - checked 20200216
+endif
+
+if time gt time_double('2015-08-03/00:00') then begin
+	e0=5.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 1 good ram horiz 1st orbit, 5 ram horiz - checked 20200217
+endif
+
+if time gt time_double('2015-08-10/00:00') then begin
+	e0=5.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 1 good ram horiz 1st orbit, 5 ram horiz - checked 20200217
+	e0=4.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 1 good ram horiz 1st orbit, 5 ram horiz - checked 20200217
+endif
+
+if time gt time_double('2015-08-29/00:00') then begin
+	e0=3.8 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 3 ram horizontal - checked 20200215
+endif
 
 ; 15-09-02	Deep Dip 4 begins
 
@@ -160,33 +176,62 @@ endif
 ; 15-09-10	Deep Dip 4 ends
 
 if time gt time_double('2015-09-12/00:00') then begin
-	e0=7.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 1 ram horizontal - second periapsis checked 20190218
+;	e0=7.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; check this!!! 1 ram horizontal - second periapsis checked 20190218
 endif
 
+	; 20151020-20151026 protect mode with mech attenuator open 
 
+if time gt time_double('2015-10-27/00:00') then begin
+	e0=4.6 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; tbd guess scenario 2a, 3 ram horizontal, 20200131
+endif
 
+if time gt time_double('2015-10-28/00:00') then begin
+	e0=4.6 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 2a, 2 ram horizontal, 20200203
+endif
+
+if time gt time_double('2015-10-31/00:00') then begin
+	e0=4.8 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 2a, 3 ram horizontal, 20200131
+endif
+
+	; 20151103-20151109 protect mode with mech attenuator open 
+
+if time gt time_double('2015-11-10/00:00') then begin
+	e0=3.8 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 1, 20200201
+endif
+
+if time gt time_double('2015-11-13/00:00') then begin
+	e0=4.2 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 1, 20200131
+endif
+
+if time gt time_double('2015-11-16/00:00') then begin
+;	e0=3.6 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; guess scenario 1, makes the wind zero
+endif
+
+	; 20151117-20151123 protect mode with mech attenuator open 
 
 if time gt time_double('2015-11-24/00:00') then begin
 	e0=3.6 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 1, 5th orbit ram horizontal, 20170103
 endif
 
 ;if time gt time_double('2015-11-27/00:00') then begin
-;	e0=3.8 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 1, 6th orbit ram horizontal, 20161230
+;	e0=3.8 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; tbd scenario 1, 6th orbit ram horizontal, 20161230
 ;endif
 
 if time gt time_double('2015-12-01/00:00') then begin
 	e0=3.9 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 1, 5th orbit ram horizontal, 20161223
 endif
 
+	; 20151202-20151208 protect mode with mech attenuator open 
+
 if time gt time_double('2015-12-08/00:00') then begin
 	e0=3.9 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 1, 5th orbit ram horizontal, 20170103
 endif
 
 if time gt time_double('2015-12-11/00:00') then begin
-;	e0=2.3 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 1, 5th orbit ram horizontal e0 too small
-;	e0=3.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 1, 5th orbit ram horizontal 20161126
 	e0=3.7 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 1, 5th orbit ram horizontal 20161126
 endif
+
+	; 20151215-20151221 protect mode with mech attenuator open 
 
 if time gt time_double('2015-12-22/00:00') then begin
 	e0=3.8 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 2 (fly-(-Y)), 5th orbit ram horizontal, 20161219
@@ -196,10 +241,10 @@ if time gt time_double('2015-12-24/00:00') then begin
 	e0=3.7 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 2 (fly-(-Y)), 5th orbit ram horizontal - but no contact, 20161223
 endif
 
-; for the previous  orbits, att= 3 at periapsis
-; for the following orbits, att<=2 at periapsis
+	; 20151229-20160105 protect mode with mech attenuator open 
 
-
+	; for the previous  orbits, att= 3 at periapsis
+	; for the following orbits, att<=2 at periapsis
 
 if time gt time_double('2016-01-05/00:00') then begin
 	e0=2.8 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 1 (fly-(-Y)), 5th orbit ram horizontal, not well determined due to terminator 
@@ -208,8 +253,7 @@ if time gt time_double('2016-01-08/00:00') then begin
 	e0=2.6 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 1 (fly-(-Y)), 5th orbit ram horizontal, 20161219
 endif
 
-;16-01-12		scenario 2, static ion suppression cleaning week - last cleaning week
-
+	; 20160112-20160118 protect mode with mech attenuator open - last cleaning week
 
 if time gt time_double('2016-01-22/00:00') then begin
 	e0=2.3 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 1 (fly-(-Y)), 4th orbit ram horizontal
@@ -254,8 +298,16 @@ if time gt time_double('2016-04-22/00:00') then begin
 	e0=3.3 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 2 fly-(+Y), ram horizontal
 endif
 
+if time gt time_double('2016-04-27/00:00') then begin
+	e0=3.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 2 fly-(+Y), ram horizontal, 20200203
+endif
+
 if time gt time_double('2016-05-04/00:00') then begin
-	e0=3.1 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 2 fly-(+Y), ram horizontal
+	e0=3.1 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 2 fly-(+Y), ram horizontal, redue?
+endif
+
+if time gt time_double('2016-05-06/00:00') then begin
+	e0=3.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 2 fly-(+Y), ram horizontal, checked 20200204
 endif
 
 if time gt time_double('2016-05-25/00:00') then begin
@@ -280,12 +332,21 @@ if time gt time_double('2016-06-16/00:00') then begin
 	e0=2.7 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 2*-nod fly-(+Y), ram-horizontal all orbits
 endif
 
+if time gt time_double('2016-06-22/00:00') then begin
+	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 2*-nod fly-(+Y), ram-horizontal all orbits
+endif
+
 if time gt time_double('2016-06-23/00:00') then begin
 	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 2*-nod fly-(+Y), ram-horizontal all orbits
 endif
 
 if time gt time_double('2016-07-16/00:00') then begin
 	e0=2.7 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; checked 20171123, ram-horizontal all orbits
+endif
+
+if time gt time_double('2016-07-17/00:00') then begin
+	e0=2.7 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; checked 20171123, ram-horizontal all orbits
+	e0=2.4 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; checked 20200205, ram-horizontal all orbits
 endif
 
 ; 2016-07-25										; scenario 2*-nod fly-(+Y)
@@ -295,6 +356,10 @@ endif
 if time gt time_double('2016-08-08/00:00') then begin
 ;	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; too large, ram-horizontal all orbits
 	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 2** 60 deg nod fly-(+Y) not well determined, ram-horizontal?? all orbits
+endif
+
+if time gt time_double('2016-08-19/00:00') then begin
+	e0=2.8 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; scenario 2** ram-horizontal 1 orbits, 20200206
 endif
 
 if time gt time_double('2016-08-24/00:00') then begin
@@ -482,7 +547,6 @@ endif
 
 ; 17-05-10 to 17-07-11 no low energy periapsis data or s/c charging
 
-
 if time gt time_double('2017-07-12/00:00') then begin					; checked 20171117, sza=82, scenario 2, ram horizontal 1st orbit, -2.1to-3.3V=Vsc
 	e0=3.4 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; vertical wind is -50 to +75m/s, horizontal winds +/-100m/s
 endif
@@ -562,6 +626,11 @@ endif
 if time gt time_double('2017-10-17/00:00') then begin					; checked 20171028, SZA=29, deep dip fly-Z, -0.2V=Vsc, 
 ;	e0=0.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 
 	e0=3.4 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.5		; horizontal wind varies from -100m/s to +200m/s
+endif
+
+if time gt time_double('2017-10-24/00:00') then begin					; checked 20171028, SZA=29, deep dip fly-Z, -0.2V=Vsc, 
+;	e0=0.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 
+	e0=3.6 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.5		; horizontal wind varies from -100m/s to +200m/s
 endif
 
 ; 20171023 end of deep dip 8
@@ -912,17 +981,411 @@ if time gt time_double('2019-02-05/00:00') then begin					; checked 20190226, SZ
 endif
 
 ;**************************************************************************************************************************************************
-; 2019-02-11  aerobraking begins - no ram horizontal data until 19-05-01
-; e0 offsets will have to be estimated by assuming winds are near zero - which is not accurate near the terminator
+	; 2019-02-11  aerobraking begins - no ram horizontal data until 19-04-01
+	; e0 offsets will have to be estimated by assuming winds are near zero - which is not accurate near the terminator
 ;**************************************************************************************************************************************************
 
 if time gt time_double('2019-02-13/00:00') then begin					; checked 20190220, SZA=150, s/c pot ~ -0.1 
 	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; no ram horizontal, att=1,2 assume wind~0
 endif
 
-if time gt time_double('2019-09-18/00:00') then begin					; checked 20190926, SZA=38, s/c pot ~ -2-3V 
+;**************************************************************************************************************************************************
+	; 20190316 periapsis shifts to dayside, 
+
+	; 20190329 aerobraking slow walkout - high background in NGIMS at periapsis can distort density 
+
+	; 20190401 aerobraking ends walkout, apoapsis~4500km
+
+;**************************************************************************************************************************************************
+
+if time gt time_double('2019-04-11/00:00') then begin					; checked 20190221, SZA=78, s/c pot ~ -2.4V 
+	e0=3.4 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 6 ram horizontal, 
+endif
+
+if time gt time_double('2019-04-21/00:00') then begin					; checked 20190222, SZA=76, s/c pot ~ -2-3V 
+	e0=3.2 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 6 ram horizontal, 
+endif
+
+if time gt time_double('2019-04-27/00:00') then begin					; checked 201902??, SZA=??, s/c pot ~ ??0V 
+	e0=3.1 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; guess tbd 6 ram horizontal, 
+endif
+
+if time gt time_double('2019-05-04/00:00') then begin					; checked 20190221, SZA=83, s/c pot ~ -2V 
+	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 6 ram horizontal, 
+endif
+
+if time gt time_double('2019-05-11/00:00') then begin					; checked 20190222, SZA=88, s/c pot ~ -0.7-1.6V 
+	e0=2.8 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 1 ram horizontal, 
+endif
+
+if time gt time_double('2019-05-18/00:00') then begin					; checked 20190221, SZA=97, s/c pot ~ ??0V 
+	e0=2.6 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 1 ram horizontal, 0306UT 
+endif
+
+	; 20190520 periapsis shifts to nightside 
+
+if time gt time_double('2019-05-21/00:00') then begin					; checked 20200222, SZA=106, s/c pot ~ -1V 
+	e0=2.2 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; poorly determined 1 ram horizontal, 
+endif
+
+if time gt time_double('2019-05-24/00:00') then begin					; checked 20200221, SZA=110, s/c pot ~ -0.1-1.0V 
+	e0=1.8 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 7th orbit - poorly determined 2min 23:39, att=0-1, 
+endif
+
+if time gt time_double('2019-05-28/00:00') then begin					; checked 201902??, SZA=??, s/c pot ~ ??0V 
+	e0=1.9 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; guess, no ram horizontal 
+endif
+
+if time gt time_double('2019-05-29/00:00') then begin					; checked 201902??, SZA=??, s/c pot ~ ??0V 
+;	e0=1.9 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; no ram horizontal, but alternating flyY/flyZ?? 
+endif
+
+if time gt time_double('2019-06-01/00:00') then begin					; checked 20200225, SZA=125, s/c pot ~ 0V 
+	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal, att=0-2, 335-340UT
+endif
+
+if time gt time_double('2019-06-04/00:00') then begin					; checked 20200223, SZA=130, s/c pot ~ 0V 
+	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal last orbit, att=0-1 
+endif
+
+if time gt time_double('2019-06-10/00:00') then begin					;  
+	e0=2.1 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; guess 
+endif
+
+if time gt time_double('2019-06-15/00:00') then begin					; checked 2020????, SZA=??, s/c pot ~ ?V 
+;	e0=2.1 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; tbd ram horizontal 1st orbit, att=3 
+endif
+
+if time gt time_double('2019-06-18/00:00') then begin					; checked 20200222, SZA=??, s/c pot ~ ?V 
+;	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; sta too poor to determine, ram horizontal 1st orbit, att=3 
+endif
+
+if time gt time_double('2019-06-22/00:00') then begin					; checked 20200225, SZA=146, s/c pot ~ -0.3V 
+	e0=1.9 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 1 ram horizontal 1st orbit, att=1-2 
+endif
+
+if time gt time_double('2019-06-25/00:00') then begin					; checked 20200225, SZA=164, s/c pot ~ -0V 
+	e0=2.1 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; good fit 1 ram horizontal last orbit, att=0-1 
+endif
+
+if time gt time_double('2019-06-29/00:00') then begin					; checked 202002??, SZA=, s/c pot ~ -3V 
+	e0=2.4 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; tbd 1 ram horizontal 1st orbit, att=1-2 
+endif
+
+if time gt time_double('2019-06-30/00:00') then begin					; checked 20200223, SZA=164, s/c pot ~ 0V 
+	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 1 ram horizontal 1st orbit, att=1 
+endif
+
+if time gt time_double('2019-07-19/00:00') then begin					; checked 20200226, SZA=138, s/c pot ~ 0V 
+	e0=1.9 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 1 ram horizontal last orbit, att=1-2 
+endif
+
+if time gt time_double('2019-07-22/00:00') then begin					; checked 2020????, SZA=??, s/c pot ~ ?V 
+;	e0=2.3 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; tbd ram horizontal 1st orbit, att=3 
+endif
+
+	; 20190729 no ram horizontal
+
+if time gt time_double('2019-07-30/00:00') then begin					; checked 20200226, SZA=120?, s/c pot ~ 0V 
+	e0=2.3 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 1 ram horizontal 
+endif
+
+	; 20190801 no ram horizontal
+
+if time gt time_double('2019-08-02/00:00') then begin					; checked 2020????, SZA=??, s/c pot ~ ? 
+;	e0=2.3 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 1 ram horizontal last orbit, poorly determined, att=3 
+endif
+
+	; 20190803 periapsis shifts to dayside 
+
+if time gt time_double('2019-08-06/00:00') then begin					; checked 20200226, SZA=101, s/c pot ~ -2V 
+	e0=2.3 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 1 ram horizontal last orbit, poorly determined, att=3 
+endif
+
+if time gt time_double('2019-08-09/00:00') then begin					; checked 2020????, SZA=??, s/c pot ~ ?V 
+	e0=2.4 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; tbd ram horizontal 1st orbit, att=3 
+endif
+
+if time gt time_double('2019-08-13/00:00') then begin					; checked 2020????, SZA=??, s/c pot ~ ?V 
+	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; tbd ram horizontal 1st orbit, att=3 
+endif
+
+if time gt time_double('2019-08-17/00:00') then begin					; checked 20200226, SZA=84, s/c pot ~ -2V 
+	e0=2.7 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 1 ram horizontal 2nd orbit, att=3 
+endif
+
+if time gt time_double('2019-08-20/00:00') then begin					; checked 20200226, SZA=76, s/c pot ~ -2V 
+	e0=2.4 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 1 ram horizontal last orbit, att=3 
+endif
+
+if time gt time_double('2019-08-23/00:00') then begin					; checked 20200226, SZA=72, s/c pot ~ -2.7V 
+	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 1 ram horizontal 1st orbit, att=3, not well determined because of large scpot, but not very sensitive to value
+endif
+
+	; 20190824 to 20190913 no periapsis data due to conjunction and maven safing
+
+if time gt time_double('2019-09-14/00:00') then begin					; checked 20200309, SZA=42, s/c pot ~ -2-3V,
+	e0=3.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 2nd orbit, att=3 
+endif
+
+if time gt time_double('2019-09-18/00:00') then begin					; checked 20190926, SZA=38, s/c pot ~ -2-3V,  alternating flyY/fly(-Z), nadir alternating +/-Y  
 	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, att=3 
 endif
+
+if time gt time_double('2019-09-19/00:00') then begin					;   
+	e0=3.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; guess based on cross wind on 9-21 
+endif
+
+	; why is there such a big jump in e0???? problem with th2_4d.pro not correctly accounting for mis-pointing???
+
+if time gt time_double('2019-09-21/00:00') then begin					; checked 20200227, SZA=37, s/c pot ~ -2-2.7V 
+	e0=3.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, att=3, 50m/s variations
+endif
+
+if time gt time_double('2019-09-25/00:00') then begin					; checked 2020????, SZA=??, s/c pot ~ ?V 
+	e0=3.6 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; tbd ram horizontal 1st orbit, att=3 
+endif
+
+if time gt time_double('2019-09-28/00:00') then begin					; checked 20200227, SZA=40, s/c pot ~ -2V 
+	e0=3.7 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, att=3 
+endif
+
+	; 20191002 to 20191126 no periapsis ram data from due to power requirements and fly+Z orientation causing s/c charging
+	; STATIC put in protect mode to prevent saturtion due to fly(+Z) s/c attitude which causes charging to -20V
+	; 20191106 periapsis shifts to nighside 
+	; 20191126 nominal STATIC operations at periapsis
+
+if time gt time_double('2019-11-30/00:00') then begin					; checked 2020????, SZA=??, s/c pot ~ ?V 
+;	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; tbd ram horizontal 1st orbit, att=3 
+endif
+
+if time gt time_double('2019-12-03/00:00') then begin					; checked 2020????, SZA=??, s/c pot ~ ?V 
+;	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; tbd ram horizontal 1st orbit, att=3 
+endif
+
+if time gt time_double('2019-12-10/00:00') then begin					; checked 2020????, SZA=??, s/c pot ~ ?V 
+;	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; tbd ram horizontal 1st orbit, att=3 
+endif
+
+if time gt time_double('2019-12-21/00:00') then begin					; checked 2020????, SZA=??, s/c pot ~ ?V 
+;	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; tbd ram horizontal 1st orbit, att=3 
+endif
+
+
+if time gt time_double('2020-01-01/00:00') then begin					; checked 20200124, SZA=90, s/c pot ~ -2.5-3.2V 
+	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, att=3 
+endif
+
+if time gt time_double('2020-01-15/00:00') then begin					; checked 2020????, SZA=??, s/c pot ~ ?V  
+;	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; tbd ram horizontal 1st orbit, att=3 
+endif
+
+if time gt time_double('2020-01-26/00:00') then begin					; checked 20200124, SZA=62, s/c pot ~ -2.5-3.2V, periapsis=155km 
+	e0=2.8 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal all orbits, att=3 
+endif
+
+if time gt time_double('2020-02-05/00:00') then begin					; checked 20200317, SZA=56, s/c pot ~ -2.0-2.5V 
+	e0=2.8 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal all orbits, att=3 
+endif
+
+;**************************************************************************************************************************************************
+	; 2020-02-12  high spacecraft charging precludes low altitude measurements 
+	; 2020-03-24  high spacecraft charging ends 
+;**************************************************************************************************************************************************
+
+	; 2020-03-18	periapsis shifts to nightside
+
+if time gt time_double('2020-03-24/00:00') then begin					; checked 20200330, SZA=56, s/c pot ~ -0.8V 
+	e0=3.4 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal last orbit, att=3 
+endif
+
+if time gt time_double('2020-04-28/00:00') then begin					; tbd checked 20201222, SZA=108, scpot~-?V, periapsis=155
+;	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal last orbit, att=? 
+endif
+
+	; 2020-05-01 periapsis allowed to drift to higher altitude, reaching ~215km on 2020-09-01
+
+	; 2020-05-12	periapsis shifts to dayside
+
+if time gt time_double('2020-05-29/00:00') then begin					; checked 20201222, SZA=63, scpot~-2.6V, periapsis=168
+	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal last orbit, att=3 
+endif
+
+if time gt time_double('2020-06-23/00:00') then begin					; tbd checked 20201222, SZA=36, scpot~-?V, periapsis=180
+;	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal last orbit, att=? 
+endif
+
+	; 2020-06-30 fly+Z causes s/c charging - no periapsis data for 7 weeks
+	; 2020-08-07 periapsis shifts to nighside 
+	; 2020-08-18 end fly+Z 
+ 
+if time gt time_double('2020-08-19/00:00') then begin					; tbd checked 202012?, SZA=119, scpot~-?V, periapsis=215
+;	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal first orbit, att=?, at terminator, nightside
+endif
+
+if time gt time_double('2020-09-01/00:00') then begin					; tbd checked 20201222, SZA=130, scpot~-?V, periapsis=216
+;	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal last orbit, att=3 
+endif
+
+if time gt time_double('2020-09-15/00:00') then begin					; tbd checked 20201222, SZA=122, scpot~-?V, periapsis=215
+;	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 5th orbit, att=? 
+endif
+
+	; 2020-09-16	periapsis raise to ~230km, slowly drifts down to ~190km by 2020-12
+	; 2020-09-30 	periapsis shifts to dayside 
+
+if time gt time_double('2020-10-05/00:00') then begin					; checked 20201223, SZA=88, scpot~-0.5V, periapsis=225
+	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal all orbits, att=2-3 
+endif
+
+	; 2020-10-06 	start fly(-Z) - no ram horizontal, APP at mzu45 - s/c blocks NGIMS FOV
+	; 2020-11-17 	end fly(-Z) - no ram horizontal, APP at mzu45 - s/c blocks NGIMS FOV
+
+if time gt time_double('2020-11-18/00:00') then begin					; checked 20201226, SZA=27, scpot~-2Vto-3V, periapsis=196
+	e0=3.4 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal first orbit, att=3 
+endif
+
+if time gt time_double('2020-11-25/00:00') then begin					; checked 20201222, SZA=33, scpot~-2Vto-4V, periapsis=192
+	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal second orbit, check again, att=3 
+	e0=3.4 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal second orbit, check again, att=3 
+endif
+
+if time gt time_double('2020-12-02/00:00') then begin					; checked 20201226, SZA=43, scpot~-2.V/to-3V , periapsis=190
+	e0=3.4 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal first orbit, vertical wind has +/-100 m/s variations, att=3 
+endif
+
+if time gt time_double('2020-12-05/00:00') then begin					; checked 20201222, SZA=47, scpot~-2.0V/-0.5V flyY/flyZ, periapsis=188
+	e0=3.4 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; poorly determined, no ram horizontal - nadir flips +/-Y APP - match winds, att=3 
+endif
+
+if time gt time_double('2020-12-09/00:00') then begin					; checked 20201225, SZA=54, scpot~-2to-4V, periapsis=187
+	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2020-12-10/00:00') then begin					; tbd , SZA=54, scpot~-2to-4V, periapsis=187
+;	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 3rd orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2020-12-16/00:00') then begin					; checked 20201224, SZA=65, scpot~-2to-3V, periapsis=185
+;	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2020-12-19/00:00') then begin					; tbd, SZA=65, scpot~-2to-3V, periapsis=185
+;	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2020-12-23/00:00') then begin					; tbd, SZA=65, scpot~-2to-3V, periapsis=185
+;	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2020-12-26/00:00') then begin					; tbd, SZA=65, scpot~-2to-3V, periapsis=185
+;	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2021-01-02/00:00') then begin					; checked 20210303, SZA=90, scpot~-2to-3V, periapsis=183
+	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2021-01-06/00:00') then begin					; tbd, SZA=90, scpot~-2to-3V, periapsis=183
+;	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2021-01-09/00:00') then begin					; tbd, SZA=90, scpot~-2to-3V, periapsis=183
+;	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2021-01-13/00:00') then begin					; tbd, SZA=90, scpot~-2to-3V, periapsis=183
+;	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2021-01-15/00:00') then begin					; tbd, SZA=90, scpot~-2to-3V, periapsis=183
+;	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal last orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2021-01-19/00:00') then begin					; tbd, SZA=90, scpot~-2to-3V, periapsis=183
+;	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal last orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2021-01-23/00:00') then begin					; tbd, SZA=90, scpot~-2to-3V, periapsis=183
+;	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2021-01-27/00:00') then begin					; tbd, SZA=90, scpot~-2to-3V, periapsis=183
+;	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2021-01-30/00:00') then begin					; tbd, SZA=90, scpot~-2to-3V, periapsis=183
+;	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2021-02-03/00:00') then begin					; tbd, SZA=90, scpot~-2to-3V, periapsis=183
+;	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2021-02-06/00:00') then begin					; tbd, SZA=90, scpot~-2to-3V, periapsis=183
+;	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2021-02-10/00:00') then begin					; tbd, SZA=90, scpot~-2to-3V, periapsis=183
+;	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2021-02-13/00:00') then begin					; tbd, SZA=90, scpot~-2to-3V, periapsis=183
+;	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+endif
+
+if time gt time_double('2021-02-16/00:00') then begin					; tbd, SZA=90, scpot~-2to-3V, periapsis=183
+;	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 1st orbit, not sensitive to e0, att=3 
+endif
+
+; no ram horizontal 20210217 thru 20210411
+; all science orbits are ram horizontal starting 20210413
+
+if time gt time_double('2021-04-15/00:00') then begin					; checked 20210425, SZA=50, scpot~-3V, periapsis=185
+	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 6 ram horizontal, att=3, not sensitive to e0 
+	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 6 ram horizontal, att=3, not sensitive to e0 
+	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 6 ram horizontal, att=3, not sensitive to e0 
+	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; 6 ram horizontal, att=3, not sensitive to e0 
+endif
+
+if time gt time_double('2021-04-19/00:00') then begin					; checked 20210423, SZA=50, scpot~-3V, periapsis=185
+	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal even orbits, att=3, not sensitive to e0 because of large scpot 
+	e0=3.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal even orbits, att=3, not sensitive to e0 because of large scpot 
+	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal even orbits, att=3, not sensitive to e0 because of large scpot 
+	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal even orbits, att=3, not sensitive to e0 because of large scpot 
+endif
+
+if time gt time_double('2021-05-05/00:00') then begin					; checked 20210518, SZA=67, scpot~-2V, periapsis=193
+	e0=2.8 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 6 orbits, att=3, some variation 2.5+/-.2
+	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 6 orbits, att=3, some variation 2.5+/-.2
+endif
+
+if time gt time_double('2021-05-09/00:00') then begin					; checked 20220510, SZA=73, scpot~-2.4V, periapsis=196
+	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 4 orbits, att=3, 
+	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 4 orbits, att=3, 
+	e0=2.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 4 orbits, att=3,
+	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 4 orbits, att=3, 
+endif
+
+if time gt time_double('2021-05-11/00:00') then begin					; checked 20210517, SZA=?, scpot~-2V, periapsis=200
+	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal last orbit, att=3,  
+	e0=2.8 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal 4 orbits, att=3, some variation 2.8+/-.2
+endif
+
+if time gt time_double('2021-05-14/00:00') then begin					; checked 20210517, SZA=79, scpot~-2V, periapsis=195
+	e0=2.5 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal last orbit, att=3,  
+	e0=3.0 & 	scale1 = 0.7 & 	efoldoffset = 4.0	& offset1= 0.0		; ram horizontal last orbit, att=3,  
+endif
+
+
+
+
+;**************************************************************************************************************************************************
+;**************************************************************************************************************************************************
+;**************************************************************************************************************************************************
+;**************************************************************************************************************************************************
+; notes
 
 ; Problem - the offsets for different attenuator states may need sc_pot dependence. For 2018-12-18, the att 1->2 needs to be larger for pot=-.7V
 

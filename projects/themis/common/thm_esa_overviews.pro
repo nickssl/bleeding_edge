@@ -15,8 +15,8 @@
 ; thm_esa_overviews,'2007-03-23',dir='~/out',device='z'
 ;
 ; $LastChangedBy: jimm $
-; $LastChangedDate: 2017-02-13 13:35:09 -0800 (Mon, 13 Feb 2017) $
-; $LastChangedRevision: 22766 $
+; $LastChangedDate: 2025-03-31 15:28:47 -0700 (Mon, 31 Mar 2025) $
+; $LastChangedRevision: 33219 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/common/thm_esa_overviews.pro $
 ;-
 
@@ -97,6 +97,7 @@ for i = 0L,n_elements(probe_list)-1L do begin
       tdegap, name, /overwrite, dt = 600.0
       tdegap, 'th'+sc+'_peeb_sc_pot', /overwrite, dt = 600.0
       options, name, 'ytitle', 'th'+sc+'!Cpeeb'
+      options,name,'ztitle','Eflux'
       svar = scpot_overlay('th'+sc+'_peeb_sc_pot', name, sc_line_thick = 2.0)
       name = svar               ;name is the variable to plot
     Endif Else Begin
@@ -106,6 +107,7 @@ for i = 0L,n_elements(probe_list)-1L do begin
       ylim, name, 1, 1000, 1
       zlim, name, 1, 1000, 1
       options, name, 'ytitle', 'th'+sc+'!Cpeeb'
+      options,name,'ztitle','Eflux'
     Endelse
     var_string_b1 += ' '+name
     name = 'th'+sc+'_peib_en_eflux'
@@ -114,12 +116,14 @@ for i = 0L,n_elements(probe_list)-1L do begin
       thm_esa_lim4overplot, name, trange, zlog = 1, ylog = 1, /overwrite
       tdegap, name, /overwrite, dt = 600.0
       options, name, 'ytitle', 'th'+sc+'!Cpeib'
+      options,name,'ztitle','Eflux'
     Endif Else Begin
       store_data, name, data = {x:xfiller, y:filler, v:vfiller}
       options, name, 'spec', 1
       ylim, name, 1, 1000, 1
       zlim, name, 1, 1000, 1
       options, name, 'ytitle', 'th'+sc+'!Cpeib'
+      options,name,'ztitle','Eflux'
     Endelse
     var_string_b2 += ' sample_rate_'+sc+ ' '+name
     name = 'th'+sc+'_peer_en_eflux'
@@ -129,6 +133,7 @@ for i = 0L,n_elements(probe_list)-1L do begin
       tdegap, name, /overwrite, dt = 600.0
       tdegap, 'th'+sc+'_peer_sc_pot', /overwrite, dt = 600.0
       options, name, 'ytitle', 'th'+sc+'!Cpeer'
+      options,name,'ztitle','Eflux'
       svar = scpot_overlay('th'+sc+'_peer_sc_pot', name, sc_line_thick = 2.0)
       name = svar               ;name is the variable to plot
     Endif Else Begin
@@ -138,6 +143,7 @@ for i = 0L,n_elements(probe_list)-1L do begin
       ylim, name, 1, 1000, 1
       zlim, name, 1, 1000, 1
       options, name, 'ytitle', 'th'+sc+'!Cpeer'
+      options,name,'ztitle','Eflux'
     Endelse
     var_string_r1 += ' '+name
     name = 'th'+sc+'_peir_en_eflux'
@@ -146,12 +152,14 @@ for i = 0L,n_elements(probe_list)-1L do begin
       thm_esa_lim4overplot, name, trange, zlog = 1, ylog = 1, /overwrite
       tdegap, name, /overwrite, dt = 600.0
       options, name, 'ytitle', 'th'+sc+'!Cpeir'
+      options,name,'ztitle','Eflux'
     Endif Else Begin
       store_data, name, data = {x:xfiller, y:filler, v:vfiller}
       options, name, 'spec', 1
       ylim, name, 1, 1000, 1
       zlim, name, 1, 1000, 1
       options, name, 'ytitle', 'th'+sc+'!Cpeir'
+      options,name,'ztitle','Eflux'
     Endelse
     var_string_r2 += ' sample_rate_'+sc+ ' '+name
     name = 'th'+sc+'_peef_en_eflux'
@@ -161,6 +169,7 @@ for i = 0L,n_elements(probe_list)-1L do begin
       tdegap, name, /overwrite, dt = 600.0
       tdegap, 'th'+sc+'_peef_sc_pot', /overwrite, dt = 600.0
       options, name, 'ytitle', 'th'+sc+'!Cpeef'
+      options,name,'ztitle','Eflux'
       svar = scpot_overlay('th'+sc+'_peef_sc_pot', name, sc_line_thick = 2.0)
       name = svar               ;name is the variable to plot
     Endif Else Begin
@@ -170,6 +179,7 @@ for i = 0L,n_elements(probe_list)-1L do begin
       ylim, name, 1, 1000, 1
       zlim, name, 1, 1000, 1
       options, name, 'ytitle', 'th'+sc+'!Cpeef'
+      options,name,'ztitle','Eflux'
     Endelse
     var_string_f1 += ' '+name
     name = 'th'+sc+'_peif_en_eflux'
@@ -178,12 +188,14 @@ for i = 0L,n_elements(probe_list)-1L do begin
       thm_esa_lim4overplot, name, trange, zlog = 1, ylog = 1, /overwrite
       tdegap, name, /overwrite, dt = 600.0
       options, name, 'ytitle', 'th'+sc+'!Cpeif'
+      options,name,'ztitle','Eflux'
     Endif Else Begin
       store_data, name, data = {x:xfiller, y:filler, v:vfiller}
       options, name, 'spec', 1
       ylim, name, 1, 1000, 1
       zlim, name, 1, 1000, 1
       options, name, 'ytitle', 'th'+sc+'!Cpeif'
+      options,name,'ztitle','Eflux'
     Endelse
     var_string_f2 += ' sample_rate_'+sc+ ' '+name
 endfor

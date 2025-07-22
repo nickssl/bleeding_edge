@@ -1,6 +1,6 @@
-; $LastChangedBy: ali $
-; $LastChangedDate: 2022-03-26 12:02:39 -0700 (Sat, 26 Mar 2022) $
-; $LastChangedRevision: 30720 $
+; $LastChangedBy: davin-mac $
+; $LastChangedDate: 2024-11-03 13:15:35 -0800 (Sun, 03 Nov 2024) $
+; $LastChangedRevision: 32924 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/swfo_ptp_file_read.pro $
 
 
@@ -48,9 +48,9 @@ pro swfo_ptp_file_read,files,dwait=dwait,no_products=no_products,no_clear=no_cle
 
   swfo_apdat_info,current_filename=''
   swfo_apdat_info,/finish,/rt_flag,/all
+  ;swfo_apdat_info,/create_tplot_var,/all
 
   dt = systime(1)-t0
   dprint,format='("Finished loading in ",f0.1," seconds")',dt
 
 end
-

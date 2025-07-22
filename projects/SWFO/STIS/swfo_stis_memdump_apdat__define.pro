@@ -1,6 +1,6 @@
 ; $LastChangedBy: ali $
-; $LastChangedDate: 2023-04-28 12:24:11 -0700 (Fri, 28 Apr 2023) $
-; $LastChangedRevision: 31812 $
+; $LastChangedDate: 2023-11-26 19:30:16 -0800 (Sun, 26 Nov 2023) $
+; $LastChangedRevision: 32255 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/swfo_stis_memdump_apdat__define.pro $
 
 
@@ -21,6 +21,7 @@ function swfo_stis_memdump_apdat::decom,ccsds,source_dict=source_dict
 
   addr = swfo_data_select(ccsds_data,dd*8,32)
   datalen = ccsds.pkt_size - dd - 4
+  if str1.fpga_rev gt 209 then datalen-=2 ;checksum bytes at the end of each packet
   memdat = ccsds_data[dd+4: dd+4+datalen-1]
 
   str2 = {$

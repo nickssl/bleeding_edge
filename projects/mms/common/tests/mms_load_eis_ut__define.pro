@@ -5,9 +5,9 @@
 ; To run:
 ;     IDL> mgunit, 'mms_load_eis_ut'
 ;
-; $LastChangedBy: nikos $
-; $LastChangedDate: 2023-09-15 15:14:48 -0700 (Fri, 15 Sep 2023) $
-; $LastChangedRevision: 32097 $
+; $LastChangedBy: jwl $
+; $LastChangedDate: 2023-11-09 10:30:46 -0800 (Thu, 09 Nov 2023) $
+; $LastChangedRevision: 32225 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/common/tests/mms_load_eis_ut__define.pro $
 ;-
 
@@ -84,55 +84,55 @@ function mms_load_eis_ut::test_num_smooth_pad
 end
 
 function mms_load_eis_ut::test_ang_ang_energychan
-  mms_eis_ang_ang, energy_chan=[1, 2]
+  mms_eis_ang_ang, energy_chan=[1, 2],/no_plot
   assert, spd_data_exists('mms1_epd_eis_srvy_l2_extof_proton_flux_omni mms1_epd_eis_srvy_l2_extof_oxygen_flux_omni', self.start_date, self.end_date), 'Problem with EIS angle-angle energy_chan keyword'
   return, 1
 end
 
 function mms_load_eis_ut::test_ang_ang_datatype_electron
-  mms_eis_ang_ang, datatype='electronenergy', probe=1
+  mms_eis_ang_ang, datatype='electronenergy', probe=1,/no_plot
   assert, spd_data_exists('mms1_epd_eis_srvy_l2_electronenergy_electron_flux_omni', self.start_date, self.end_date), 'Problem with EIS angle-angle with datatype electronenergy'
   return, 1
 end
 
 function mms_load_eis_ut::test_ang_ang_datatype_phxtof
-  mms_eis_ang_ang, datatype='phxtof', probe=3
+  mms_eis_ang_ang, datatype='phxtof', probe=3,/no_plot
   assert, spd_data_exists('mms3_epd_eis_srvy_l2_phxtof_proton_flux_omni', self.start_date, self.end_date), 'Problem with EIS angle-angle datatype PHxTOF'
   return, 1
 end
 
 function mms_load_eis_ut::test_ang_ang_data_rate
-  mms_eis_ang_ang, data_rate='brst', trange=['2015-10-16/13:00', '2015-10-16/13:10']
+  mms_eis_ang_ang, data_rate='brst', trange=['2015-10-16/13:00', '2015-10-16/13:10'],/no_plot
   assert, spd_data_exists('mms1_epd_eis_brst_l2_extof_proton_flux_omni', '2015-10-16/13:00', '2015-10-16/13:10'), 'Problem with EIS angle-angle burst mode?'
   return, 1
 end
 
 function mms_load_eis_ut::test_ang_ang_data_units
-  mms_eis_ang_ang, data_units='cps'
+  mms_eis_ang_ang, data_units='cps',/no_plot
   assert, spd_data_exists('mms1_epd_eis_srvy_l2_extof_proton_cps_omni', self.start_date, self.end_date), 'Problem with EIS angle-angle data_units keyword'
   return, 1
 end
 
 function mms_load_eis_ut::test_ang_ang_extof_helium
-  mms_eis_ang_ang, datatype='extof', species='helium'
+  mms_eis_ang_ang, datatype='extof', species='helium',/no_plot
   assert, spd_data_exists('mms1_epd_eis_srvy_l2_extof_helium_flux_omni', self.start_date, self.end_date), 'Problem with EIS angle-angle with ExTOF oxygen'
   return, 1
 end
 
 function mms_load_eis_ut::test_ang_ang_extof_oxygen
-  mms_eis_ang_ang, datatype='extof', species='oxygen'
+  mms_eis_ang_ang, datatype='extof', species='oxygen',/no_plot
   assert, spd_data_exists('mms1_epd_eis_srvy_l2_extof_oxygen_flux_omni', self.start_date, self.end_date), 'Problem with EIS angle-angle with ExTOF oxygen'
   return, 1
 end
 
 function mms_load_eis_ut::test_ang_ang_diffprobe
-  mms_eis_ang_ang, probe=3
+  mms_eis_ang_ang, probe=3,/no_plot
   assert, spd_data_exists('mms3_epd_eis_srvy_l2_extof_proton_flux_omni', self.start_date, self.end_date), 'Problem with EIS angle-angle when probe is set'
   return, 1
 end
 
 function mms_load_eis_ut::test_angle_angle_load_simple
-  mms_eis_ang_ang, trange=['2015-12-16', '2015-12-17']
+  mms_eis_ang_ang, trange=['2015-12-16', '2015-12-17'],/no_plot
   assert, spd_data_exists('mms1_epd_eis_srvy_l2_extof_proton_flux_omni', '2015-12-16', '2015-12-17'), 'Problem with EIS angle-angle?'
   return, 1
 end
@@ -275,6 +275,7 @@ function mms_load_eis_ut::test_brst_caps_pad
   mms_eis_pad, data_rate='BRST'
   assert, spd_data_exists('mms1_epd_eis_brst_l2_extof_54-897keV_proton_flux_omni_pad_spin', self.start_date, self.end_date), $
     'Problem with EIS burst mode PAD (caps)'
+  stop
   return, 1
 end
 

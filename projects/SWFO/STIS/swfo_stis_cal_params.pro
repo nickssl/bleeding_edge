@@ -1,6 +1,6 @@
-; $LastChangedBy: ali $
-; $LastChangedDate: 2022-08-05 15:10:39 -0700 (Fri, 05 Aug 2022) $
-; $LastChangedRevision: 30999 $
+; $LastChangedBy: davin-mac $
+; $LastChangedDate: 2025-05-23 10:33:06 -0700 (Fri, 23 May 2025) $
+; $LastChangedRevision: 33323 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/swfo_stis_cal_params.pro $
 
 ;This routine should return a structure that contains calibration parameters.
@@ -15,9 +15,9 @@ function swfo_stis_cal_params,strct,reset=reset
 
   if ~isa(stis_master,'dictionary') then stis_master = dictionary()
 
-  if strct.nbins ne 672 then begin
-    dprint, 'Not working with LUT mode yet'
-    return,!null
+  if strct.sci_nbins ne 672 then begin
+    dprint, 'Not working with LUT mode yet',strct.sci_nbins,dwait=60
+    ;return,!null
   endif
 
   if ~stis_master.haskey('cal') then begin
@@ -48,7 +48,7 @@ function swfo_stis_cal_params,strct,reset=reset
     ewidth = DEL_ADC * kev_per_adc
     energy = (ADC_max + Adc_min)/2. * kev_per_adc + kev_dead_layer
     geom = gf_area  * ewidth
-    bad = where(energy lt 20.,/null)
+    bad = where(energy lt 20.,/null)   ; commented out
     geom[bad] = !values.f_nan
     bin_resp.geom = geom
     bin_resp.energy = energy

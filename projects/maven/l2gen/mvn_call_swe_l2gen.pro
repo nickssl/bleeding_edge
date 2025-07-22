@@ -41,11 +41,22 @@
 ;                ctime values are inadvertently changed. If more files
 ;                than this limit are tried, an error email will be sent.
 ; allbad = if set, mark all data as affected by the low-energy anomaly.
+;          Permanently set to zero.  This will never be done again.
+; refresh = action to take if quality save file is not found: 0 = do nothing,
+;           1 = create only if missing, 2 = create/overwrite any existing file
+;           Default = 2, because muser is processing the latest data, and the
+;           coverage can change with each revision.
+; kp_comp = controls processing of spacecraft potentials when calculating key
+;           parameters.  0 = ignore composite potential and use the SWE+ method,
+;           1=try to use the composite potential first; if that fails use the
+;           SWE+ method.  Default = 1.
+; mail_xtra = send emails to this address as well as to the default address
+;
 ;HISTORY:
 ;Hacked from mvn_call_sta_l2gen, 17-Apr-2014, jmm
-; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-07-11 15:53:37 -0700 (Tue, 11 Jul 2023) $
-; $LastChangedRevision: 31949 $
+; $LastChangedBy: xussui_lap $
+; $LastChangedDate: 2025-04-30 13:04:10 -0700 (Wed, 30 Apr 2025) $
+; $LastChangedRevision: 33281 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/l2gen/mvn_call_swe_l2gen.pro $
 ;-
 Pro mvn_call_swe_l2gen, time_in = time_in, $
@@ -58,6 +69,13 @@ Pro mvn_call_swe_l2gen, time_in = time_in, $
                         max_l0_files = max_l0_files, $
                         no_reset_time = no_reset_time, $
                         allbad = allbad, $
+                        refresh = refresh, $
+                        dokp=dokp, $
+                        dospec=dospec,$
+                        dopad=dopad,$
+                        do3d=do3d,$
+                        kp_comp=kp_comp, $
+                        mail_xtra = mail_xtra, $
                         _extra = _extra
   
   common temp_call_swe_l2gen, load_position
@@ -66,13 +84,21 @@ Pro mvn_call_swe_l2gen, time_in = time_in, $
 
   uinfo = get_login_info()
   case uinfo.user_name of
-    'mitchell'   : mailto = 'mitchell@ssl.berkeley.edu'
+    'mitchell'   : mailto = 'davem@berkeley.edu'
     'shaosui.xu' : mailto = 'shaosui.xu@berkeley.edu'
     else         : mailto = 'jimm@ssl.berkeley.edu'
   endcase
 
-  allbad = keyword_set(allbad)
+  mxtra = size(mail_xtra,/type) eq 7
+  refresh = (n_elements(refresh) gt 0) ? fix(refresh[0]) > 0 < 2 : 2
+  kp_comp = (n_elements(kp_comp) gt 0) ? keyword_set(kp_comp) : 1
+  dospec = (n_elements(dospec) gt 0) ? keyword_set(dospec) : 1
+  dopad = (n_elements(dopad) gt 0) ? keyword_set(dopad) : 1
+  do3d = (n_elements(do3d) gt 0) ? keyword_set(do3d) : 1
+  dokp = (n_elements(dokp) gt 0) ? keyword_set(dokp) : 1
   
+  allbad = 0  ; disabled for Version 5 of the SWEA L2 products, DLM 2024-01-24
+
   einit = 0
   catch, error_status
 ;Do not process more than maxfiles L0 files
@@ -95,10 +121,14 @@ Pro mvn_call_swe_l2gen, time_in = time_in, $
         Endif Else printf, eunit, 'Date unavailable'
         free_lun, eunit
         file_chmod, efile, '664'o
-;mail it to jimm@ssl.berkeley.edu, and delete
+;mail it to <mailto> and delete
         subj = 'Problem with SWE L2 process on ' + uinfo.machine_name
         cmd_rq = 'mailx -s "' + subj + '" ' + mailto + ' < '+efile
         spawn, cmd_rq
+        if (mxtra) then begin
+          cmd_rq = 'mailx -s "' + subj + '" ' + mail_xtra + ' < '+efile
+          spawn, cmd_rq
+        endif
         file_delete, efile
      Endif
      case load_position of
@@ -231,6 +261,10 @@ Pro mvn_call_swe_l2gen, time_in = time_in, $
         subj = 'SWEA L2 process start on ' + uinfo.machine_name
         cmd0 = 'mailx -s "' + subj + '" ' + mailto + ' < '+ofile0
         spawn, cmd0
+        if (mxtra) then begin
+          cmd0 = 'mailx -s "' + subj + '" ' + mail_xtra + ' < '+ofile0
+          spawn, cmd0
+        endif
         file_delete, ofile0
 ;extract the date from the filename
         For i = 0, nproc-1 Do Begin
@@ -256,9 +290,12 @@ Pro mvn_call_swe_l2gen, time_in = time_in, $
            message, /info, 'PROCESSING: '+instrk+' FOR: '+timei
            Case instrk Of
               'swe': mvn_swe_l2gen, date = timei, directory = filei_dir, $
-                                    l2only = l2only, allbad = allbad, _extra=_extra
+                                    l2only = l2only, refresh = refresh, $
+                                    dospec=dospec, dopad=dopad, do3d=do3d, dokp=dokp, $
+                                    kp_comp=kp_comp, _extra=_extra
               Else: mvn_swe_l2gen, date = timei, directory = filei_dir, $
-                                    l2only = l2only, allbad = allbad, _extra=_extra
+                                    l2only = l2only, refresh = refresh, $
+                                    kp_comp=kp_comp, _extra=_extra
            Endcase
            SKIP_FILE: 
            del_data, '*'
@@ -274,6 +311,10 @@ Pro mvn_call_swe_l2gen, time_in = time_in, $
         subj = 'SWEA L2 process end on ' + uinfo.machine_name
         cmd1 = 'mailx -s "' + subj + '" ' + mailto + ' < '+ofile1
         spawn, cmd1
+        if (mxtra) then begin
+          cmd1 = 'mailx -s "' + subj + '" ' + mail_xtra + ' < '+ofile1
+          spawn, cmd1
+        endif
         file_delete, ofile1
      Endelse
   Endfor

@@ -39,22 +39,27 @@
 ;
 ;    SUMMARY:       Provides a concise summary.
 ;
+;    FULL:          Provides additional details: time coverage and objects.
+;
 ;    CHECK:         Set this keyword to a time array to test whether the loaded
 ;                   kernels are sufficient to cover the entire time range.  The
 ;                   time array can be in any format accepted by time_double.
 ;                   If CHECK is set, then keyword SUMMARY will include success
 ;                   flags (1 = sufficient coverage, 0 = insufficient coverage).
 ;
+;    KEY:           Print out the color key and return.
+;
 ;    SILENT:        Shhh.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2022-05-26 15:01:20 -0700 (Thu, 26 May 2022) $
-; $LastChangedRevision: 30835 $
+; $LastChangedDate: 2025-07-14 11:38:38 -0700 (Mon, 14 Jul 2025) $
+; $LastChangedRevision: 33462 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/general/spice/mvn_spice_stat.pro $
 ;
 ;CREATED BY:    David L. Mitchell  09/14/18
 ;-
-pro mvn_spice_stat, list=list, info=info, tplot=tplot, summary=summary, check=check, silent=silent
+pro mvn_spice_stat, list=list, info=info, tplot=tplot, summary=summary, check=check, silent=silent, $
+                    full=full, key=key
 
   blab = ~keyword_set(silent)
 
@@ -90,6 +95,8 @@ pro mvn_spice_stat, list=list, info=info, tplot=tplot, summary=summary, check=ch
     return
   endif
 
+  if keyword_set(key) then goto, printkey
+
   loadlist = ['']
   for i=0,(n_ker-1) do loadlist = [loadlist, file_basename(mk[i])]
   loadlist = loadlist[1:*]
@@ -98,6 +105,17 @@ pro mvn_spice_stat, list=list, info=info, tplot=tplot, summary=summary, check=ch
   if (keyword_set(list) and blab) then begin
     print,"  SPICE kernels in use:"
     for i=0,(n_ker-1) do print,"    ",loadlist[i]
+    print,''
+  endif
+
+  info = spice_kernel_info(verbose=0)
+  if (keyword_set(full) and blab) then begin
+    nobj = n_elements(info)
+    print,"  SPICE coverage by object:"
+    for i=0,(nobj-1) do begin
+      print,i,time_string(info[i].trange,prec=-3),info[i].obj_name,file_basename(info[i].filename), $
+              format='(3x,i3,2x,a10," to ",a10,2x,a-18,2x,a)'
+    endfor
     print,''
   endif
 
@@ -128,7 +146,6 @@ pro mvn_spice_stat, list=list, info=info, tplot=tplot, summary=summary, check=ch
     endif
   endif
 
-  info = spice_kernel_info(verbose=0)
   dt = time_double(info.trange[1]) - time_double(info.trange[0])
   indx = where((info.interval lt 1) or (abs(dt) gt 1D), count)
   if (count gt 0) then info = info[indx]  ; discard intervals of zero length
@@ -352,9 +369,24 @@ pro mvn_spice_stat, list=list, info=info, tplot=tplot, summary=summary, check=ch
     options,bname,'no_interp',1
     options,bname,'xstyle',4
     options,bname,'ystyle',4
+    options,bname,'color_table',43
     options,bname,'no_color_scale',1
+
+    goto, printkey
   endif
 
   return
+
+; Print out the color key
+
+printkey:
+
+  print,''
+  print,'Spice status bar color key:'
+  print,'  green  = all kernels available'
+  print,'  yellow = missing APP ck'
+  print,'  red    = missing APP ck and S/C ck'
+  print,'  blank  = no geometry at all'
+  print,''
 
 end

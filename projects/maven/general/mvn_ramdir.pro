@@ -3,10 +3,16 @@
 ;PURPOSE:
 ;  Calculates the spacecraft orbital velocity relative to the body-fixed
 ;  rotating Mars frame (IAU_MARS).  If you sit on the spacecraft and look
-;  in this direction, the flow will be in your face.
+;  in this direction, the flow will be in your face.  The default is to 
+;  calculate this direction in the MAVEN_SPACECRAFT frame.
 ;
-;  This vector can be rotated into any coordinate frame recognized by
-;  SPICE.  See mvn_frame_name for a list.  The default is MAVEN_SPACECRAFT.
+;  Careful!  Some people consider the opposite of the spacecraft velocity
+;  to be the RAM direction.  Watch for sign errors.
+;
+;  This vector can be rotated into the APP frame or any of the instrument
+;  frames.  See mvn_frame_name for a list.  This is a pure rotation, so
+;  don't try to rotate into the MSO frame, since the result would still be 
+;  in a frame that rotates with the planet.  Instead, use the MSO keyword.
 ;
 ;  The co-rotation velocity in the IAU_MARS frame as a function of altitude
 ;  (h) and latitude (lat) is:
@@ -41,12 +47,13 @@
 ;       DT:       Time resolution (sec).  Default is 10 sec.
 ;
 ;       FRAME:    String or string array for specifying one or more frames
-;                 to transform the ram direction into.  Any frame recognized
+;                 to rotate the ram direction into.  Any frame recognized
 ;                 by SPICE is allowed.  The default is 'MAVEN_SPACECRAFT'.
 ;                 Other possibilities are: 'MAVEN_APP', 'MAVEN_STATIC', etc.
 ;                 Type 'mvn_frame_name(/list)' to see a full list of frames.
 ;                 Minimum matching name fragments (e.g., 'sta', 'swe') are
-;                 allowed -- see mvn_frame_name for details.
+;                 allowed -- see mvn_frame_name for details.  This is a pure
+;                 rotation!
 ;
 ;       POLAR:    If set, convert the direction to polar coordinates and
 ;                 store as additional tplot variables.
@@ -84,8 +91,8 @@
 ;       SUCCESS:  Returns 1 on normal operation, 0 otherwise.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-04-09 19:18:49 -0700 (Sun, 09 Apr 2023) $
-; $LastChangedRevision: 31717 $
+; $LastChangedDate: 2024-07-25 14:47:18 -0700 (Thu, 25 Jul 2024) $
+; $LastChangedRevision: 32761 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/general/mvn_ramdir.pro $
 ;
 ;CREATED BY:    David L. Mitchell
@@ -189,7 +196,7 @@ pro mvn_ramdir, trange, dt=dt, pans=pans, frame=frame, mso=mso, polar=polar, res
   for i=0,(nframes-1) do begin
     fnum = strtrim(string(i,format='(i)'),2)
     to_frame = strupcase(frame[indx[i]])
-    spice_vector_rotate_tplot,'V_sc',to_frame,trange=minmax(ut)
+    spice_vector_rotate_tplot,'V_sc',to_frame,trange=minmax(ut),check='MAVEN_SPACECRAFT'
 
     labels = ['X','Y','Z']
     fname = strmid(to_frame, strpos(to_frame,'_')+1)
@@ -260,8 +267,11 @@ pro mvn_ramdir, trange, dt=dt, pans=pans, frame=frame, mso=mso, polar=polar, res
           ylim,'RAM_Error',0,3,0
           options,'RAM_Error','ytitle','RAM Error!cdeg'
           options,'RAM_Error','psym',3
+          options,'RAM_Error','line_colors',5
           options,'RAM_Error','colors',6
           options,'RAM_Error','constant',[0.5,2]
+          options,'RAM_Error','const_color',[4,5]
+          options,'RAM_Error','const_line',[2,2]
         endif
       endif
     endif else begin

@@ -12,9 +12,9 @@
 ;          2018-11-19, hfrey, updated calibration files
 ;
 ; VERSION:
-;   $LastChangedBy: jimm $
-;   $LastChangedDate: 2020-07-20 11:00:46 -0700 (Mon, 20 Jul 2020) $
-;   $LastChangedRevision: 28914 $
+;   $LastChangedBy: nikos $
+;   $LastChangedDate: 2024-12-13 09:03:48 -0800 (Fri, 13 Dec 2024) $
+;   $LastChangedRevision: 32990 $
 ;   $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/ground/asi_mosaic/thm_mosaic_array.pro $
 ;-
 

@@ -12,7 +12,9 @@
 ;   applied).  use_eclipse_corrections=1 applies partial eclipse
 ;   corrections (not recommended, used only for internal SOC processing).
 ;   use_eclipse_corrections=2 applies all available eclipse corrections.
-;
+; check_l1b: if set, then look for L1B data files that include
+;            estimates for Bz. This is the deafult for THEMIS E 
+;            after 2024-06-01 (date subject to change....)
 ;Example:
 ;   thm_cal_fit, /all
 ;
@@ -29,15 +31,15 @@
 ;   -- time-dependent spinn axis offset implemented Hannes 05/25/2007
 ;   -- fixed trouble reading cal files with extra lines at the end,
 ;      jmm, 8-nov-2007
-; $LastChangedBy: jwl $
-; $LastChangedDate: 2016-12-20 16:18:08 -0800 (Tue, 20 Dec 2016) $
-; $LastChangedRevision: 22467 $
+; $LastChangedBy: jimm $
+; $LastChangedDate: 2025-01-28 10:25:21 -0800 (Tue, 28 Jan 2025) $
+; $LastChangedRevision: 33100 $
 ; $URL $
 ;-
 pro thm_cal_fit, probe = probe, datatype = datatype, files = files, trange = trange, $
   coord = coord, valid_names = valid_names, verbose = verbose, in_suf = in_suf, $
   out_suf = out_suf, no_cal = no_cal, true_dsl = true_dsl,$
-  use_eclipse_corrections=use_eclipse_corrections
+  use_eclipse_corrections=use_eclipse_corrections, check_l1b=check_l1b, _extra=_extra
   
   
   thm_init
@@ -131,25 +133,55 @@ pro thm_cal_fit, probe = probe, datatype = datatype, files = files, trange = tra
     spinperi = dblarr(ncal)
     offi = dblarr(ncal, 3)
     cali = dblarr(ncal, 9)
-    offi2 = dblarr(ncal, 3)
-    spinperii = dblarr(1)
-    offii = dblarr(3)
-    calii = dblarr(9)
-    utci = '2006-01-01T00:00:00.000Z'
     utc = dblarr(ncal)
     utcStr = strarr(ncal)
-    FOR i = 0, ncal-1 DO BEGIN
-      calstri = calstr[i]
-      utci = strmid(calstr[i], 0, 25)
-      reads, strmid(calstr[i], 26), offii, calii, spinperii ;
-      offi[i, *] = offii
-      cali[i, *] = calii
-      spinperi[i] = spinperii
-      utcStr[i] = utci
-      ;translate time information
-      STRPUT, utci, '/', 10
-      utc[i] = time_double(utci)
-    ENDFOR
+
+;THEMIS E has two extra columns as of 2024-04-24
+    bz_slope_intercept = dblarr(ncal, 2)
+;Swapped the cal read from THM_LOAD_FGM, the original version here
+;using reads gives incorrect values when the X offset is greater than
+;10, jmm, 2024-05-13
+;    offi2 = dblarr(ncal, 3)
+;    spinperii = dblarr(1)
+;    offii = dblarr(3)
+;    calii = dblarr(9)
+;    utci = '2006-01-01T00:00:00.000Z'
+;    utc = dblarr(ncal)
+;    utcStr = strarr(ncal)
+;    FOR i = 0, ncal-1 DO BEGIN
+;      calstri = calstr[i]
+;      utci = strmid(calstr[i], 0, 25)
+;      reads, strmid(calstr[i], 26), offii, calii, spinperii ;
+;      offi[i, *] = offii
+;      cali[i, *] = calii
+;      spinperi[i] = spinperii
+;      utcStr[i] = utci
+;      ;translate time information
+;      STRPUT, utci, '/', 10
+;      utc[i] = time_double(utci)
+;    ENDFOR
+    DPRINT,  'done reading FGM calibration file'
+ 
+    for i=0,ncal-1 do begin
+       split_result = strsplit(calstr[i], COUNT=lct, /EXTRACT)
+       utci=split_result[0]
+       offi[i,*]=split_result[1:3]
+       cali[i,*]=split_result[4:12]
+       spinperi[i]=split_result[13]
+       utcStr[i]=utci
+;translate time information
+       STRPUT, utci, '/', 10
+       utc[i]=time_double(utci)
+       if sc eq 'e' and lct ge 16 then begin
+          bz_slope_intercept[i,*] = split_result[14:15]
+       endif
+    endfor
+;for probe e, use the last value for intercept with zero slope, jmm, 2024-05-25
+    if sc eq 'e' then begin
+       bz_last_time = utc[ncal-1] ;last time for nonzero slope                          
+       bz_ext_intercept = bz_slope_intercept[ncal-1,0]
+    endif
+    
     DPRINT,  'done reading FGM calibration file'
     ;end Hannes 05/25/2007
     ; check that data has not already been calibrated
@@ -195,31 +227,42 @@ pro thm_cal_fit, probe = probe, datatype = datatype, files = files, trange = tra
     ;we still need to implement: Gz,Gxy,phi1
     flipxz = [[0, 0, -1.], [0, -1., 0], [-1., 0, 0]]
     IF (istart eq istop) THEN BEGIN
-      offi2 = invert(transpose([cali[istart, 0:2], cali[istart, 3:5], cali[istart, 6:8]]) ## flipxz)##offi[istart, *]
-      Bzoffset[0L:count-1L] = offi2[2] ;
+       ii = istart
+       offi2 = invert(transpose([cali[ii, 0:2], cali[ii, 3:5], cali[ii, 6:8]]) ## flipxz)##offi[ii, *]
+       if sc eq 'e' then begin ;needs extra correction, jmm, 2024-05-13
+          if d.x[0] gt bz_last_time then begin
+             offi2x = offi2[2]-bz_ext_intercept
+          endif else begin
+             offi2x = offi2[2]-(bz_slope_intercept[ii, 0]+$
+                      bz_slope_intercept[ii, 1]*(d.x-utc[ii])/3600.0d0)
+          endelse
+          Bzoffset[0L:count-1L] = offi2x
+       endif else begin
+          Bzoffset[0L:count-1L] = offi2[2]
+       endelse
     ENDIF ELSE BEGIN
       FOR ii = istart, istop DO BEGIN
         IF (ii eq istart) THEN BEGIN
-          indcal = WHERE(d.X lt utc[ii+1])
-          if (indcal[0] gt -1) THEN BEGIN
-            offi2 = invert(transpose([cali[ii, 0:2], cali[ii, 3:5], cali[ii, 6:8]]) ## flipxz)##offi[ii, *]
-            Bzoffset[indcal] = offi2[2]
-          ENDIF
+           indcal = WHERE(d.X lt utc[ii+1])
+        ENDIF ELSE IF (ii eq istop) THEN BEGIN
+           indcal = WHERE(d.X ge utc[ii])
         ENDIF ELSE BEGIN
-          IF (ii eq istop) THEN BEGIN
-            indcal = WHERE(d.X ge utc[ii])
-            if (indcal[0] gt -1) THEN BEGIN
-              offi2 = invert(transpose([cali[ii, 0:2], cali[ii, 3:5], cali[ii, 6:8]]) ## flipxz)##offi[ii, *]
-              Bzoffset[indcal] = offi2[2]
-            ENDIF
-          ENDIF ELSE BEGIN
-            indcal = WHERE((d.X ge utc[ii]) AND (d.X lt utc[ii+1]))
-            if (indcal[0] gt -1) THEN BEGIN
-              offi2 = invert(transpose([cali[ii, 0:2], cali[ii, 3:5], cali[ii, 6:8]]) ## flipxz)##offi[ii, *]
-              Bzoffset[indcal] = offi2[2]
-            ENDIF
-          ENDELSE
+           indcal = WHERE((d.X ge utc[ii]) AND (d.X lt utc[ii+1]))
         ENDELSE
+        IF (indcal[0] gt -1) THEN BEGIN
+           offi2 = invert(transpose([cali[ii, 0:2], cali[ii, 3:5], cali[ii, 6:8]]) ## flipxz)##offi[ii, *]
+           if sc eq 'e' then begin
+              if d.x[indcal[0]] gt bz_last_time then begin
+                 offi2x = offi2[2]-bz_ext_intercept
+              endif else begin
+                 offi2x = offi2[2]-(bz_slope_intercept[ii, 0]+$
+                                    bz_slope_intercept[ii, 1]*(d.x[indcal]-utc[ii])/3600.0d0)
+              endelse
+              Bzoffset[indcal] = offi2x
+           endif else begin
+              Bzoffset[indcal] = offi2[2]
+           endelse
+        ENDIF
       ENDFOR
     ENDELSE
     ;Bzoffset is an array (for vectorized processing)
@@ -303,12 +346,47 @@ pro thm_cal_fit, probe = probe, datatype = datatype, files = files, trange = tra
     fgsy_fixed = fgs[fgsx_good, *]
     
     if n_fgs_good gt 0 then begin ;if all fgs is NaN then skip calculations
-    
+
+;If check_l1b is set, then replace Bz with estimated value
+      If(keyword_set(check_l1b)) Then use_l1b_bz = 1b Else Begin
+         If(probe[0] Eq 'e') Then Begin
+            If(fgsx_fixed[0] Ge time_double('2024-05-25/00:00:00')) Then use_l1b_bz = 1b Else use_l1b_bz = 0b
+         Endif Else use_l1b_bz = 0b
+      Endelse
+      If(use_l1b_bz) Then Begin
+         get_data, thx+'_fgl_l1b_bz', data = temp_bz
+         If(is_struct(temp_bz)) Then Begin
+;if the data overlaps the input, then keep the variable, set start and
+;end times to nearest day boundary
+            thbz = minmax(temp_bz.x)
+            thbz[0] = time_double(time_string(thbz[0], precision=-3))
+            thbz[1] = time_double(time_String(thbz[1]+86400.0d0, precision=-3))
+            If(min(fgsx_fixed) Ge thbz[0] And max(fgsx_fixed) Le thbz[1]) Then Begin
+               read_alt_bz = 0b
+            Endif Else read_alt_bz = 1b
+         Endif Else read_alt_bz = 1b
+         If(read_alt_bz) Then Begin
+            If(is_struct(temp_bz)) Then del_data, thx+'_fgl_l1b_bz'
+            l1b_relpath = thx+'/l1b/fgm/'
+            l1b_filenames = file_dailynames(thx+'/l1b/fgm/', thx+'_l1b_fgm_', '_v01.cdf', $
+                                            /yeardir, trange = minmax(fgsx_fixed))
+            l1b_files = spd_download(remote_file = l1b_filenames, _extra = !themis)
+            cdf2tplot, files = l1b_files, varformat = '*'
+            get_data, 'the_fgl_l1b_bz', data = temp_bz
+         Endif
+         If(is_struct(temp_bz)) Then Begin
+            dprint, 'WARNING: Using L1B level Bz estimated from spin-plane components'
+            kr=2.980232238769531E-3 ;raw data to nT, kr=25000.0/2^23 --> see *CALPROC*.doc
+            fgsy_fixed[*, 2] = -kr*interpol(temp_bz.y, temp_bz.x, fgsx_fixed)
+         Endif
+      Endif
+       
       if (where(dt_output eq 'fgs') ne -1) then begin
         store_data, tplot_var_fgs, data = {x:fgsx_fixed, y:fgsy_fixed}, lim = l, dlim = dl
         ;store_data, tplot_var_fgs, data = {x:d.x, y:fgs}, lim = l, dlim = dl
         if keyword_set(coord) && strlowcase(coord) ne 'dsl' then begin
-          thm_cotrans, tplot_var_fgs, out_coord = coord, use_spinaxis_correction = 1, use_spinphase_correction = 1
+           thm_cotrans, tplot_var_fgs, out_coord = coord, use_spinaxis_correction = 1, $
+                        use_spinphase_correction = 1
           options, tplot_var_fgs, 'ytitle', /def, $
             string(tplot_var_fgs_orig, units, format = '(A,"!C!C[",A,"]")'), /add
         endif

@@ -103,6 +103,8 @@ pro elf_load_state, trange = trange, probes = probes, datatype = datatype, $
   idx=where(datatype EQ 'vel', ncnt)
   if ncnt GT 0 then datatype[idx]='pos_vel'
    
+  if ~keyword_set(cdf_version) then cdf_version='v02' else cdf_version=cdf_version
+  
   ;clear so new names are not appended to existing array
   undefine, tplotnames
   ; clear CDF filenames, so we're not appending to an existing array

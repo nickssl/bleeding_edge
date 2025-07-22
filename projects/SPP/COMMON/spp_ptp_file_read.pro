@@ -1,6 +1,6 @@
 ; $LastChangedBy: ali $
-; $LastChangedDate: 2021-05-30 19:48:04 -0700 (Sun, 30 May 2021) $
-; $LastChangedRevision: 30012 $
+; $LastChangedDate: 2025-03-13 13:05:13 -0700 (Thu, 13 Mar 2025) $
+; $LastChangedRevision: 33171 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SPP/COMMON/spp_ptp_file_read.pro $
 ; adding code
 
@@ -22,18 +22,21 @@ pro spp_ptp_file_read,files,dwait=dwait,no_products=no_products,no_clear=no_clea
     tplot_options,title=info.input_sourcename
     file_open,'r',info.input_sourcename,unit=lun,dlevel=3,compress=-1
     sizebuf = bytarr(2)
-    fi = file_info(info.input_sourcename)
+    fi = file_info_string(info.input_sourcename)
     dprint,dlevel=1,'Reading '+file_info_string(info.input_sourcename)+' LUN:'+strtrim(lun,2)
     if lun eq 0 then continue
     spp_ptp_lun_read,lun,info=info
     fst = fstat(lun)
     dprint,dlevel=2,'Compression: ',float(fst.cur_ptr)/fst.size
-    free_lun,lun
     if 0 then begin
       nextfile:
       dprint,!error_state.msg
-      dprint,'Skipping file'
+      printdat,!error_state
+      dprint,'Skipping file '+fi
+      spawn,'echo "'+str_sub(strjoin([scope_traceback(),fi,!error_state.msg,getenv(/e)],'\n'),'$','')+'" | mailx -s "spp_ptp_file_read error" rahmati@berkeley.edu'
+      message,'Aborting.'
     endif
+    free_lun,lun
   endfor
   dt = systime(1)-t0
   dprint,format='("Finished loading in ",f0.1," seconds")',dt

@@ -1,8 +1,8 @@
 ;+
 ; spp_swp_span_prod
-; $LastChangedBy: ali $
-; $LastChangedDate: 2021-08-16 07:29:05 -0700 (Mon, 16 Aug 2021) $
-; $LastChangedRevision: 30210 $
+; $LastChangedBy: davin-mac $
+; $LastChangedDate: 2025-06-12 05:00:47 -0700 (Thu, 12 Jun 2025) $
+; $LastChangedRevision: 33381 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SPP/sweap/SPAN/common/spp_swp_span_prod__define.pro $
 ;-
 ;----------------------------------------------
@@ -52,7 +52,9 @@ pro spp_swp_span_prod__define ,productstr, ccsds
   endif
 
   pksize = ccsds.pkt_size
-  ccsds_data = spp_swp_ccsds_data(ccsds)
+  ;ccsds_data = spp_swp_ccsds_data(ccsds)
+  ccsds_data = *ccsds.pdata
+
   if pksize ne n_elements(ccsds_data) then begin
     dprint,dlevel=1,'Product size mismatch'
     return

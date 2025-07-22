@@ -1,8 +1,6 @@
 ;+
 ;Crib to get STATIC flow information. Working progress. Routine produces flow vectors in MSO frame. 
 ;
-;Note: routine currently only looks for d1 data; but this comes down most of the time, so should be ok for now. 
-;
 ;This routine will check that SPICE kernels exist such that STATIC pointing information can be rotated to the MSO frame
 ;at each timestep, using mvn_sta_ck_check. If not loaded, the routine will load them using mvn_spice_kernels(/load), based on the set values
 ;of timespan.
@@ -114,6 +112,10 @@
 ;mvn_sta_flow, /flux, species='O2', sta_apid='d1', trange=tt  ;calculate O2+ vectors for selected time range only. SPICE is loaded within the routine.
 ;
 ;
+;UPDATES:
+;2024-03-26: CMF: STATIC apid is now adde to the tplot variable names produced, so that the flow vector can be derived from multiple apids in
+; the same session.
+;
 ;.r /Users/cmfowler/IDL/STATIC_routines/Flow_routines/mvn_sta_flow.pro
 ;-
 ;
@@ -171,6 +173,7 @@ case strupcase(sta_apid) of
   end
 endcase
 
+strapid = strlowcase(sta_apid)  ;for putting into tplot variable names below
 
 ;If keyword species set, go with this:
 if size(species, /type) eq 7 then begin
@@ -288,8 +291,8 @@ if flux eq 1 then begin
             endif
         endfor        
         
-        fname_flux = 'mvn_sta_flow_flux_m'+massSTR+'_er'+estr+'_MSO'
-        store_Data, fname_flux, data={x: times, y: rotateARR_full}
+        fname_flux = 'mvn_sta_flow_flux_'+strapid+'_m'+massSTR+'_er'+estr+'_MSO'
+        store_data, fname_flux, data={x: times, y: rotateARR_full}
           options, fname_flux, labels=['X', 'Y [MSO]', 'Z']
           options, fname_flux, colors=[col_blue, col_green, col_red]
           options, fname_flux, labflag=1
@@ -324,7 +327,7 @@ if kms eq 1 then begin
             endif               
         endfor
         
-        fname_kms = 'mvn_sta_flow_kms_m'+massSTR+'_er'+estr+'_MSO'               
+        fname_kms = 'mvn_sta_flow_kms_'+strapid+'_m'+massSTR+'_er'+estr+'_MSO'               
         store_data, fname_kms, data={x: times, y: rotateARR_full}  ;can't do log as can have -ve values. Leave as log for now.
           options, fname_kms, labels=['X', 'Y [MSO]', 'Z']
           options, fname_kms, colors=[col_blue, col_green, col_red]

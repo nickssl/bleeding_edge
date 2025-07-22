@@ -23,9 +23,9 @@
 ;HISTORY:
 ; 12-feb-2008, jmm, jimm@ssl.berkeley.edu
 ; 
-;$LastChangedBy: nikos $
-;$LastChangedDate: 2016-10-07 12:19:00 -0700 (Fri, 07 Oct 2016) $
-;$LastChangedRevision: 22071 $
+;$LastChangedBy: jwl $
+;$LastChangedDate: 2025-07-11 10:56:30 -0700 (Fri, 11 Jul 2025) $
+;$LastChangedRevision: 33451 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/spedas_gui/utilities/spd_new_coords.pro $
 ;-
 Pro spd_new_coords, vars, coords_in = coords_in
@@ -55,7 +55,6 @@ Pro spd_new_coords, vars, coords_in = coords_in
 ;if applicable
     If(coords Ne 'none') Then Begin
       coords = strcompress(strlowcase(coords), /remove_all)
-      If(coords Ne 'sensor') Then coords = strmid(coords, 0, 3)
       If(is_struct(dl)) Then Begin
         str_element, dl, 'data_att', success = yes_data_att
         If(yes_data_att) Then Begin ;data_att exists, add or replace the coords

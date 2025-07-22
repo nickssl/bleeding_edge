@@ -70,10 +70,8 @@ value=0 & str_element,sum,'cnts',value
 value=0 & str_element,sum,'bins_sc',value
 	if n_elements(value) gt 1 then sum.bins_sc= (d1.bins_sc and d2.bins_sc)
 value=0 & str_element,sum,'dead',value
-	if n_elements(value) gt 1 then sum.dead= (d1.integ_t*d1.dead^2 + d2.integ_t*d2.dead^2)/(d1.integ_t*d1.dead + d2.integ_t*d2.dead)
+	if n_elements(value) gt 1 then sum.dead= (d1.integ_t*d1.dead^2 + d2.integ_t*d2.dead^2)/(d1.integ_t*(d1.dead>1.) + d2.integ_t*(d2.dead>1.))
 
 ;print,'test'
 return, sum
 end
-
-

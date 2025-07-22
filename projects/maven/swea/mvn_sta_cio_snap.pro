@@ -33,8 +33,8 @@
 ;       This routine also passes keywords to PLOT.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2022-07-14 11:40:29 -0700 (Thu, 14 Jul 2022) $
-; $LastChangedRevision: 30932 $
+; $LastChangedDate: 2025-04-07 15:27:02 -0700 (Mon, 07 Apr 2025) $
+; $LastChangedRevision: 33238 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_sta_cio_snap.pro $
 ;
 ;CREATED BY:	David L. Mitchell
@@ -45,6 +45,13 @@ pro mvn_sta_cio_snap, data, keep=keep, result=result, range=range, nbins=nbins, 
                       clabel=clabel, _extra=extra
 
   result = 0
+  str_element, data, 'x', success=ok
+  if (ok) then str_element, data, 'y', success=ok
+  if (not ok) then begin
+    print, "Can't interpret input data structure."
+    return
+  endif
+
   dorange = n_elements(range) eq 2
   if (dorange) then range = range(sort(range))
   dostat = ~keyword_set(nostat)
@@ -75,16 +82,15 @@ pro mvn_sta_cio_snap, data, keep=keep, result=result, range=range, nbins=nbins, 
   zsys = !z
   psys = !p
 
-; Make a new window to hold the snapshot
+; Make a new window, if necessary, to hold the snapshot
 
   if (not execute('wset,29',2,1)) then $
-    win, 29, 1, xsize=700, ysize=500, /ycenter, dx=810, corner=0
+    win, 29, xsize=700, ysize=500, relative=pwin, dx=10, /middle
   swin = !d.window
 
 ; Get a point on the original plot
 
   ok = 1
-  nplot = 0
   wset, pwin
   crosshairs, cx, cy, /nolegend, /silent, /oneclick, lastbutton=button
   if (button eq 4) then ok = 0
@@ -182,8 +188,6 @@ pro mvn_sta_cio_snap, data, keep=keep, result=result, range=range, nbins=nbins, 
     !y = ysys
     !z = zsys
     !p = psys
-    
-    nplot++
 
     crosshairs, cx, cy, /nolegend, /silent, /oneclick, lastbutton=button, /lastpoint
     if (button eq 4) then ok = 0

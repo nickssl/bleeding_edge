@@ -1,6 +1,6 @@
 ; $LastChangedBy: davin-mac $
-; $LastChangedDate: 2023-07-13 10:47:29 -0700 (Thu, 13 Jul 2023) $
-; $LastChangedRevision: 31952 $
+; $LastChangedDate: 2024-09-10 22:51:25 -0700 (Tue, 10 Sep 2024) $
+; $LastChangedRevision: 32817 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/swfo_data_select.pro $
 
 ;  This routine extracts  byte(s) or uint(s) or ulong(s) or ulong64 from an array of bytes
@@ -28,7 +28,7 @@ function swfo_data_select,bytearray,startbit,nbits,signed=signed,test=test
 
   nd = size(/n_dimen,bytearray)
   if dimen1(bytearray) * 8 lt (startbit+nbits) then begin
-    dprint,dlevel=2,'Extraction error: Array too small. ',n_elements(bytearray),startbit,nbits[0]
+    dprint,dlevel=3,'Extraction error: Array too small. ',n_elements(bytearray),startbit,nbits[0]
     ;message,'',/cont
     v = 0
   endif else begin

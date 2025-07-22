@@ -1,8 +1,8 @@
 ; buffer should contain bytes for a single ccsds packet, header is
 ; contained in first 3 words (6 bytes)
-; $LastChangedBy: ali $
-; $LastChangedDate: 2021-06-17 16:42:35 -0700 (Thu, 17 Jun 2021) $
-; $LastChangedRevision: 30052 $
+; $LastChangedBy: davin-mac $
+; $LastChangedDate: 2023-12-11 00:17:46 -0800 (Mon, 11 Dec 2023) $
+; $LastChangedRevision: 32281 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SPP/sweap/decom/common/spp_swp_ccsds_decom.pro $
 
 ;
@@ -44,7 +44,7 @@ function spp_swp_ccsds_decom,buffer,source_dict=source_dict,wrap_ccsds=wrap_ccsd
   d_nan = !values.d_nan
   f_nan = !values.f_nan
 
-  ccsds = { ccsds_format, $
+  ccsds = { spp_ccsds_format, $
     time:         d_nan,  $             ; unixtime
     MET:          d_nan,  $
     apid:         0u , $

@@ -1,7 +1,7 @@
 ;Ali: February 2020
 ; $LastChangedBy: ali $
-; $LastChangedDate: 2023-08-17 18:52:32 -0700 (Thu, 17 Aug 2023) $
-; $LastChangedRevision: 32023 $
+; $LastChangedDate: 2023-12-29 18:52:02 -0800 (Fri, 29 Dec 2023) $
+; $LastChangedRevision: 32325 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SPP/COMMON/spp_wav_data.pro $
 ; $ID: $
 
@@ -22,10 +22,10 @@ pro spp_wav_data,trange=trange,types=types,hires=hires,hourly=hourly,monthly=mon
   t1=systime(1)
 
   if keyword_set(generate) then begin
-    spp_wav_data,/genhourly
-    spp_wav_data,/gendaily
-    spp_wav_data,/genmonthly
-    spp_wav_data,/genyearly
+    spp_wav_data,/genhourly,trange=trange
+    spp_wav_data,/gendaily,trange=trange
+    spp_wav_data,/genmonthly,trange=trange
+    spp_wav_data,/genyearly,trange=trange
     dprint,'Finished everything in '+strtrim(systime(1)-t1,2)+' seconds on '+systime()
     return
   endif

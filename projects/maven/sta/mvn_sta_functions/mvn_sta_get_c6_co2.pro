@@ -169,31 +169,53 @@ get_ind=ind
 
 ;	mass_scale=7.5 & cnts_scale=0.55 & ms1=29.2 & ms2=37.9			; testing 20181212, on 20180526 data
 
+
 	ind32 = where(mass_arr ge ms1 and mass_arr le ms2,count)		 
 
-if 0 then begin
-; old method
-	bkg1 = (total(dat.cnts[*,ind32],2)#replicate(1.,64)/cnts_scale)*(dat.mass_arr gt ms3)*exp(-dat.mass_arr/mass_scale)*dat.twt_arr 
-	bkg2 = dat.cnts-*(dat.mass_arr lt ms3)
-	bkg3 = dat.cnts*(dat.mass_arr gt ms4)
-	dat.bkg[*]=0.
-	dat.cnts=(dat.cnts-bkg1-bkg2-bkg3)
-	ind33 = where(total(dat.cnts,2) lt 0.,count)
-	if count ge 1 then dat.cnts[ind33,*]=0.
-	dat.data=dat.cnts
-endif else begin
-; new method now that iv4 bkg array is filled in
-	bkg1 = (total(dat.cnts[*,ind32]-dat.bkg[*,ind32],2)#replicate(1.,64)/cnts_scale)*(dat.mass_arr gt ms3)*exp(-dat.mass_arr/mass_scale)*dat.twt_arr 
-	dat.bkg = dat.bkg+bkg1
+;  o2+ straggling changes with time, likely due to thinning of the foils
+;  this corrects the linear straggling term based on observations on the days listed
+	t0=dat.time
+	t1=time_double('2018-04-24')
+	t2=time_double('2022-09-13')
+	cnts1_scale = 0.90 + 0.15*(t0-t1)/(t2-t1)  & cnts2_scale=2000.
+	cnts1 = total(dat.cnts[*,ind32]-dat.bkg[*,ind32],2)
+	cnts0 = total(dat.cnts,2)
+	dead0 = reform(dat.dead[*,0])
+
+;  the non-linear term, or mass peak shift to higher mass with rate, depends on rate squared 
+;  c6 data is averaged over deflectors, so use c8 data product to correct for rate changes with deflection
+	c8 = mvn_sta_get_c8(dat.time)
+
+	normc8 = reform(c8.cnts*c8.dead)/(.000001+total(reform(c8.cnts*c8.dead),2)#replicate(1.,16))
+
+	cnts2 = total(((cnts0#replicate(1.,16))*normc8)*((cnts1#replicate(1.,16))*normc8),2)
+
+; assume similar power law variation of o2+ stragglers for linear and non-linear terms
+;  bkg1 is the linear straggling term
+	bkg1 = (cnts1#replicate(1.,64)/cnts1_scale)*(dat.mass_arr gt ms3)*exp(-dat.mass_arr/mass_scale)*dat.twt_arr 
+;  bkg2 is the non-linear straggling term
+	bkg2 = (cnts2#replicate(1.,64)/cnts2_scale)*(dat.mass_arr gt ms3)*exp(-dat.mass_arr/mass_scale)*dat.twt_arr 
+
+;  add all the bkg together
+	dat.bkg = dat.bkg+bkg1+bkg2
+
+;  removal all mass bins outside co2+ mass range
 	mask = (dat.mass_arr gt ms3)*(dat.mass_arr lt ms4)
 	dat.bkg = dat.bkg*mask
 	dat.cnts = dat.cnts*mask
+
+;  remove all counts in an energy bin if the total counts in an energy bin is less than zero
 	ind33 = where(total(dat.cnts,2) lt 0.,count)
 	if count ge 1 then dat.cnts[ind33,*]=0.
 	dat.data=dat.cnts
-endelse
 
 ; fix the dat.dead for co2 by adjusting it for differences in efficiency between o2 and co2.
+; note that dat.dead tof efficiency was determined for all ions at that energy based on start/stop efficiency
+; so dat.dead corrects for the average efficiency with rate (droop, deadtime) but not relative efficiency which depends on mass
+; the average efficiency will depend on the dominant ion and relative efficiency variations of minor ions create small errors w/o this correction
+; the below code corrects for efficiency variations with a mixture of o2+ and co2+, ignoring other ions by treating them as having same eff as o2+
+; note that dat.eff is the same constant for all ions, since rate dependence of efficiencies (due to mcp droop and deadtime) dominate
+; since o2+ dominates at periapsis, this corrects for the relative efficiency of co2+ being different by 1.25 (lower efficiency)
 	mass_arr=reform(dat2.mass_arr(16,*))
 	ind_o2 = where(mass_arr lt 40.)
 	cnt_o2 = total(dat2.cnts[*,ind_o2],2)>10.

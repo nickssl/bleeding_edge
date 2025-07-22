@@ -248,14 +248,16 @@ IF (swpn EQ 1 AND output.p10 GT 0) OR $
  
  
   
-             IF tplot_var EQ 'ALL' THEN BEGIN   
+             IF tplot_var EQ 'ALL'  and nn_pktnum GT 2 THEN BEGIN   
                 ;--------------- variable:  offsets: dynamic ---------------------------
                 data =  create_struct(   $           
                                          'x',    dblarr(nn_pktnum) ,  $     ; double 1-D arr
                                          'y',    fltarr(nn_pktnum ) ,  $     ; most of the time float and 1-D or 2-D
                                          'dy',   fltarr(nn_pktnum ) )     ;1-D 
                 ;-------------- derive  time/variable ----------------                          
-                data.x       = time                                                                                                                
+                data.x       = time  
+                tmp = where( output_swp_dyn_offset LT -2048 or  output_swp_dyn_offset GT 2048,gg)                                                                                                              
+                if gg GT 0 then output_swp_dyn_offset[tmp] = 0
                 for i=0L,nn_pktnum-1 do begin
                   data.y[i]  = bias_arr[2048-output_swp_dyn_offset[i],swpn]    ; Volt 
                   data.dy[i] = (bias_arr[(output_swp_dyn_offset[i]-1)>0,1]-bias_arr[(output_swp_dyn_offset[i]+1)<4095,1])*0.5  

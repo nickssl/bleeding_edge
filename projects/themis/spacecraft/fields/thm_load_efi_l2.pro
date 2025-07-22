@@ -53,9 +53,9 @@
 ;    through to THM_CAL_EFI.PRO, W.M.Feuerstein, 4/7/2008 (M).
 ;  Fixed crash on passing an argument for RELPATHNAMES_ALL, WMF, 4/9/2008 (Tu).
 ;
-; $LastChangedBy: egrimes $
-; $LastChangedDate: 2018-12-21 11:50:27 -0800 (Fri, 21 Dec 2018) $
-; $LastChangedRevision: 26397 $
+; $LastChangedBy: jimm $
+; $LastChangedDate: 2025-05-08 11:29:53 -0700 (Thu, 08 May 2025) $
+; $LastChangedRevision: 33301 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/spacecraft/fields/thm_load_efi_l2.pro $
 ;-
 
@@ -84,11 +84,11 @@ pro thm_load_efi_l2, probe = probe, datatype = datatype, trange = trange, $
     valid_names = valid_names, $
     vsnames = 'a b c d e', $
     type_sname = 'probe', $
-    vdatatypes = 'eff_dot0 efs_dot0 eff_q_mag eff_q_pha efs_q_mag efs_q_pha eff_e12_efs eff_e34_efs', $
+    vdatatypes = 'eff_dot0 efs_dot0 eff_q_mag eff_q_pha efs_q_mag efs_q_pha eff_e12_efs eff_e34_efs efp efw', $
     vtypes = 'calibrated', $
     vlevels = 'l2', $
-    vL2datatypes = 'eff_dot0 efs_dot0 eff_q_mag eff_q_pha efs_q_mag efs_q_pha eff_e12_efs eff_e34_efs', $
-    file_vL2datatypes = 'efi', $
+    vL2datatypes = 'eff_dot0 efs_dot0 eff_q_mag eff_q_pha efs_q_mag efs_q_pha eff_e12_efs eff_e34_efs efp efw', $
+    file_vL2datatypes = 'efi efi efi efi efi efi efi efi efp efw', $
     deflevel = 'l2', $
     osname = probes, odt = dts, olvl = lvls, $
     oft = fts, ofdt = fdts, otyp = typ, $

@@ -259,9 +259,9 @@ end
 ;	-- fixed, nominal calibration pars used (gains and
 ;          frequency responses), rather than proper time-dependent parameters.
 ;
-; $LastChangedBy: jwl $
-; $LastChangedDate: 2016-12-20 16:30:02 -0800 (Tue, 20 Dec 2016) $
-; $LastChangedRevision: 22468 $
+; $LastChangedBy: jimm $
+; $LastChangedDate: 2025-05-13 14:49:32 -0700 (Tue, 13 May 2025) $
+; $LastChangedRevision: 33308 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/spacecraft/fields/thm_cal_efi.pro $
 ;-
 pro thm_cal_efi, probe = probe, datatype = datatype, $
@@ -1202,25 +1202,28 @@ pro thm_cal_efi, probe = probe, datatype = datatype, $
         If(is_struct(de12) && is_struct(de34)) Then Begin
           tim_arr = de12.x
           y34 = data_cut(de34, tim_arr)
-          m34 = sqrt(y34[*, 0]^2+y34[*, 1]^2)
-          y12 = de12.y
-          m12 = sqrt(y12[*, 0]^2+y12[*, 1]^2)
-          mag_test = m34/m12
-          pha_test = abs(y12[*, 0]*y34[*, 0]+y12[*, 1]*y34[*, 1])/(m12*m34)
+;Guard against bad data_cut output
+          If(size(y34, /n_dimen) Eq 2) Then Begin
+             m34 = sqrt(y34[*, 0]^2+y34[*, 1]^2)
+             y12 = de12.y
+             m12 = sqrt(y12[*, 0]^2+y12[*, 1]^2)
+             mag_test = m34/m12
+             pha_test = abs(y12[*, 0]*y34[*, 0]+y12[*, 1]*y34[*, 1])/(m12*m34)
 ;change some plot options for the data, since these came from field data
-          str_element, dl12, 'labels', '', /add
-          str_element, dl12, 'labflag', 0, /add
-          str_element, dl12, 'colors', 0, /add
-          efi_q_mag_orig = thm_tplot_var(sc, nameraw)+'_q_mag' 
-          efi_q_mag = efi_q_mag_orig + out_suf[0]
-          store_data, efi_q_mag, data = {x:tim_arr, y:mag_test}, dlimits = dl12
-          options, efi_q_mag, 'ytitle', efi_q_mag_orig
-          ylim, efi_q_mag, 0, 0, 1
-          efi_q_pha_orig = thm_tplot_var(sc, nameraw)+'_q_pha' 
-          efi_q_pha = efi_q_pha_orig + out_suf[0]
-          store_data, efi_q_pha, data = {x:tim_arr, y:pha_test}, dlimits = dl12
-          options, efi_q_pha, 'ytitle', efi_q_pha_orig
-          ylim, efi_q_pha, 0, 0, 1
+             str_element, dl12, 'labels', '', /add
+             str_element, dl12, 'labflag', 0, /add
+             str_element, dl12, 'colors', 0, /add
+             efi_q_mag_orig = thm_tplot_var(sc, nameraw)+'_q_mag' 
+             efi_q_mag = efi_q_mag_orig + out_suf[0]
+             store_data, efi_q_mag, data = {x:tim_arr, y:mag_test}, dlimits = dl12
+             options, efi_q_mag, 'ytitle', efi_q_mag_orig
+             ylim, efi_q_mag, 0, 0, 1
+             efi_q_pha_orig = thm_tplot_var(sc, nameraw)+'_q_pha' 
+             efi_q_pha = efi_q_pha_orig + out_suf[0]
+             store_data, efi_q_pha, data = {x:tim_arr, y:pha_test}, dlimits = dl12
+             options, efi_q_pha, 'ytitle', efi_q_pha_orig
+             ylim, efi_q_pha, 0, 0, 1
+          Endif
         Endif
       endif
     endfor                      ; loop over names.

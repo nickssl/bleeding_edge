@@ -25,9 +25,9 @@
 ;CREATED BY:      Takuya Hara on 2022-11-04.
 ;
 ;LAST MODIFICATION:
-; $LastChangedBy: jimm $
-; $LastChangedDate: 2023-09-11 14:39:44 -0700 (Mon, 11 Sep 2023) $
-; $LastChangedRevision: 32091 $
+; $LastChangedBy: hara $
+; $LastChangedDate: 2023-10-18 15:16:24 -0700 (Wed, 18 Oct 2023) $
+; $LastChangedRevision: 32202 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/quicklook/mvn_spaceweather.pro $
 ;
 ;-
@@ -569,14 +569,30 @@ PRO mvn_spaceweather, itime, reset=reset, verbose=verbose, path=path, tplot=tplo
      ENDIF
 
      IF KEYWORD_SET(overplot) THEN BEGIN
+        get_data, swind_name[0], index=i_nsw
+        get_data, swind_name[1], index=i_vsw
+
+        IF (i_nsw + i_vsw) EQ 0 THEN BEGIN
+           ; Creating blank panels
+           store_data, swind_name[0], data={x: trange, y: REPLICATE(!values.f_nan, 2)}, dlim={yrange: [0., 4.], ystyle: 1, ytitle: 'MAVEN/SWIA', ysubtitle: 'Nsw [cm!E-3!N]'}
+           store_data, swind_name[1], data={x: trange, y: REPLICATE(!values.f_nan, 2)}, dlim={yrange: [0., 1000.], ystyle: 1, ytitle: 'MAVEN/SWIA', ysubtitle: 'Vsw [km/s]', colors: 2}
+        ENDIF 
+        
         store_data, 'mvn_swi_nv_sw_avg', data=swind_name[0:1], dlim={tplot_routine: 'mvn_spaceweather_tplot'}
         options, swind_name[1], y2axis=swind_name[1], colors=2
         get_data, swind_name[-1], data=bmso, alim=blim
         get_data, swind_name[-2], data=btot
-        if is_struct(bmso) && is_struct(btot) then begin
+
+        IF is_struct(bmso) && is_struct(btot) THEN BEGIN
            store_data, 'mvn_mag_imf_avg', data={x: bmso.x, y: [ [bmso.y], [btot.y] ]}, dlim=blim
            options, 'mvn_mag_imf_avg', labels=[blim.labels, '|B|'], colors='bgrx', /def
-        endif
+        ENDIF ELSE BEGIN
+           ; Crating blank panels
+           store_data, 'mvn_mag_imf_avg', data={x: trange, y: REFORM(REPLICATE(!values.f_nan, 8), 2, 4)}, dlim={labflag: -1, colors: 'bgrx', ytitle: 'MAVEN/MAG', constant: 0.}
+           IF KEYWORD_SET(rtn) THEN options, 'mvn_mag_imf_avg', labels=['R', 'T', 'N', '|B|'], ysubtitle='IMF B!DRTN!N [nT]', /def $
+           ELSE options, 'mvn_mag_imf_avg', labels=['X', 'Y', 'Z', '|B|'], ysubtitle='IMF Bmso [nT]', /def
+           ylim, 'mvn_mag_imf_avg', -4., 4., /def
+        ENDELSE 
      ENDIF 
   ENDIF
   

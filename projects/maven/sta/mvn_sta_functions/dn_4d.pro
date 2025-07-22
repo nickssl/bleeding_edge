@@ -30,7 +30,7 @@
 ;	J.McFadden	13-11-13	
 ;LAST MODIFICATION:
 ;-
-function dn_4d,dat2,ENERGY=en,ERANGE=er,EBINS=ebins,ANGLE=an,ARANGE=ar,BINS=bins,MASS=ms,m_int=mi,q=q,mincnt=mincnt,nn=nn
+function dn_4d,dat2,ENERGY=en,ERANGE=er,EBINS=ebins,ANGLE=an,ARANGE=ar,BINS=bins,MASS=ms,m_int=mi,q=q,mincnt=mincnt,nn=nn,print=print,seed=seed
 
 density = 0.
 
@@ -44,15 +44,22 @@ na = dat.nenergy
 nb = dat.nbins
 nm = dat.nmass
 
-cnt=total(dat.data)/!pi
-if not keyword_set(nn) then nn = 13 
+; cnt=total(dat.data)/!pi			; start with a random number
+if not keyword_set(nn) then nn = 20 
 dnavg=0
 den = n_4d(dat,ENERGY=en,ERANGE=er,EBINS=ebins,ANGLE=an,ARANGE=ar,BINS=bins,MASS=ms,m_int=mi,q=q,mincnt=mincnt)
+;if not keyword_set(seed) then seed = total(dat.data)/!pi	
 for i=0,nn-1 do begin
 	tmp = dat
-	tmp.data = dat.data + dat.data^.5*randomn(cnt,na,nb,nm)
-	dnavg = dnavg + abs(den - n_4d(tmp,ENERGY=en,ERANGE=er,EBINS=ebins,ANGLE=an,ARANGE=ar,BINS=bins,MASS=ms,m_int=mi,q=q,mincnt=mincnt))
-	cnt = total(tmp.data)/!pi 
+	tmp.data = dat.data + dat.data^.5*randomn(seed,na,nb,nm)
+	tmp.cnts = tmp.data 
+	tmp_den = n_4d(tmp,ENERGY=en,ERANGE=er,EBINS=ebins,ANGLE=an,ARANGE=ar,BINS=bins,MASS=ms,m_int=mi,q=q,mincnt=mincnt)
+	dnavg = dnavg + abs(den - tmp_den)
+;	seed=total(tmp.data)/!pi
+;	seed=total(tmp.data*(i+7))/!pi
+if keyword_set(print) then help,seed
+if keyword_set(print) then print,den,tmp_den,dnavg,minmax(randomn(seed,na,nb,nm))
+;	cnt = total(tmp.data)/!pi 
 endfor
 ddensity = dnavg/nn
 

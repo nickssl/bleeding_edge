@@ -32,11 +32,12 @@
 ;             suffix:        String to append to the end of the loaded tplot variables
 ;             probes:        Name of the POES spacecraft, i.e., probes=['noaa18','noaa19','metop2']
 ;             varnames:      Name(s) of variables to load, defaults to all (*)
+;             ncei_server:   When set, use NOAA NCEI server instead of SPDF. Some older data is only available on the NOAA server.
 ;             /downloadonly: Download the file but don't read it  
 ; 
-; $LastChangedBy: egrimes $
-; $LastChangedDate: 2017-02-13 15:32:14 -0800 (Mon, 13 Feb 2017) $
-; $LastChangedRevision: 22769 $
+; $LastChangedBy: nikos $
+; $LastChangedDate: 2024-09-05 08:04:54 -0700 (Thu, 05 Sep 2024) $
+; $LastChangedRevision: 32807 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/poes/poes_load_data.pro $
 ;-
  
@@ -292,12 +293,13 @@ pro poes_fix_metadata, tplotnames, prefix = prefix
 end
 
 pro poes_load_data, trange = trange, datatype = datatype, probes = probes, suffix = suffix, $
-                    downloadonly = downloadonly, verbose = verbose, noephem = noephem
+                    downloadonly = downloadonly, verbose = verbose, noephem = noephem, ncei_server=ncei_server
     compile_opt idl2
 
     poes_init
     if undefined(suffix) then suffix = ''
     if undefined(prefix) then prefix = ''
+    if undefined(ncei_server) then ncei_server=0 else ncei_server=1
     
     ; handle possible server errors
     catch, errstats
@@ -326,6 +328,12 @@ pro poes_load_data, trange = trange, datatype = datatype, probes = probes, suffi
 
         pathformat[probe_idx] = '/noaa/'+probes[probe_idx]+'/sem2_fluxes-2sec/YYYY/'+probes[probe_idx]+'_poes-sem2_fluxes-2sec_YYYYMMDD_v01.cdf'
         prefix_array[probe_idx] = prefix + probes[probe_idx]
+        
+        nmlen = strlen(probes[probe_idx])
+        if ncei_server eq 1 && nmlen gt 1 then begin
+          num = strmid(probes[probe_idx], nmlen-2, 2)
+          pathformat[probe_idx] = "YYYY/" + probes[probe_idx] + "/poes_n" + num + "_YYYYMMDD.cdf"
+        endif
     endfor
     
     for j = 0, n_elements(datatype)-1 do begin
@@ -394,7 +402,12 @@ pro poes_load_data, trange = trange, datatype = datatype, probes = probes, suffi
         relpathnames = file_dailynames(file_format=pathformat[j], trange=tr, /unique)
 
         ;files = file_retrieve(relpathnames, _extra=source, /last_version)
-        files = spd_download(remote_file=relpathnames, remote_path=source.remote_data_dir, $
+        if ncei_server eq 1 then begin
+          remote_server = 'https://www.ncei.noaa.gov/data/poes-metop-space-environment-monitor/access/l2/v01r00/cdf/'
+        endif else begin
+          remote_server = source.remote_data_dir
+        endelse
+        files = spd_download(remote_file=relpathnames, remote_path=remote_server, $
           local_path = source.local_data_dir, ssl_verify_peer=0, ssl_verify_host=0)
         
         if keyword_set(downloadonly) then continue

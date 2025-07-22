@@ -2,3 +2,4 @@
 * text=auto
 
 *.pro linguist-language=IDL
+* text=auto eol=native

@@ -21,9 +21,9 @@
 ;       PARNG:         Shape parameter calculated based on 30, 45, and 60 deg, 
 ;                      corresponding to PARNG=1,2,3. Default is PA=45
 ;       
-; $LastChangedBy: cfowler2 $
-; $LastChangedDate: 2018-03-21 10:59:12 -0700 (Wed, 21 Mar 2018) $
-; $LastChangedRevision: 24923 $
+; $LastChangedBy: xussui_lap $
+; $LastChangedDate: 2024-09-17 15:35:33 -0700 (Tue, 17 Sep 2024) $
+; $LastChangedRevision: 32842 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_shape_restore.pro $
 ;
 ;CREATED BY:    Shaosui Xu  06-23-17
@@ -97,10 +97,15 @@ Pro mvn_swe_shape_restore,trange,results=results,tplot=tplot,orbit=orbit,parng=p
 
 
     intx=where(shp.t ge tmin and shp.t le tmax)
-    shp=shp[intx]
-    results=shp 
+    if intx[0] eq -1 then begin
+       shp = !values.f_nan
+       results = shp
+    endif else begin
+       shp=shp[intx]
+       results=shp 
+    endelse
     
-    if(keyword_set(tplot)) then begin
+    if(keyword_set(tplot) and size(shp,/type) eq 8) then begin
         if (size(parng,/type) eq 0) then parng=2 else parng=fix(parng[0])
         if (parng lt 1 or parng gt 3) then begin
             print,'PARNG is only allowed to be 1, 2, or 3.'+$

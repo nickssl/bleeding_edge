@@ -29,12 +29,24 @@
 ;              Default = 1 (yes).  Set this to 0 to disable and use the
 ;              above 3 keywords only.
 ;
+;   MOM:       Calculate 1-dimensional moments for density and temperature.
+;              Default = 1 (use moments).
+;
+;   MB:        Fit a Maxwell-Boltzmann distribution to the core to determine
+;              density and temperature.  Use a moment calculation to determine
+;              the density of the halo.  The density is the sum of the core
+;              and halo densities.  The temperature is that of the core alone.
+;              This only makes sense in the upstream solar wind.
+;              Default = 0 (use moments).
+;
 ;   MINDEN:    Smallest reliable density (cm-3).  Default = 0.08
 ;
 ;   ERANGE:    Restrict calculation to this energy range.
 ;
 ;   SECONDARY: Estimate and remove secondary electrons before calculating
 ;              moments.  See mvn_swe_secondary for details.
+;
+;   RESULT:    Named variable to hold the result.
 ;
 ;   QLEVEL:    Minimum quality level for calculating moments.  Filters out
 ;              the vast majority of spectra affected by the sporadic low energy
@@ -50,16 +62,19 @@
 ;                     Caveat: There is increased noise around 23 eV, even 
 ;                     for "good" spectra.
 ;
+;   TRANGE:    Process data over this time range.
+;
 ;OUTPUTS:
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-09-25 16:30:03 -0700 (Mon, 25 Sep 2023) $
-; $LastChangedRevision: 32129 $
+; $LastChangedDate: 2025-06-11 12:16:34 -0700 (Wed, 11 Jun 2025) $
+; $LastChangedRevision: 33376 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_n1d.pro $
 ;
 ;-
 pro mvn_swe_n1d, pans=pans, ddd=ddd, abins=abins, dbins=dbins, obins=obins, mask_sc=mask_sc, $
-                 mom=mom, minden=minden, erange=erange, secondary=sec, qlevel=qlevel
+                 mom=mom, mb=mb, minden=minden, erange=erange, secondary=sec, qlevel=qlevel, $
+                 result=result, trange=trange
 
   compile_opt idl2
 
@@ -70,11 +85,17 @@ pro mvn_swe_n1d, pans=pans, ddd=ddd, abins=abins, dbins=dbins, obins=obins, mask
   c2 = (2d5/(mass*mass))
   c3 = 4D*!dpi*1d-5*sqrt(mass/2D)  ; assume isotropic electron distribution
   tiny = 1.d-31
-  
+
+  if keyword_set(mb) then mom = 0
   if (size(mom,/type) eq 0) then mom = 1
   if (size(minden,/type) eq 0) then minden = 0.08  ; minimum density
   dosec = keyword_set(sec)
   qlevel = (n_elements(qlevel) gt 0) ? byte(qlevel[0]) < 2B : 0B
+  if (n_elements(trange) ge 2) then begin
+    tmin = min(time_double(trange), max=tmax)
+    tflg = 1
+  endif else tflg = 0
+  result = 0
 
 ; Get energy spectra from SPEC or 3D distributions
 
@@ -98,8 +119,17 @@ pro mvn_swe_n1d, pans=pans, ddd=ddd, abins=abins, dbins=dbins, obins=obins, mask
     if (size(mvn_swe_3d,/type) eq 8) then t = mvn_swe_3d.time $
                                      else t = swe_3d.time
 
-    npts = n_elements(t)
+    if (tflg) then begin
+      indx = where((t ge tmin) and (t le tmax), npts)
+      if (npts eq 0L) then begin
+        print,"No data from ",time_string(tmin)," to ",time_string(tmax)
+        return
+      endif
+      t = t[indx]
+    endif else npts = n_elements(t)
+
     dens = fltarr(npts)
+    halo = dens
     temp = dens
     dsig = dens
     tsig = dens
@@ -141,24 +171,37 @@ pro mvn_swe_n1d, pans=pans, ddd=ddd, abins=abins, dbins=dbins, obins=obins, mask
     if (size(mvn_swe_engy,/type) ne 8) then mvn_swe_makespec
 
     t = mvn_swe_engy.time
-    npts = n_elements(t)
+
+    if (tflg) then begin
+      tndx = where((t ge tmin) and (t le tmax), npts)
+      if (npts eq 0L) then begin
+        print,"No data from ",time_string(tmin)," to ",time_string(tmax)
+        return
+      endif
+      t = t[tndx]
+    endif else begin
+      npts = n_elements(t)
+      tndx = lindgen(npts)
+    endelse
+
     dens = fltarr(npts)
+    halo = dens
     temp = dens
     dsig = dens
     tsig = dens
 
     ounits = mvn_swe_engy[0].units_name
     mvn_swe_convert_units, mvn_swe_engy, 'eflux'
-    energy = mvn_swe_engy.energy
-    eflux = mvn_swe_engy.data
-    var = mvn_swe_engy.var
-    bkg = mvn_swe_engy.bkg
-    sc_pot = mvn_swe_engy.sc_pot
+    energy = mvn_swe_engy[tndx].energy
+    eflux = mvn_swe_engy[tndx].data
+    var = mvn_swe_engy[tndx].var
+    bkg = mvn_swe_engy[tndx].bkg
+    sc_pot = mvn_swe_engy[tndx].sc_pot
 
     if (dosec) then begin
       mvn_swe_secondary, mvn_swe_engy
-      bkg = mvn_swe_engy.bkg
-      indx = where(~mvn_swe_engy.valid, count)
+      bkg = mvn_swe_engy[tndx].bkg
+      indx = where(~mvn_swe_engy[tndx].valid, count)
       if (count gt 0L) then begin
         eflux[indx] = tiny
         var[indx] = tiny
@@ -167,7 +210,8 @@ pro mvn_swe_n1d, pans=pans, ddd=ddd, abins=abins, dbins=dbins, obins=obins, mask
     endif else bkg[*] = 0.
   endelse
 
-  E = energy[*,0]
+  mvn_swe_sweep, tab=5, result=swp
+  E = swp.e
   dE = E
   dE[0] = abs(E[1] - E[0])
   for i=1,62 do dE[i] = abs(E[i+1] - E[i-1])/2.
@@ -248,9 +292,9 @@ pro mvn_swe_n1d, pans=pans, ddd=ddd, abins=abins, dbins=dbins, obins=obins, mask
         F_halo = F[j] - swe_maxbol(E_halo, par=p)
         prat = (p.pot/E_halo) < 1.
 
-        N_halo = c3*total(dE[j]*sqrt(1. - prat)*(E_halo^(-1.5))*F_halo)
+        halo[i] = c3*total(dE[j]*sqrt(1. - prat)*(E_halo^(-1.5))*F_halo)
 
-        dens[i] = p.n + N_halo
+        dens[i] = p.n
         temp[i] = p.t
       
         dsig[i] = sig[0]
@@ -270,34 +314,43 @@ pro mvn_swe_n1d, pans=pans, ddd=ddd, abins=abins, dbins=dbins, obins=obins, mask
   indx = where(dens lt minden, count)
   if (count gt 0L) then begin
     dens[indx] = !values.f_nan
+    halo[indx] = !values.f_nan
     temp[indx] = !values.f_nan
     dsig[indx] = !values.f_nan
     tsig[indx] = !values.f_nan
   endif
 
-; New version of low-energy masking
+; Low-energy anomaly masking
 
   str_element, mvn_swe_engy, 'quality', success=ok
   if (ok) then begin
-    indx = where(mvn_swe_engy.quality lt qlevel, count)
+    indx = where(mvn_swe_engy[tndx].quality lt qlevel, count)
     if (count gt 0L) then begin
       dens[indx] = !values.f_nan
+      halo[indx] = !values.f_nan
       temp[indx] = !values.f_nan
       dsig[indx] = !values.f_nan
       tsig[indx] = !values.f_nan
     endif
   endif else print,"Quality level not defined."
 
-; Old version of low-energy masking (to be replaced)
+; Store the result
 
-  if (0) then begin
-    lowe_test = {x:t, y:replicate(1.,npts)}
-    mvn_swe_lowe_mask, lowe_test
-    dens *= lowe_test.y
-    temp *= lowe_test.y
-    dsig *= lowe_test.y
-    tsig *= lowe_test.y
-  endif
+  if (mom) then begin
+    result = {time : t         , $
+              dens : dens      , $
+              dn   : dsig      , $
+              temp : temp      , $
+              dt   : tsig         }
+  endif else begin
+    result = {time : t         , $
+              dens : dens+halo , $
+              core : dens      , $
+              halo : halo      , $
+              dn   : dsig      , $
+              temp : temp      , $
+              dt   : tsig         }
+  endelse
 
 ; Create TPLOT variables
 
@@ -305,17 +358,42 @@ pro mvn_swe_n1d, pans=pans, ddd=ddd, abins=abins, dbins=dbins, obins=obins, mask
   dname = 'mvn_swe_' + mode + '_dens'
   tname = 'mvn_swe_' + mode + '_temp'
 
-  ddata = {x:t, y:dens, dy:dsig, ytitle:'Ne [cm!u-3!n]'}
-  store_data,dname,data=ddata
-  options,dname,'ynozero',1
-  options,dname,'psym',3
+  if (mom) then begin
+    store_data,dname,data={x:t, y:dens, dy:dsig}
+    options,dname,'ytitle','Ne [cm!u-3!n]'
+    options,dname,'ynozero',1
+    options,dname,'psym',3
 
-  tdata = {x:t, y:temp, dy:tsig, ytitle:'Te [eV]'}
-  store_data,tname,data=tdata
-  options,tname,'ynozero',1
-  options,tname,'psym',3
+    store_data,tname,data={x:t, y:temp, dy:tsig}
+    options,tname,'ytitle','Te [eV]'
+    options,tname,'ynozero',1
+    options,tname,'psym',3
 
-  pans = [dname, tname]
+    pans = [dname, tname]
+  endif else begin
+    store_data,dname,data={x:t, y:dens+halo, dy:dsig}
+    cname = 'mvn_swe_' + mode + '_core'
+    store_data,cname,data={x:t, y:dens}
+    hname = 'mvn_swe_' + mode + '_halo'
+    store_data,hname,data={x:t, y:halo}
+
+    aname = 'mvn_swe_' + mode + '_all'
+    store_data,aname,data=[dname,cname,hname]
+    options,aname,'ytitle','Ne [cm!u-3!n]'
+    options,aname,'ynozero',1
+    options,aname,'psym',3
+    options,aname,'line_colors',5
+    options,aname,'colors',[2,4,6]
+    options,aname,'labels',['total','core','halo']
+    options,aname,'labflag',1
+
+    tdata = {x:t, y:temp, dy:tsig, ytitle:'Te [eV]'}
+    store_data,tname,data=tdata
+    options,tname,'ynozero',1
+    options,tname,'psym',3
+
+    pans = [aname, tname]
+  endelse
   
   return
 

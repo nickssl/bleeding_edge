@@ -58,6 +58,7 @@ Function mvn_sep_anc_fov_mars_fraction, times,dang = dang, check_objects = check
     spc2cart, 1.0, theta_array_2d, phi_array_2d, x2d, y2d, z2d
 
     intercept_Mars = bytarr(nphi, ntheta) ; i.e. does it intercept Mars?
+    ; print, intercept_Mars
     cos_sza_intercept = fltarr(nphi, ntheta) ; if it does, how well illuminated is the surface?
     for i = 0L, n_elements (ind) -1 do begin   
       for M = 0, ntheta*1L*nphi - 1 do begin & $
@@ -72,6 +73,7 @@ Function mvn_sep_anc_fov_mars_fraction, times,dang = dang, check_objects = check
         endif
       endfor  
       dprint, time_string (times[ind[i]]), ' done' 
+      ; print, intercept_Mars
       fraction_FOV_Mars [ind[i],J] = total (intercept_Mars*weighting_array_2d)/total (weighting_array_2d)
       fraction_FOV_sunlit_Mars [ind[i], J] = total (cos_sza_intercept*weighting_array_2d)/total(weighting_array_2d)
     endfor

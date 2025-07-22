@@ -1,6 +1,6 @@
 ; $LastChangedBy: ali $
-; $LastChangedDate: 2021-06-21 09:41:51 -0700 (Mon, 21 Jun 2021) $
-; $LastChangedRevision: 30071 $
+; $LastChangedDate: 2025-03-13 13:05:13 -0700 (Thu, 13 Mar 2025) $
+; $LastChangedRevision: 33171 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SPP/COMMON/spp_ssr_file_read.pro $
 ;
 ; This routine reads SSR files (series of CCSDS packets)
@@ -56,12 +56,15 @@ pro spp_ssr_file_read,files,dwait=dwait,no_products=no_products,sort_flag=sort_f
     fst = fstat(lun)
     compression = float(fst.cur_ptr)/fst.size
     dprint,dlevel=3,'Loaded File:'+fst.name+' Compression: '+strtrim(float(fst.cur_ptr)/fst.size,2)
-    free_lun,lun
     if 0 then begin
       nextfile:
       dprint,!error_state.msg
+      printdat,!error_state
       dprint,'Skipping file '+fi
+      spawn,'echo "'+str_sub(strjoin([scope_traceback(),fi,!error_state.msg,getenv(/e)],'\n'),'$','')+'" | mailx -s "spp_ssr_file_read error" rahmati@berkeley.edu'
+      message,'Aborting.'
     endif
+    free_lun,lun
     spp_apdat_info,current_filename=filename   ; info.input_sourcename
   endfor
   if not keyword_set(no_clear) then del_data,'spp_*'  ; store_data,/clear,'*'

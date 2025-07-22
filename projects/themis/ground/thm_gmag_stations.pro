@@ -48,9 +48,9 @@
           ;                Version 1.0 August, 16, 2011
           ;
           ; VERSION:
-          ;   $LastChangedBy: nikos $
-          ;   $LastChangedDate: 2013-04-05 08:53:30 -0700 (Fri, 05 Apr 2013) $
-          ;   $LastChangedRevision: 11971 $
+          ;   $LastChangedBy: jwl $
+          ;   $LastChangedDate: 2023-12-30 17:48:10 -0800 (Sat, 30 Dec 2023) $
+          ;   $LastChangedRevision: 32328 $
           ;   $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/ground/thm_gmag_stations.pro $
           ;
           ;-

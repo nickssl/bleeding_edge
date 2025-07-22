@@ -86,6 +86,8 @@
 ; 
 ; /bas_sites = Set this keyword to load magnetometers that are BAS sites
 ; 
+; /magstar_sites = Set this keyword to load magnetometers that are MagStar sites
+;
 ;Example:
 ;   thm_load_gmag, site = 'bmls', trange =
 ;   ['2007-01-22/00:00:00','2007-01-24/00:00:00']
@@ -113,8 +115,8 @@
 ; 04-Apr-2012, clrussell, Added units to the data_att structure
 ; 
 ; $LastChangedBy: crussell $
-; $LastChangedDate: 2021-06-09 08:30:13 -0700 (Wed, 09 Jun 2021) $
-; $LastChangedRevision: 30035 $
+; $LastChangedDate: 2024-02-23 05:59:59 -0800 (Fri, 23 Feb 2024) $
+; $LastChangedRevision: 32454 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/ground/thm_load_gmag.pro $
 ;-
 
@@ -221,6 +223,7 @@ Pro thm_load_gmag, site = site, datatype = datatype, trange = trange, $
                    fmi_sites = fmi_sites, $
                    aari_sites = aari_sites, $
                    bas_sites = bas_sites, $
+                   magstar_sites = magstar_sites, $
                    suffix=suffix
 ;                   _extra = _extra ;krb 5/4
 
@@ -237,8 +240,10 @@ Pro thm_load_gmag, site = site, datatype = datatype, trange = trange, $
       site = 'all'
     Endif
   Endif else begin
-    vsnames = 'abk akul amd amer arct atha bbg benn bett blc bmls bou brn brw bsl cbb ccnv cdrt chbr chbg cigo cmo crvr ded dik drby eagl ekat fcc frd frn fsim fsj fsmi ftn fykn '+ $
-      'fyts gako gbay gill gjoa glyn gua han hlms homr hon hots hris hrp iglo inuk inuv iqa iva kako kapu kena kev kian kil kjpk kodk kuuj larg lcl leth loys loz lrel lrg lrv lyfd mas mcgr mea mek nain new muo nrsq nur '+ $
+    vsnames = 'abk akul amd amer arct atha bbg benn bett blc bmls bou brn brw bsl cbb ccnv cdrt chbr chbg cigo cmo col crvr dat dbo dct ded dhe '+ $
+       'dik drby dma dme dmo doh dsh dtx dva eagl ekat fcc frd frn fsim fsj fsmi ftn fykn '+ $
+      'fyts gako gbay gill gjoa glyn gua han hlms homr hon hots hris hrp iglo inuk inuv iqa iva kako kapu kena kev kian kil kjpk kodk '+ $
+      'kuuj larg lcl leth loys loz lrel lrg lrv lyfd mas mcgr mea mek nain new muo nrsq nur '+ $
       'ott ouj pang pbk pblo pcel pel pg0 pg1 pg2 pg3 pg4 pg5 pgeo pina pine pks pokr ptrs puvr radi ran rank rbay redr rich rmus roth salu satx schf sept shu sit sjg snap snkq stfd stfl stj '+ $
       'swno tar tik tpas trap tuc ukia vic viz vldr whit whs wlps wrth ykc yknf'
     vsnames_arr = strsplit(vsnames, ' ', /extract)
@@ -249,13 +254,15 @@ Pro thm_load_gmag, site = site, datatype = datatype, trange = trange, $
     vsnames_c_arr = strsplit(vsnames_c, ' ', /extract)
     vsnames_b = 'M65-297 M66-294 M67-292 M78-337 M79-336 M81-003 M81-338 ' + $
       'M83-347 M83-348 M84-336 M85-002 M85-096 M87-028 M87-068 M88-316'
+    vsnames_m = 'col dat dbo dct dhe dma dme dmo doh dsh dtx dva'
+    vsnames_m_arr = strsplit(vsnames_m, ' ', /extract)
 ;    'M65-279 M67_292 M70_039 M72_078 M77_077 M78_337 M79_336 M80_077 '+ $
 ;      'M81_338 M83_348 M84_336 M85_002 M87_028 M87_068 M88_316 M73_159 '+ $
 ;      'M74_043 M81_003 M83_347 M85_096 M66_294 M68_041 M69_041 M70_044 '+ $
 ;      'M77_040 M65-297'
     vsnames_b_arr = strsplit(vsnames_b, ' ', /extract)
     vsnames_b_arr_low = strlowcase(vsnames_b_arr)
-    vsnames_all = [vsnames_arr, vsnames_g_arr, vsnames_c_arr, vsnames_b_arr_low]
+    vsnames_all = [vsnames_arr, vsnames_g_arr, vsnames_c_arr, vsnames_b_arr_low, vsnames_m_arr]
   Endelse
   
   If(keyword_set(site)) Then site_in = site 
@@ -333,6 +340,10 @@ Pro thm_load_gmag, site = site, datatype = datatype, trange = trange, $
 ;        'M69_041','M70_044','M77_040','M65-297'],site_in)
     endif
 
+    if keyword_set(magstart_sites) then begin
+      site_in = array_concat(['col','dat','dbo','dct','dhe','dma','dme','dmo','doh','dsh','dtx','dva'],site_in)
+    endif
+
   ; if this list of valid names changes, please also update version in thm_load_gmag
     if keyword_set(carisma_sites) then begin
        site_in = array_concat(['anna', 'back', 'cont', 'daws', 'eski', 'fchp', 'fchu', $
@@ -351,6 +362,7 @@ Pro thm_load_gmag, site = site, datatype = datatype, trange = trange, $
   crsm_sites = ssl_check_valid_name(site_in, vsnames_c_arr, /ignore_case, /include_all, /no_warning)
   bas_sites = ssl_check_valid_name(site_in, vsnames_b_arr, /ignore_case, /include_all, /no_warning)
   bas_sites=strupcase(bas_sites)
+  magstar_sites = ssl_check_valid_name(site_in, vsnames_m_arr, /ignore_case, /include_all, /no_warning)
  
   ; If no sites are valid issue a warning to the user
   ; Not using the default warning issued by ssl_check_valid_name above because that step needs to check green and thm sites separately

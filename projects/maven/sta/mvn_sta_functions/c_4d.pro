@@ -19,7 +19,7 @@
 ;					0,1=exclude,include
 ;	MASS:	intarr(nm)	optional, 
 ;PURPOSE:
-;	Returns the density array, n, 1/cm^3, corrects for spacecraft potential if dat.sc_pot exists
+;	Returns the counts in the data structure
 ;NOTES:	
 ;	Function normally called by "get_3dt" or "get_2dt" to 
 ;	generate time series data for "tplot.pro".

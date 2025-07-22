@@ -3,9 +3,9 @@
 ; Run using:
 ; ctime,routine_name='swfo_stis_plot',/silent
 ;
-; $LastChangedBy: ali $
-; $LastChangedDate: 2023-08-17 18:53:31 -0700 (Thu, 17 Aug 2023) $
-; $LastChangedRevision: 32024 $
+; $LastChangedBy: rjolitz $
+; $LastChangedDate: 2025-07-01 14:19:06 -0700 (Tue, 01 Jul 2025) $
+; $LastChangedRevision: 33417 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/swfo_stis_plot.pro $
 ; $ID: $
 ;-
@@ -63,13 +63,19 @@ pro  swfo_stis_plot,var,t,param=param,trange=trange,nsamples=nsamples,lim=lim,fi
     ;xlim,param.lim,10000,32000.,0
     ylim,param.lim,.001,1e7,1
     units = 'Eflux'
-    options,param.lim,units=units,ytitle=units,xtitle='Energy (keV)',xunits='ADC'
+    options,param.lim,units=units,ytitle=units,xtitle='Energy (keV)',xunits='ENERGY'
   endif
   if ~param.haskey('routine_name') then param.routine_name = 'swfo_stis_plot'
   if ~param.haskey('nsamples') then param.nsamples = 20
-  if ~param.haskey('ddata') then begin
+  if ~param.haskey('dtrate') then param.dtrate = 3e4     ; 1 / dead time
+  if ~param.haskey('jconv') then param.jconv = .01       ; conversion from j to rate
+  if ~param.haskey('ddata') || ~isa(param.ddata) then begin
     if (sci = swfo_apdat('stis_sci'))  then begin ; First look for data from the L0 data stream
-      param.ddata = sci.data   ; L0 data
+      param.ddata = sci.getattr('level_0b')      ; L0b data
+      param.L0b = sci.getattr('level_0b')
+      param.L1a = sci.getattr('level_1a')
+      param.L1b = sci.getattr('level_1b')
+      ;param.L2  = sci.level_2b
     endif else begin        ;   Look for data from the L0 or L1 tplot variables
       get_data,'swfo_stis_sci_COUNTS',ptr_str = tplot_data, time
       if isa(tplot_data,'dynamicarray') then begin
@@ -144,23 +150,46 @@ pro  swfo_stis_plot,var,t,param=param,trange=trange,nsamples=nsamples,lim=lim,fi
     wi,param.window
    
     l1a = swfo_stis_sci_level_1a(samples)
+    l1b = swfo_stis_sci_level_1b(l1a)
     ;h= [l1a.hash,0]   ; get the uniq segments
     ;up =   uniq(h)       
     ;u0= [0,up]
     
-    h = l1a.hash
+    ; h was originally l1a.hash, which
+    ; was represented as a hashcode of the mapd codes
+    ; [translate,resolution,linear_mode,uselut_flag]
+
+    ; Can instead look directly and translate / resolution
+    ; and the nonstandard flag (30th bit of the quality bit),
+    ; which is set if linear mode is on or uselut is True
+    ; h = l1a.hash
+    translate = l1a.sci_translate
+    resolution = l1a.sci_resolution
+    q = l1a.quality_bits
+    nonstandard_flag = ishft(q, -30) and 1 ; this combines linear mode and uselut
+
+    dtrans = translate - shift(translate,-1)
+    dres = resolution - shift(resolution,-1)
+    dnons = nonstandard_flag - shift(nonstandard_flag, -1)
+    h = dtrans + dres + dnons
+    ; print, translate
+    ; print, resolution
+    ; print, nonstandard_flag
+    ; if total(h) gt 0 then stop
+
     if nsamples gt 1 then   h[-1] = 0    ; ignore the last one
     dh = h - shift(h,-1)   ; ignore any spectrum in which the following hkp changes
          
     u = h.uniq()
 
     
-    if param.lim.xunits eq 'ADC' then param.lim.xtitle = 'ADC units' else param.lim.xtitle = 'Deposited Energy (keV)
+    if param.lim.xunits eq 'ADC' then param.lim.xtitle = 'ADC units' else param.lim.xtitle = 'Deposited Energy (keV)'
 
     lim = param.lim
     ;box,lim
     ;init=0
-    lim.title = trange_str(minmax(samples.time))
+    ts=time_string(minmax(samples.time))
+    lim.title = ts[0]+' - '+ts[1] 
     if 1 then begin
       par = mgauss(numg=1)
     endif
@@ -174,7 +203,9 @@ pro  swfo_stis_plot,var,t,param=param,trange=trange,nsamples=nsamples,lim=lim,fi
       w = where(h eq u[i] and dh eq 0,/null,nw)
       if nw eq 0 then continue
       datw=l1a[w]
+      datw_b=l1b[w]
       dat = average(datw)
+      dat_b = average(datw_b)
       nc = n_elements(channels)
       for c = 0,nc-1 do begin
         ch = channels[c]
@@ -191,7 +222,7 @@ pro  swfo_stis_plot,var,t,param=param,trange=trange,nsamples=nsamples,lim=lim,fi
         case strupcase(param.lim.units) of
           "EFLUX": begin 
             scale = x 
-            param.lim.ytitle = 'Energy Flux (#/cm2/ster/s)'
+            param.lim.ytitle = 'Energy Flux (keV/cm2/ster/s/keV)'
             end
           'ERATE': begin
             scale = 1
@@ -214,6 +245,31 @@ pro  swfo_stis_plot,var,t,param=param,trange=trange,nsamples=nsamples,lim=lim,fi
         ch.dy = dy
         ch.lim = lim
         channels[c] = ch
+        if 1 then begin
+          j1 = channels[3].y
+          j2 = channels[5].y
+          jconv = param.jconv
+          dtrate = param.dtrate
+          rate1 = total(j1) * jconv
+          rate2 = total(j2) * jconv * 100
+          dtcor2 = 1/(1-rate2/30e4)
+          dtcor2 = 1 + rate2/dtrate
+          eta1 =  0. > sqrt( rate1 * param.range  ) < 1.
+          eta2 =  0. >     (1.8- dtcor2)*.4    < 1.
+          j_hdr = (eta1 * j1 + eta2 *j2)/ (eta1 + eta2)
+          ch_cor = channels[0]
+          ch_cor.color = 0
+          ch_cor.y = j_hdr
+
+         ; oplot, dat_b.ion_energy, dat_b.ion_energy*dat_b.hdr_ion_flux, color=2, thick=3, psym=ch.psym
+          oplot, dat_b.elec_energy, dat_b.elec_energy*dat_b.hdr_elec_flux, color=1, thick=3, psym=ch.psym
+         ; oplot,ch_cor.x,ch_cor.y ,color=6,psym=ch.psym,thick=3
+          ; stop
+
+          ;tl dprint,dlevel=2,total(j1),total(j2), rate1,rate2, eta1,eta2
+        endif
+        
+        
         oplot,x,y ,color=ch.color,psym=ch.psym
         if param.haskey('dofit') && keyword_set(param.dofit) && (c ge 0) && i eq n_elements(u)-1 then begin
           ;printdat,u
@@ -229,24 +285,47 @@ pro  swfo_stis_plot,var,t,param=param,trange=trange,nsamples=nsamples,lim=lim,fi
         
       endfor
     endfor
+    
+    
+    
+    
+    if 1 then begin
+      print_names = struct_value(param,'print_names')
+      s=''   ;!null
+      for i=0,n_elements(print_names)-1 do begin
+        name = print_names[i]
+        v = tsample(name,trange,/average)
+        v = reform(v)
+        s = [s,  name+ ' = '+strjoin(strtrim(v,2),',  ')]
+      endfor
+      ;dprint,s
+      xyouts,.15,.85,strjoin(s,'!c'),/normal
+    endif
+    
 
     if 0 then begin
       xv = dgen()
+      
       
       flux_min = 2.48e2 * xv ^ (-1.6)  ; #/sec/cm2/ster/keV
       flux_max = 1.01e7 * xv ^ (-1.6)
       if strupcase(param.lim.units) eq 'EFLUX' then  scale = xv else scale = 1
       oplot, xv, flux_min * scale
       oplot, xv, flux_max * scale
+      
+      oplot, 40.*[1.,1.],[30,1e6],linestyle=2
+      oplot, 2000.*[1.,1.],[3,1e5],linestyle=2
+      
+      
       if 1 then begin
         ;stop
         w = where(x ge 30 and x lt 2000)
         flux_min = 2.48e2 * x ^ (-1.6)
         eflux_min  = x * flux_min
-        dt = 30.
+        dt = 300.
         counts = flux_min * .2 * dt * dx
         flux = counts /.2 / dt / dx
-        dflux = sqrt(counts+1.) / .2/dt/dx
+        dflux = sqrt(counts+1.) / .2/dt/dx  
         oplot,x,flux * x, color = 2,psym=10
         oplot,x,(flux+dflux) * x, color = 2,psym=10
         oplot,x,(flux-dflux) * x, color = 2,psym=10
@@ -254,15 +333,21 @@ pro  swfo_stis_plot,var,t,param=param,trange=trange,nsamples=nsamples,lim=lim,fi
         ;print,max(dflux/flux)
         ;print,dx/x
         ;print,x
-        ;print,dx
+        ;print,dx'
+        ;w = where(finite(x))
+      ;  printdat,x
+      ;  dprint, 'Energy',float(x[w])
+        
+      ;  dprint, 'Min ',float(dflux[w]/flux[w])
 
       endif
       
-      if 0 then begin
-        w = where(x ge 10 and x lt 8000)
+      if 1 then begin
+        w = where(x ge 20 and x lt 20000)
+       ; w = where(finite(x))
         flux_max = 1.01e7 * x ^ (-1.6)
         eflux_max  = x * flux_max
-        dt = 2.
+        dt = 300.
         geom = .002
         counts = flux_max * geom * dt * dx
         flux = counts /geom / dt / dx
@@ -270,10 +355,14 @@ pro  swfo_stis_plot,var,t,param=param,trange=trange,nsamples=nsamples,lim=lim,fi
         oplot,x,flux * x, color = 6,psym=10
         oplot,x,(flux+dflux) * x, color = 6,psym=10
         oplot,x,(flux-dflux) * x, color = 6,psym=10
-        ;print,total(counts[w])/dt
-        ;print,max(dflux/flux)
-        ;print,dx/x
-        
+        if 1 then begin
+          print,total(counts[w])/dt
+          ;print,max(dflux/flux)
+          ;print,dx/x
+        endif
+        ;w = where(finite(x))
+       ; dprint, 'Energy',float(x[w])
+       ; dprint, 'Max ',float(dflux[w]/flux[w])
       endif
       
       

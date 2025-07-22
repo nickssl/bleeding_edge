@@ -9,9 +9,9 @@
 ;     IDL> mgunit, 'mms_part_products_ut'
 ;
 ;
-; $LastChangedBy: egrimes $
-; $LastChangedDate: 2018-09-20 15:35:27 -0700 (Thu, 20 Sep 2018) $
-; $LastChangedRevision: 25842 $
+; $LastChangedBy: jwl $
+; $LastChangedDate: 2023-11-09 10:30:15 -0800 (Thu, 09 Nov 2023) $
+; $LastChangedRevision: 32224 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/common/tests/mms_part_products_ut__define.pro $
 ;-
 
@@ -563,7 +563,7 @@ end
 ;-
 pro mms_part_products_ut::setup
   del_data, '*'
-  window, 0, xs=1100, ys=1000
+  if (!d.name ne "Z") then window, 0, xs=1100, ys=1000
   tplot_options, 'xmargin', [18,10]
 end
 

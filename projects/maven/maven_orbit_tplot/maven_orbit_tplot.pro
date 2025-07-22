@@ -67,6 +67,7 @@
 ;       SHADOW:   Choose shadow boundary definition:
 ;                    0 : optical shadow at spacecraft altitude
 ;                    1 : EUV shadow at spacecraft altitude (default)
+;                    2 : EUV shadow at electron absorption altitude
 ;
 ;       SEGMENTS: Plot nominal altitudes for orbit segment boundaries as dotted
 ;                 horizontal lines.  Closely spaced lines are transitions, during
@@ -92,25 +93,32 @@
 ;                 Used for long range predict and special events kernels.  Replaces
 ;                 keywords EXTENDED and HIRES.
 ;
-;       EXTENDED: If set, load one of six long-term predict ephemerides.  All but one
-;                 have a density scale factor (DSF) of 2.5, which is a weighted average
-;                 over several Mars years.  They differ in the number and timing of
-;                 apoapsis, periapsis, and inclination maneuvers (arm, prm, inc) and total
-;                 fuel usage (meters per second, or ms).  The date when the ephemeris was
-;                 generated is given at the end of the filename (YYMMDD).  More recent
-;                 dates better reflect current mission goals.  When in doubt, use the
+;       EXTENDED: If set to a value from 1 to 8, loads one of eight long-term predict
+;                 ephemerides.  Most have a density scale factor (DSF) of 2.5, which
+;                 is a weighted average over several Mars years.  They differ in the
+;                 number and timing of apoapsis, periapsis, and inclination maneuvers
+;                 (arm, prm, inc) and total fuel usage (meters per second, or ms).
+;                 The date when the ephemeris was generated is given at the end of 
+;                 the filename (YYMMDD).  More recent dates better reflect actual 
+;                 past perfomance and current mission goals.  When in doubt, use the
 ;                 most recent.
 ;
-;                   1 : trj_orb_230322-320101_dsf2.5-arm-prm-inc-17.5ms_230320.bsp
-;                   2 : trj_orb_230322-320101_dsf1.5-prm-3.5ms_230320.bsp
-;                   3 : trj_orb_220810-320101_dsf2.5_arm_prm_19.2ms_220802.bsp
-;                   4 : trj_orb_220101-320101_dsf2.5_arms_18ms_210930.bsp
-;                   5 : trj_orb_220101-320101_dsf2.5_arm_prm_13.5ms_210908.bsp
-;                   6 : trj_orb_210326-301230_dsf2.5-otm0.4-arms-prm-13.9ms_210330.bsp
+;                   0 : use timerange() to load short-term predicts
+;                   1 : trj_orb_250407-350702_dsf2.0_prm_4.4ms_250402.bsp
+;                   2 : trj_orb_240821-331231_dsf2.0_prm_4.4ms_240820.bsp
+;                   3 : trj_orb_230322-320101_dsf2.5-arm-prm-inc-17.5ms_230320.bsp
+;                   4 : trj_orb_230322-320101_dsf1.5-prm-3.5ms_230320.bsp
+;                   5 : trj_orb_220810-320101_dsf2.5_arm_prm_19.2ms_220802.bsp
+;                   6 : trj_orb_220101-320101_dsf2.5_arms_18ms_210930.bsp
+;                   7 : trj_orb_220101-320101_dsf2.5_arm_prm_13.5ms_210908.bsp
+;                   8 : trj_orb_210326-301230_dsf2.5-otm0.4-arms-prm-13.9ms_210330.bsp
 ;
-;                 Warning: using this keyword will reset timespan to cover the specified
-;                 extended ephemeris, overwriting any existing timespan.  This will affect
-;                 any routines that use timespan for determining what data to process.
+;                 Default = 0.
+;
+;                 For short-term predictions (< 3-4 months in the future) it's better to
+;                 set the desired timespan and run this routine without setting EXTENDED.
+;                 That will load the short-term predict spk kernels, which are more 
+;                 accurate than any of the above long-term predicts.
 ;
 ;       HIRES:    OBSOLETE.  This keyword has no effect.
 ;
@@ -118,7 +126,6 @@
 ;
 ;       NOLOAD:   Don't load or refresh the ephemeris information.  Just fill in any
 ;                 keywords and exit.
-;
 ;
 ;       LINE_COLORS: Line color scheme for altitude panel.  This can be an integer [0-10]
 ;                 to select one of 11 pre-defined line color schemes.  It can also be array
@@ -164,19 +171,24 @@
 ;
 ;       MISSION:  Restore save files that span from Mars orbit insertion to the 
 ;                 present.  These files are refreshed periodically.  Together, 
-;                 the save files are 15 GB in size (as of July 2023), so this 
+;                 the save files are 17 GB in size (as of December 2024), so this 
 ;                 keyword is only useful for computers with sufficient memory.
 ;
-;                   Latest refresh: 2023-07-15
-;                   Ephemeris start date: 2014-09-21
-;                   Ephemeris end date: 2023-11-17
+;                   Latest refresh: 2024-12-16
+;                   Range 1: 2014-09-21 to 2025-01-18
+;                            -- gap --
+;                   Range 2: 2025-02-01 to 2025-04-05
+;
+;                 The first range is derived from reconstructed spk kernels plus
+;                 short-term predict kernels.  The second range is derived from 
+;                 medium-term predict kernels.
 ;
 ;                 Using the where command, you can identify times that meet an
 ;                 arbitrary set of ephemeris conditions.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-08-27 13:10:15 -0700 (Sun, 27 Aug 2023) $
-; $LastChangedRevision: 32068 $
+; $LastChangedDate: 2025-04-05 14:34:27 -0700 (Sat, 05 Apr 2025) $
+; $LastChangedRevision: 33230 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/maven_orbit_tplot/maven_orbit_tplot.pro $
 ;
 ;CREATED BY:	David L. Mitchell  10-28-11
@@ -187,7 +199,7 @@ pro maven_orbit_tplot, trange=trange, stat=stat, swia=swia, ialt=ialt, result=re
                        spk=spk, segments=segments, shadow=shadow, datum=datum2, noload=noload, $
                        pds=pds, verbose=verbose, clear=clear, success=success, save=save, $
                        restore=restore, mission=mission, timecrop=timecrop, nocrop=nocrop, $
-                       line_colors=lcol
+                       line_colors=lcol, fatmars=fatmars
 
   @maven_orbit_common
 
@@ -280,9 +292,9 @@ pro maven_orbit_tplot, trange=trange, stat=stat, swia=swia, ialt=ialt, result=re
 
   R_equ = 3396.19D  ; +/- 0.1
   R_pol = 3376.20D  ; N pole = 3373.19 +/- 0.1 ; S pole = 3379.21 +/- 0.1
-  R_vol = 3389.50D  ; +/- 0.2
+  R_vol = 3389.50D  ; +/- 0.2  (volumetric mean radius)
 
-  R_m = R_vol       ; use the mean radius for converting to Mars radii
+  if keyword_set(fatmars) then R_m = R_equ else R_m = R_vol
 
 ; Load any keyword defaults
 
@@ -358,8 +370,7 @@ pro maven_orbit_tplot, trange=trange, stat=stat, swia=swia, ialt=ialt, result=re
 
   tspan = tspan + [-oneday, oneday]  ; pad by one day before and after
 
-  if (size(shadow,/type) eq 0) then shadow = 1
-  sflg = keyword_set(shadow)
+  sflg = (size(shadow,/type) gt 0) ? fix(shadow[0]) > 0 : 1
   if not keyword_set(ialt) then ialt = !values.f_nan
 
   mname = 'maven_spacecraft_mso_??????' + '.sav'
@@ -395,6 +406,26 @@ pro maven_orbit_tplot, trange=trange, stat=stat, swia=swia, ialt=ialt, result=re
     case extended of
        0   : ; do nothing (don't use extended predict ephemeris)
        1   : begin
+               mname = 'maven_spacecraft_mso_250407-350702_dsf2.0_prm_4.4ms_250402.sav'
+               gname = 'maven_spacecraft_geo_250407-350702_dsf2.0_prm_4.4ms_250402.sav'
+               ename = 'maven_spacecraft_eph_250407-350702_dsf2.0_prm_4.4ms_250402.sav'
+               timespan, ['2025-04-07','2035-07-01']
+               treset = 1
+               print,"Using extended predict ephemeris."
+               print,"  SPK = trj_orb_250407-350702_dsf2.0_prm_4.4ms_250402.bsp"
+               ttitle = "trj_orb_250407-350702_dsf2.0_prm_4.4ms_250402.bsp"
+             end
+       2   : begin
+               mname = 'maven_spacecraft_mso_240821-331231_dsf2.0_prm_4.4ms_240820.sav'
+               gname = 'maven_spacecraft_geo_240821-331231_dsf2.0_prm_4.4ms_240820.sav'
+               ename = 'maven_spacecraft_eph_240821-331231_dsf2.0_prm_4.4ms_240820.sav'
+               timespan, ['2024-08-21','2034-01-01']
+               treset = 1
+               print,"Using extended predict ephemeris."
+               print,"  SPK = trj_orb_240821-331231_dsf2.0_prm_4.4ms_240820.bsp"
+               ttitle = "trj_orb_240821-331231_dsf2.0_prm_4.4ms_240820.bsp"
+             end
+       3   : begin
                mname = 'maven_spacecraft_mso_230322-320101_dsf2.5-arm-prm-inc-17.5ms_230320.sav'
                gname = 'maven_spacecraft_geo_230322-320101_dsf2.5-arm-prm-inc-17.5ms_230320.sav'
                ename = 'maven_spacecraft_eph_230322-320101_dsf2.5-arm-prm-inc-17.5ms_230320.sav'
@@ -404,7 +435,7 @@ pro maven_orbit_tplot, trange=trange, stat=stat, swia=swia, ialt=ialt, result=re
                print,"  SPK = trj_orb_230322-320101_dsf2.5-arm-prm-inc-17.5ms_230320.bsp"
                ttitle = "trj_orb_230322-320101_dsf2.5-arm-prm-inc-17.5ms_230320.bsp"
              end
-       2   : begin
+       4   : begin
                mname = 'maven_spacecraft_mso_230322-320101_dsf1.5-prm-3.5ms_230320.sav'
                gname = 'maven_spacecraft_geo_230322-320101_dsf1.5-prm-3.5ms_230320.sav'
                ename = 'maven_spacecraft_eph_230322-320101_dsf1.5-prm-3.5ms_230320.sav'
@@ -414,7 +445,7 @@ pro maven_orbit_tplot, trange=trange, stat=stat, swia=swia, ialt=ialt, result=re
                print,"  SPK = trj_orb_230322-320101_dsf1.5-prm-3.5ms_230320.bsp"
                ttitle = "trj_orb_230322-320101_dsf1.5-prm-3.5ms_230320.bsp"
              end
-       3   : begin
+       5   : begin
                mname = 'maven_spacecraft_mso_2022-2032_dsf2.5_arm_prm_19.2ms_220802.sav'
                gname = 'maven_spacecraft_geo_2022-2032_dsf2.5_arm_prm_19.2ms_220802.sav'
                ename = 'maven_spacecraft_eph_2022-2032_dsf2.5_arm_prm_19.2ms_220802.sav'
@@ -424,7 +455,7 @@ pro maven_orbit_tplot, trange=trange, stat=stat, swia=swia, ialt=ialt, result=re
                print,"  SPK = trj_orb_220810-320101_dsf2.5_arm_prm_19.2ms_220802.bsp"
                ttitle = "trj_orb_220810-320101_dsf2.5_arm_prm_19.2ms_220802.bsp"
              end
-       4   : begin
+       6   : begin
                mname = 'maven_spacecraft_mso_2022-2032_dsf2.5_arms_18ms_210930.sav'
                gname = 'maven_spacecraft_geo_2022-2032_dsf2.5_arms_18ms_210930.sav'
                ename = 'maven_spacecraft_eph_2022-2032_dsf2.5_arms_18ms_210930.sav'
@@ -434,7 +465,7 @@ pro maven_orbit_tplot, trange=trange, stat=stat, swia=swia, ialt=ialt, result=re
                print,"  SPK = trj_orb_220101-270101_dsf2.5_arms_18ms_210930.bsp"
                ttitle = "trj_orb_220101-320101_dsf2.5_arms_18ms_210930.bsp"
              end
-        5  : begin
+       7   : begin
                mname = 'maven_spacecraft_mso_2022-2032_dsf2.5_arm_prm_13.5ms_210908.sav'
                gname = 'maven_spacecraft_geo_2022-2032_dsf2.5_arm_prm_13.5ms_210908.sav'
                ename = 'maven_spacecraft_eph_2022-2032_dsf2.5_arm_prm_13.5ms_210908.sav'
@@ -444,7 +475,7 @@ pro maven_orbit_tplot, trange=trange, stat=stat, swia=swia, ialt=ialt, result=re
                print,"  SPK = trj_orb_220101-270101_dsf2.5_arm_prm_13.5ms_210908.bsp"
                ttitle = "trj_orb_220101-320101_dsf2.5_arm_prm_13.5ms_210908.bsp"
              end
-        6  : begin
+       8   : begin
                mname = 'maven_spacecraft_mso_2021-2030_dsf2.5_210330.sav'
                gname = 'maven_spacecraft_geo_2021-2030_dsf2.5_210330.sav'
                ename = 'maven_spacecraft_eph_2021-2030_dsf2.5_210330.sav'
@@ -457,12 +488,14 @@ pro maven_orbit_tplot, trange=trange, stat=stat, swia=swia, ialt=ialt, result=re
       else : begin
                print,"Extended predict ephemeris options are: "
                print,"  0 : Do not use an extended predict ephemeris (default)."
-               print,"  1 : trj_orb_230322-320101_dsf2.5-arm-prm-inc-17.5ms_230320.bsp"
-               print,"  2 : trj_orb_230322-320101_dsf1.5-prm-3.5ms_230320.bsp"
-               print,"  3 : trj_orb_220810-320101_dsf2.5_arm_prm_19.2ms_220802.bsp"
-               print,"  4 : trj_orb_220101-320101_dsf2.5_arms_18ms_210930.bsp"
-               print,"  5 : trj_orb_220101-320101_dsf2.5_arm_prm_13.5ms_210908.bsp"
-               print,"  6 : trj_orb_210326-301230_dsf2.5-otm0.4-arms-prm-13.9ms_210330.bsp"
+               print,"  1 : trj_orb_250407-350702_dsf2.0_prm_4.4ms_250402.bsp"
+               print,"  2 : trj_orb_240821-331231_dsf2.0_prm_4.4ms_240820.bsp"
+               print,"  3 : trj_orb_230322-320101_dsf2.5-arm-prm-inc-17.5ms_230320.bsp"
+               print,"  4 : trj_orb_230322-320101_dsf1.5-prm-3.5ms_230320.bsp"
+               print,"  5 : trj_orb_220810-320101_dsf2.5_arm_prm_19.2ms_220802.bsp"
+               print,"  6 : trj_orb_220101-320101_dsf2.5_arms_18ms_210930.bsp"
+               print,"  7 : trj_orb_220101-320101_dsf2.5_arm_prm_13.5ms_210908.bsp"
+               print,"  8 : trj_orb_210326-301230_dsf2.5-otm0.4-arms-prm-13.9ms_210330.bsp"
                print,""
                return
              end
@@ -639,14 +672,31 @@ pro maven_orbit_tplot, trange=trange, stat=stat, swia=swia, ialt=ialt, result=re
 
   r = sqrt(x*x + y*y + z*z)
   s = sqrt(y*y + z*z)
-  if (sflg) then begin
-    print,"Using EUV shadow"
-    shadow = 1D + (150D/R_m)
-  endif else begin
-    print,"Using optical shadow"
-    shadow = 1D
-  endelse
   sza = atan(s,x)
+
+  case (sflg) of
+      0  : begin
+             print,"Using optical shadow"
+             shadow = 1D
+             stype = 'OPT'
+           end
+      1  : begin
+             print,"Using EUV shadow"
+             shadow = 1D + (150D/R_m)
+             stype = 'EUV'
+           end
+      2  : begin
+             print,"Using electron footpoint shadow"
+             shadow = 1D + (170D/R_m)
+             stype = 'EFP'
+           end
+    else : begin
+             print,"Shadow option not recognized: ",sflg
+             print,"Using default EUV shadow"
+             shadow = 1D + (150D/R_m)
+             stype = 'EUV'
+           end
+  endcase
 
 ; Calculate altitude, longitude, latitude, local time, and sub-solar point
 ; (or restore pre-calculated values for MISSION or EXTENDED).  All of these
@@ -873,7 +923,6 @@ pro maven_orbit_tplot, trange=trange, stat=stat, swia=swia, ialt=ialt, result=re
   store_data,'pileup',data={x:time, y:pileup[*,4]}
   options,'pileup','color',rcols[1]
 
-  if (sflg) then stype = 'EUV' else stype = 'OPT'
   store_data,'wake',data={x:time, y:wake[*,4], shadow:stype}
   options,'wake','color',rcols[2]
 
@@ -901,8 +950,8 @@ pro maven_orbit_tplot, trange=trange, stat=stat, swia=swia, ialt=ialt, result=re
                            else options,'alt2','constant',-1
 
   if keyword_set(pds) then begin
-    nmon = 100  ; extends to 2040-02-15
-    pds_rel = replicate(time_struct('2015-05-15'),nmon)
+    nmon = 100  ; extends to 2039-08-15
+    pds_rel = replicate(time_struct('2014-11-15'),nmon)
     pds_rel.month += 3*indgen(nmon)
     pds_rel = time_double(pds_rel)
     pflg = 1

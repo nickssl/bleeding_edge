@@ -31,21 +31,49 @@
 ;     data:   https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes16/l2/data/
 ;
 ; $LastChangedBy: nikos $
-; $LastChangedDate: 2023-02-02 07:46:23 -0800 (Thu, 02 Feb 2023) $
-; $LastChangedRevision: 31461 $
+; $LastChangedDate: 2024-06-08 13:44:22 -0700 (Sat, 08 Jun 2024) $
+; $LastChangedRevision: 32691 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/goesr/goesr_load_data.pro $
 ;-
 
-pro goesr_sgps_postprocessing, varnames, suffix=suffix
+function goesr_find_in_list, alist, astr, notstr=notstr
+  ; Find a substring in a list, exclude all notstr
+  names = ['']
+  if undefined(notstr) then begin
+    positions = strpos(alist, astr)
+    idx = where(positions ne -1, count)
+    if count ge 1 then begin
+      names = tnames(alist[idx])
+    endif
+  endif else begin
+    positions = strpos(alist, astr)
+    nopositions = strpos(alist, notstr)
+    idx = where(positions ne -1 and nopositions eq -1, count)
+    if count ge 1 then begin
+      names = tnames(alist[idx])
+    endif
+  endelse
+
+  return, names[0]
+end
+
+pro goesr_sgps_postprocessing, varnames, prefix = prefix, suffix = suffix
   ; Create separate tplot variables for each of the two sensors
   ; Total of 13 energy channels
 
-  if undefined(suffix) then suffix = ''
-  protons = tnames('*_AvgDiffProtonFlux' + suffix)
-  protons_energies = tnames('*_DiffProtonEffectiveEnergy' + suffix)
-  if protons[0] ne '' then begin
-    get_data, protons[0], data=dp, dl=dlp
-    get_data, protons_energies[0], data=dpen, dl=dlpen
+  if undefined(prefix) then prefix=''
+  if undefined(suffix) then suffix=''
+
+  v = prefix + 'AvgDiffProtonFlux' + suffix
+  vn = prefix + 'AvgDiffProtonFluxUncert' + suffix
+  protons = goesr_find_in_list(varnames, v, notstr=vn)
+
+  v = prefix + 'DiffProtonEffectiveEnergy' + suffix
+  protons_energies =  goesr_find_in_list(varnames, v)
+
+  if protons ne '' and protons ne -1 then begin
+    get_data, protons, data=dp, dl=dlp
+    get_data, protons_energies, data=dpen, dl=dlpen
     dlp.ylog = 1
     str_element, dlp, 'labels', ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12', 'P13'], /add
     str_element, dlp, 'labflag', -1, /add
@@ -61,18 +89,26 @@ pro goesr_sgps_postprocessing, varnames, suffix=suffix
 
 end
 
-pro goesr_mpsh_postprocessing, varnames, suffix=suffix
+pro goesr_mpsh_postprocessing, varnames, prefix = prefix, suffix = suffix
   ; Create separate tplot variables for each telescope
 
-  if undefined(suffix) then suffix = ''
+  if undefined(prefix) then prefix=''
+  if undefined(suffix) then suffix=''
+
   ; Proton telescopes: T1, T4, T2, T5, T3
   ; Total of 11 energy channels.
-  protons = tnames('*_AvgDiffProtonFlux' + suffix)
-  protons_energies = tnames('*_DiffProtonEffectiveEnergy' + suffix)
+  v = prefix + 'AvgDiffProtonFlux' + suffix
+  vn = prefix + 'AvgDiffProtonFluxUncert' + suffix
+  protons = goesr_find_in_list(varnames, v, notstr=vn)
+
+  v = prefix + 'DiffProtonEffectiveEnergy' + suffix
+  protons_energies =  goesr_find_in_list(varnames, v)
+  protons_energies = protons_energies[0]
+
   tprotons = ['T1', 'T4', 'T2', 'T5', 'T3']
-  if protons[0] ne '' then begin
-    get_data, protons[0], data=dp, dl=dlp
-    get_data, protons_energies[0], data=dpen, dl=dlpen
+  if protons ne '' and protons ne -1 then begin
+    get_data, protons, data=dp, dl=dlp
+    get_data, protons_energies, data=dpen, dl=dlpen
     dlp.ylog = 1
     str_element, dlp, 'labels', ['P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11'], /add
     str_element, dlp, 'labflag', -1, /add
@@ -88,12 +124,17 @@ pro goesr_mpsh_postprocessing, varnames, suffix=suffix
 
   ; Electron telescopes: T3, T1, T4, T2, T5
   ; Total of 10 energy channels.
-  electrons = tnames('*_AvgDiffElectronFlux' + suffix)
-  electrons_energies = tnames('*_DiffElectronEffectiveEnergy' + suffix)
+  v = prefix + 'AvgDiffElectronFlux' + suffix
+  vn = prefix + 'AvgDiffElectronFluxUncert' + suffix
+  electrons = goesr_find_in_list(varnames, v, notstr=vn)
+
+  v = prefix + 'DiffElectronEffectiveEnergy' + suffix
+  electrons_energies =  goesr_find_in_list(varnames, v)
+
   telectrons = ['T3', 'T1', 'T4', 'T2', 'T5']
-  if electrons ne '' then begin
-    get_data, electrons[0], data=de, dl=dle
-    get_data, electrons_energies[0], data=deen, dl=dleen
+  if electrons ne '' and electrons ne -1 then begin
+    get_data, electrons, data=de, dl=dle
+    get_data, electrons_energies, data=deen, dl=dleen
     dle.ylog = 1
     str_element, dle, 'labels', ['E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'E8', 'E9', 'E10'], /add
     str_element, dle, 'labflag', -1, /add
@@ -112,7 +153,17 @@ end
 pro goesr_mag_postprocessing, varnames
   ; Replace FillValues -9999.0f with NaNs.
 
-  bvars = tnames('*_b_*')
+  vvars = tnames('*_b_*')
+  bvars = []
+  for i=0,n_elements(vvars)-1 do begin
+    positions = strpos(varnames, vvars[i])
+    idx = where(positions ne -1, count)
+    if count ge 1 then begin
+      names = varnames[idx]
+      bvars = [bvars, names]
+    endif
+  endfor
+
   for i=0, n_elements(bvars)-1 do begin
     vname = bvars[i]
     idx = where(vname eq varnames, count)
@@ -132,7 +183,17 @@ end
 pro goesr_xrs_postprocessing, varnames
   ; Replace FillValues -9999.0f with NaNs.
 
-  xrsvars = tnames('*_flux_*')
+  vvars = tnames('*_flux_*')
+  xrsvars = []
+  for i=0,n_elements(vvars)-1 do begin
+    positions = strpos(varnames, vvars[i])
+    idx = where(positions ne -1, count)
+    if count ge 1 then begin
+      names = varnames[idx]
+      xrsvars = [xrsvars, names]
+    endif
+  endfor
+  
   for i=0, n_elements(xrsvars)-1 do begin
     vname = xrsvars[i]
     idx = where(vname eq varnames, count)
@@ -326,15 +387,15 @@ pro goesr_load_data, trange = trange, datatype = datatype, probes = probes, pref
         end
         'xrs':begin
           ; Replace -9999.0f FillValues with NaNs.
-          goesr_xrs_postprocessing, tplotnames
+          goesr_xrs_postprocessing, tplotnames 
         end
         'mpsh': begin
           ; Separate data from 5 telescopes.
-          goesr_mpsh_postprocessing, tplotnames, suffix=suffix
+          goesr_mpsh_postprocessing, tplotnames, prefix = prefix, suffix = suffix
         end
         'sgps':begin
           ; Separate data from 2 sensors.
-          goesr_sgps_postprocessing, tplotnames
+          goesr_sgps_postprocessing, tplotnames, prefix = prefix, suffix = suffix
         end
       endcase
       ;

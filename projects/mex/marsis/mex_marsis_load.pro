@@ -12,8 +12,8 @@
 ;       Yuki Harada on 2017-05-03
 ;
 ; $LastChangedBy: haraday $
-; $LastChangedDate: 2023-06-20 01:30:32 -0700 (Tue, 20 Jun 2023) $
-; $LastChangedRevision: 31900 $
+; $LastChangedDate: 2023-10-17 23:46:56 -0700 (Tue, 17 Oct 2023) $
+; $LastChangedRevision: 32201 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mex/marsis/mex_marsis_load.pro $
 ;-
 
@@ -126,8 +126,8 @@ for orbnum=orbnumr[0],orbnumr[1] do begin
 endfor                          ;- orbnum
 if total(strlen(files)) eq 0 then dprint,'geometry files not found'
 endif else begin ;- public, from spice
-   mex_spice_load,trange=tr
    res = 4d
+   mex_spice_load,trange=tr,resolution=res
    ndat = long((tr[1]-tr[0])/res) + 1
    times = tr[0] + res*dindgen(ndat)
    geo = spice_body_pos('MEX', 'MARS', frame='IAU_MARS', utc=times,check='MEX')

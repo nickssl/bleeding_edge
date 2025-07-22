@@ -16,10 +16,7 @@ mms*_dfg_srvy_gsm_dmpa_z
 ;--------------------
 ; SITL
 ;--------------------
-mms_sroi; Science ROIs
-mms_gls1_fomstr; ground-loop
-mms_gls2_fomstr; ground-loop
-mms_gls3_fomstr; ground-loop
+mms*_sroi; Science ROIs
 mms_stlm_fomstr; FOM (current) (being modified by a SITL)
 mms_stlm_fomstr_copy; FOM (temporary selections for comparison with FOM (current))
 ;mms_soca_bakstr; BAK (SITL) (Latest BDM status after SITL modification)

@@ -20,8 +20,8 @@
 ;
 ;
 ; $LastChangedBy: xussui $
-; $LastChangedDate: 2018-05-23 13:50:00 -0700 (Wed, 23 May 2018) $
-; $LastChangedRevision: 25251 $
+; $LastChangedDate: 2025-04-10 11:39:12 -0700 (Thu, 10 Apr 2025) $
+; $LastChangedRevision: 33251 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/general/mvn_scpot_comp_dailysave.pro $
 ;
 ;CREATED BY:    Shaosui Xu, 08/01/2017
@@ -68,7 +68,7 @@ Pro mvn_scpot_comp_dailysave,start_day=start_day,end_day=end_day,ndays=ndays
         timespan,tst,1
         mvn_swe_spice_init,/force
         mvn_swe_clear
-        mvn_swe_load_l2, /spec
+        mvn_swe_load_l2, apid=['a4']
         mvn_swe_stat, /silent, npkt=npkt
         if max(npkt) gt 0 then begin
             maven_orbit_tplot,/load,/shadow

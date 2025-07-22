@@ -11,8 +11,8 @@
 ;	Info_str: An array of structures defining basic info for given time ranges
 ;
 ; $LastChangedBy: jhalekas $
-; $LastChangedDate: 2022-03-17 07:28:37 -0700 (Thu, 17 Mar 2022) $
-; $LastChangedRevision: 30689 $
+; $LastChangedDate: 2025-01-01 08:48:57 -0800 (Wed, 01 Jan 2025) $
+; $LastChangedRevision: 33029 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swia/mvn_swia_make_info_str_2.pro $
 ;
 ;-
@@ -92,7 +92,7 @@ deovere_fine: 0., $
 dt_int: 0., $
 geom: 0.}
 
-info_str.valid_time_range = time_double(['2014-11-20','2025-01-01'])
+info_str.valid_time_range = time_double(['2014-11-20','2030-01-01'])
 
 info_str.energy_coarse = rebin(energy_real,48)
 info_str.theta_coarse = rebin(theta_all,48,4)

@@ -58,9 +58,9 @@
 ; 
 ;     work in progress; suggestions, comments, complaints, etc: egrimes@igpp.ucla.edu
 ;     
-;$LastChangedBy: egrimes $
-;$LastChangedDate: 2022-02-03 11:41:03 -0800 (Thu, 03 Feb 2022) $
-;$LastChangedRevision: 30555 $
+;$LastChangedBy: jwl $
+;$LastChangedDate: 2023-12-18 16:23:47 -0800 (Mon, 18 Dec 2023) $
+;$LastChangedRevision: 32307 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/common/util/flatten_spectra.pro $
 ;-
 
@@ -225,25 +225,33 @@ pro flatten_spectra, xlog=xlog, ylog=ylog, xrange=xrange, yrange=yrange, nolegen
     xunit_str = fs_get_unit_string(xunits, disable_warning=to_kev)
     yunit_str = fs_get_unit_string(yunits, disable_warning=to_flux)
    
-    ; determine max and min  
-    if N_ELEMENTS(xrange) ne 2 or N_ELEMENTS(yrange) ne 2 then begin 
-      ;tmp = min(vardata.X - t, /ABSOLUTE, idx_to_plot) ; get the time index
-      idx_to_plot = where(vardata.X eq find_nearest_neighbor(vardata.X, t), idx_count)
-      if idx_count eq 0 then begin
-        dprint, dlevel=0, 'Error, time not found: ' + time_string(t, tformat='YYYY-MM-DD/hh:mm:ss.fff') + ' with variable ' + vars_to_plot[v_idx]
-        continue
-      endif
-      
-      if dimen2(vardata.v) eq 1 then data_x = vardata.v else data_x = vardata.v[idx_to_plot, *]
-      data_y = vardata.Y[idx_to_plot, *]
-      
-      data_out = flatten_spectra_convert_units(vars_to_plot[v_idx], data_x, data_y, metadata, to_kev=to_kev, to_flux=to_flux)
-      data_y = data_out['data_y']
-      data_x = data_out['data_x']
+    ; determine max and min
+;    There used to be a test here, so that if xrange and yrange were both set,
+;    the following code wasn't executed:
+;      
+;    if N_ELEMENTS(xrange) ne 2 or N_ELEMENTS(yrange) ne 2 then begin
+;    
+;    This was failing if both xrange and yrange were specified.  It looks like
+;    this bit of code should always run -- there are tests for xrange or yrange
+;    being unspecified a few lines later, but that code doesn't make sense unless 
+;    this block runs first.  JWL 2023-12-18
+;     
 
-      append_array,yr,reform(data_y)
-      append_array,xr,reform(data_x)     
-    endif      
+    idx_to_plot = where(vardata.X eq find_nearest_neighbor(vardata.X, t), idx_count)
+    if idx_count eq 0 then begin
+      dprint, dlevel=0, 'Error, time not found: ' + time_string(t, tformat='YYYY-MM-DD/hh:mm:ss.fff') + ' with variable ' + vars_to_plot[v_idx]
+      continue
+    endif
+      
+    if dimen2(vardata.v) eq 1 then data_x = vardata.v else data_x = vardata.v[idx_to_plot, *]
+    data_y = vardata.Y[idx_to_plot, *]
+      
+    data_out = flatten_spectra_convert_units(vars_to_plot[v_idx], data_x, data_y, metadata, to_kev=to_kev, to_flux=to_flux)
+    data_y = data_out['data_y']
+    data_x = data_out['data_x']
+
+    append_array,yr,reform(data_y)
+    append_array,xr,reform(data_x)     
     
     ; filename if we need to save file
     fname += vars_to_plot[v_idx] + '_'      

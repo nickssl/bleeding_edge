@@ -34,8 +34,8 @@
 ;       Use 'mvn_ngi_read_csv' to load ql data
 ;
 ; $LastChangedBy: haraday $
-; $LastChangedDate: 2020-01-15 17:13:48 -0800 (Wed, 15 Jan 2020) $
-; $LastChangedRevision: 28192 $
+; $LastChangedDate: 2024-01-03 16:19:22 -0800 (Wed, 03 Jan 2024) $
+; $LastChangedRevision: 32331 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/ngi/mvn_ngi_load.pro $
 ;-
 
@@ -53,10 +53,12 @@ pro mvn_ngi_load, mspec=mspec, trange=trange, filetype=filetype, verbose=verbose
      if level eq 'l3' then quant_mass = ['temperature']
   endif
   if keyword_set(cps_dt) then quant_mass = [quant_mass,'cps_dt']
+  latest_flg = 0
   if ~keyword_set(nolatest) and ~keyword_set(version) and ~keyword_set(revision) then latest_flg = 1
   if ~keyword_set(version) then version = '??'   ;- to be overwritten by latest version unless /nolatest is set
   if ~keyword_set(revision) then revision = '??' ;- to be overwritten by latest revision unless /nolatest is set
-
+  if keyword_set(nolatest) then if nolatest eq -1 then latest_flg = 2 ;- experimental mode, latest version for each meas.
+  
   for i_filetype=0,n_elements(filetype)-1 do begin ;- loop through filetypes
 
     ;remove any remote-index.html files so that multiple days in a given month will load jmm, 2019-04-09
@@ -70,8 +72,28 @@ pro mvn_ngi_load, mspec=mspec, trange=trange, filetype=filetype, verbose=verbose
 
      ;;; retrieve files
      if ~keyword_set(files) then begin
+        urls = ''
         if keyword_set(latest_flg) then urls = mvn_ngi_remote_list(trange=trange,filetype=filetype[i_filetype],latestversion=version,latestrevision=revision,_extra=_extra,verbose=verbose,level=level) ;- check latest version and revision numbers
-        if strlen(version) eq 2 then begin
+        if latest_flg eq 2 and total(strlen(urls)) gt 0 then begin ;- experimental mode, latest version for each meas.
+           undefine,f
+           meas_number = replicate('',n_elements(urls))
+           for i=0,n_elements(urls)-1 do meas_number[i] = $
+              strmid( file_basename(urls[i]) , strpos(file_basename(urls[i]),'abund-')+6, $
+                      strpos(file_basename(urls[i]),'_20')-strpos(file_basename(urls[i]),'abund-')-6 )
+           uniq_meas_number = meas_number[uniq(meas_number)]
+           for imeas=0,n_elements(uniq_meas_number)-1 do begin
+              files_now = file_basename(urls[where(strmatch(urls,'*abund-'+uniq_meas_number[imeas]+'*'))])
+              vvv_rrr = replicate('',n_elements(files_now))
+              for i=0,n_elements(files_now)-1 do vvv_rrr[i] = strmid( files_now[i] , strpos(files_now[i],'_v') , 8 )
+              sort_vvv_rrr = sort(vvv_rrr)
+              latest_file = files_now[sort_vvv_rrr[-1]]
+              pformat = 'maven/data/sci/ngi/'+level+'/YYYY/MM/'+latest_file
+              YYYYMMDD_now = strmid( latest_file , strpos(latest_file,'_20')+1 , 8 )
+              trange_now = time_double(YYYYMMDD_now,tf='YYYYMMDD')+[0,86400d]
+              append_array, f, mvn_pfp_file_retrieve(pformat,/daily_names,/last_version,/valid_only,trange=trange_now,verbose=verbose, _extra=_extra)
+           endfor
+           if size(f,/type) eq 0 then f = ''
+        endif else if strlen(version) eq 2 then begin
            pformat = 'maven/data/sci/ngi/'+level+'/YYYY/MM/mvn_ngi_'+level+'_'+filetype[i_filetype]+'-*_YYYYMMDDThh????_v'+version+'_r'+revision+'.csv'
            f = mvn_pfp_file_retrieve(pformat,/hourly_names,/last_version,/valid_only,trange=trange,verbose=verbose, _extra=_extra)
         endif else f = ''
@@ -94,14 +116,33 @@ pro mvn_ngi_load, mspec=mspec, trange=trange, filetype=filetype, verbose=verbose
      ;;; read in files and store data into structures
      for i_file=0,n_elements(f)-1 do begin
         dprint,dlevel=1,verbose=verbose,'reading in '+f[i_file]
-        if i_file eq 0 then d = read_csv(f[i_file],header=dh) else begin
-           dold = d
-           dnew = read_csv(f[i_file],header=dh)
-           tagnames = tag_names(d)
-           for i_c = 0,n_elements(dh)-1 do str_element, d, tagnames[i_c], [dold.(i_c),dnew.(i_c)],/add
-        endelse
+        if float(!version.release) lt 8. then begin
+           if i_file eq 0 then d = read_csv(f[i_file],header=dh) else begin
+              dold = d
+              dnew = read_csv(f[i_file],header=dh)
+              tagnames = tag_names(d)
+              for i_c = 0,n_elements(dh)-1 do str_element, d, tagnames[i_c], [dold.(i_c),dnew.(i_c)],/add
+           endelse
+        endif else begin
+           if i_file eq 0 then begin
+              d = read_csv(f[i_file], header=dh)
+              d = orderedhash(d)
+              keys = d.keys()
+              for i_c = 0, n_elements(keys)-1 do d[keys[i_c]] = list(d[keys[i_c]])
+           endif else begin
+              dnew = read_csv(f[i_file], header=dh)
+              dnew = orderedhash(dnew)
+              for i_c = 0, n_elements(keys)-1 do d[keys[i_c]].add, dnew[keys[i_c]]
+              undefine, dnew
+           endelse
+        endelse 
      endfor
-
+     if size(d, /type) ne 8 then begin
+        for i_c = 0, n_elements(keys)-1 do d[keys[i_c]] = d[keys[i_c]].toarray(/dim)
+        d = d.tostruct()
+        tagnames = tag_names(d)
+     endif 
+     
      ;;; check time
      idx = where(strmatch(dh,'t_unix'),idx_cnt)
      if idx_cnt ne 1 then begin

@@ -24,9 +24,9 @@
 ;
 ;       SUCCESS:       Set to 1 if valid potentials are found.
 ;       
-; $LastChangedBy: xussui $
-; $LastChangedDate: 2019-08-19 12:20:30 -0700 (Mon, 19 Aug 2019) $
-; $LastChangedRevision: 27618 $
+; $LastChangedBy: hara $
+; $LastChangedDate: 2024-02-23 14:47:10 -0800 (Fri, 23 Feb 2024) $
+; $LastChangedRevision: 32458 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/general/mvn_scpot_restore.pro $
 ;
 ;CREATED BY:    Shaosui Xu  06-23-17
@@ -34,7 +34,7 @@
 ;-
 
 Pro mvn_scpot_restore, trange, results=results, tplot=tplot, orbit=orbit, full=full, $
-                       success=ok
+                       success=ok, no_server=no_server
 
     ok = 0
 
@@ -55,7 +55,7 @@ Pro mvn_scpot_restore, trange, results=results, tplot=tplot, orbit=orbit, full=f
     if(size(trange,/type) eq 0) then trange=timerange()
 
     tmin = min(time_double(trange),max=tmax)
-    file = mvn_pfp_file_retrieve(rootdir+fname,trange=[tmin,tmax],/daily_names)
+    file = mvn_pfp_file_retrieve(rootdir+fname,trange=[tmin,tmax],/daily_names,no_server=no_server)
     nfiles = n_elements(file)
 
     finfo = file_info(file)

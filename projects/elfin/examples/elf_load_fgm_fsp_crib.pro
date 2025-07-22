@@ -1,4 +1,4 @@
-pro elf_load_fgm_fsp_crib_v5
+pro elf_load_fgm_fsp_crib
 ;
   ;;    ============================
   ;;   Select date and time interval
@@ -53,12 +53,12 @@ stop
   ;;    ============================
   ;calc," 'elx_fgs_res_dmxl' ='elx_fgs_fsp_dmxl' - 'elx_fgs_fsp_igrf_dmxl' "
   tplot,'elx_fgs_fsp_igrf_dmxl elx_fgs_fsp_res_dmxl'
-  makepng, 'C:\Users\clrussell\Desktop\tplot_1'  
+  pngfile=!elf.local_data_dir+'el'+sclet+'/tplot_1'
+  makepng, pngfile
   stop
   
 ;  calc," 'elx_fgs_res_gei' ='elx_fgs_fsp_gei' - 'elx_fgs_fsp_igrf_gei' "
   tplot, 'elx_fgs_fsp_igrf_gei elx_fgs_fsp_res_gei'
-  makepng, 'C:\Users\clrussell\Desktop\tplot_2'
   stop
   
 ;  tplot,'elx_fgs_fsp_res_gei elx_fgs_fsp_igrf_gei' 
@@ -102,7 +102,8 @@ stop
   ; take the difference to find residual
   ;calc," 'elx_fgs_fsp_res_sm'='elx_fgs_fsp_sm'-'elx_fgs_fsp_igrf_sm' "
   tplot,'elx_fgs_fsp_res_gei elx_fgs_fsp_igrf_gei'
-  makepng, 'C:\Users\clrussell\Desktop\tplot_3'
+  pngfile=!elf.local_data_dir+'el'+sclet+'/tplot_2'
+  makepng, pngfile
   stop
   ;
   ;
@@ -136,7 +137,8 @@ stop
   ;
   tplot,'elx_fgs_fsp_res_dmxl elx_fgs_fsp_res_sm elx_fgs_fsp_res_ndw'
   tplot_apply_databar
-  makepng, 'C:\Users\clrussell\Desktop\tplot_4'
+  pngfile=!elf.local_data_dir+'el'+sclet+'/tplot_3'
+  makepng, pngfile
   stop
   ;
   ; Here rotate to FAC (obw) system, where b is along model field,
@@ -189,9 +191,7 @@ stop
   ;tplot,'elx_fgs_res_dmxly0 elx_fgs_fsp_res_sm_ND0W elx_fgs_fsp_res_ob0w'
   ;tplot_apply_databar
   ;
- 
-  makepng, 'C:\Users\clrussell\Desktop\tplot_5'
 
-  makepng,'elf_load_fgm_fsp_crib_v5'
-
+  print, 'Done'
+  
 end

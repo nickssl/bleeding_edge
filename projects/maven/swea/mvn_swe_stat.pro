@@ -18,8 +18,8 @@
 ;    SILENT:        Shhhh.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2019-03-15 12:46:42 -0700 (Fri, 15 Mar 2019) $
-; $LastChangedRevision: 26820 $
+; $LastChangedDate: 2025-06-03 11:57:08 -0700 (Tue, 03 Jun 2025) $
+; $LastChangedRevision: 33362 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_stat.pro $
 ;
 ;CREATED BY:    David L. Mitchell  07-24-12
@@ -28,7 +28,7 @@ pro mvn_swe_stat, npkt=npkt, full=full, silent=silent
 
   @mvn_swe_com
 
-  npkt = replicate(0,8)
+  npkt = replicate(0L,8)
 
   if (size(swe_hsk,/type) ne 8) then begin
     print,""
@@ -47,6 +47,33 @@ pro mvn_swe_stat, npkt=npkt, full=full, silent=silent
     if (size(mvn_swe_pad_arc,/type) eq 8)  then n_a3 = n_elements(mvn_swe_pad_arc)  else n_a3 = 0L
     if (size(mvn_swe_engy,/type) eq 8)     then n_a4 = n_elements(mvn_swe_engy)     else n_a4 = 0L
     if (size(mvn_swe_engy_arc,/type) eq 8) then n_a5 = n_elements(mvn_swe_engy_arc) else n_a5 = 0L
+
+    first = 1
+    if (n_a0 gt 0L) then begin
+      tsp = minmax(mvn_swe_3d.time)
+      first = 0
+    endif
+    if (n_a1 gt 0L) then begin
+      tsp = first ? minmax(mvn_swe_3d_arc.time) : minmax([tsp, mvn_swe_3d_arc.time])
+      first = 0
+    endif
+    if (n_a2 gt 0L) then begin
+      tsp = first ? minmax(mvn_swe_pad.time) : minmax([tsp, mvn_swe_pad.time])
+      first = 0
+    endif
+    if (n_a3 gt 0L) then begin
+      tsp = first ? minmax(mvn_swe_pad_arc.time) : minmax([tsp, mvn_swe_pad_arc.time])
+      first = 0
+    endif
+    if (n_a4 gt 0L) then begin
+      tsp = first ? minmax(mvn_swe_engy.time) : minmax([tsp, mvn_swe_engy.time])
+      first = 0
+    endif
+    if (n_a5 gt 0L) then begin
+      tsp = first ? minmax(mvn_swe_engy_arc.time) : minmax([tsp, mvn_swe_engy_arc.time])
+      first = 0
+    endif
+
   endif else begin
     if (size(pfp_hsk,/type) eq 8) then n_pfp = n_elements(pfp_hsk) else n_pfp = 0L
     if (size(swe_hsk,/type) eq 8) then n_hsk = n_elements(swe_hsk) else n_hsk = 0L
@@ -57,6 +84,33 @@ pro mvn_swe_stat, npkt=npkt, full=full, silent=silent
     if (size(a4,/type) eq 8) then n_a4 = n_elements(a4)*16 else n_a4 = 0L
     if (size(a5,/type) eq 8) then n_a5 = n_elements(a5)*16 else n_a5 = 0L
     if (size(a6,/type) eq 8) then n_a6 = n_elements(a6) else n_a6 = 0L
+
+    first = 1
+    if (n_a0 gt 0L) then begin
+      tsp = minmax(swe_3d.time)
+      first = 0
+    endif
+    if (n_a1 gt 0L) then begin
+      tsp = first ? minmax(swe_3d_arc.time) : minmax([tsp, swe_3d_arc.time])
+      first = 0
+    endif
+    if (n_a2 gt 0L) then begin
+      tsp = first ? minmax(a2.time) : minmax([tsp, a2.time])
+      first = 0
+    endif
+    if (n_a3 gt 0L) then begin
+      tsp = first ? minmax(a3.time) : minmax([tsp, a3.time])
+      first = 0
+    endif
+    if (n_a4 gt 0L) then begin
+      tsp = first ? minmax(a4.time) : minmax([tsp, a4.time])
+      first = 0
+    endif
+    if (n_a5 gt 0L) then begin
+      tsp = first ? minmax(a5.time) : minmax([tsp, a5.time])
+      first = 0
+    endif
+
   endelse
   
   npkt = [n_a0, n_a1, n_a2, n_a3, n_a4, n_a5, n_a6, n_hsk, n_pfp]
@@ -76,6 +130,8 @@ pro mvn_swe_stat, npkt=npkt, full=full, silent=silent
     print,swe_active_tabnum,format='("Sweep Table: ",i2)'
     print,""
 
+    if ~first then print,"Data time range: ",time_string(tsp[0])," - ",time_string(tsp[1])
+
     if (n_elements(swe_hsk) ne 2) then begin
       if (swe_cc_switch) then print,"SWE-SWI cross calibration enabled" $
                          else print,"SWE-SWI cross calibration disabled"
@@ -89,6 +145,11 @@ pro mvn_swe_stat, npkt=npkt, full=full, silent=silent
         2 : print,"User-defined flatfield correction"
       endcase
     endif
+
+    if (size(swe_mag1,/type) eq 8) then begin
+      maglev = string(swe_mag1[0].level, format='("L",i1)')
+      print,"MAG " + maglev + " data loaded"
+    endif else print,"MAG data not loaded"
 
     print,""
 

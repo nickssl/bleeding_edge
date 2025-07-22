@@ -113,7 +113,7 @@ pro epde_plot_overviews_solo, trange=trange, probe=probe, no_download=no_downloa
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; Get position data
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  elf_load_state, probes=probe, no_download=no_download
+  elf_load_state, probes=probe, trange=tr, no_download=no_download
   get_data, 'el'+probe+'_pos_gei', data=dat_gei
   cotrans,'el'+probe+'_pos_gei','el'+probe+'_pos_gse',/GEI2GSE
   cotrans,'el'+probe+'_pos_gse','el'+probe+'_pos_gsm',/GSE2GSM
@@ -226,12 +226,13 @@ pro epde_plot_overviews_solo, trange=trange, probe=probe, no_download=no_downloa
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   del_data, 'proxy_ae'
   tr=timerange()
-  elf_load_proxy_ae, trange=[tr[0],tr[1]+5400.], /smooth, no_download=no_download
+  elf_load_proxy_ae, trange=[tr[0]-5400,tr[1]+5400.], /smooth, no_download=no_download
   get_data, 'proxy_ae', data=proxy_ae, dlimits=dl, limits=l
   if size(proxy_ae,/type) NE 8 then begin
     elf_load_proxy_ae, trange=['2019-12-05','2019-12-06']
     get_data, 'proxy_ae', data=proxy_ae, dlimits=ae_dl, limits=ae_l
   endif
+  
   if ~undefined(proxy_ae) && size(proxy_ae, /type) EQ 8 then begin
     proxy_ae.y = median(proxy_ae.y, 10.)
     store_data, 'proxy_ae', data=proxy_ae, dlimits=ae_dl, limits=ae_l
@@ -304,7 +305,7 @@ pro epde_plot_overviews_solo, trange=trange, probe=probe, no_download=no_downloa
   tplot_options, 'ymargin', [4,3]
 
     ; get EPD data
-    elf_load_epd, probes=probe, datatype='pef', level='l1', type='nflux',no_download=no_download
+    elf_load_epd, trange=tr, probes=probe, datatype='pef', level='l1', type='nflux',no_download=no_download
     sc='el'+probe
     get_data, sc+'_pef_nflux', data=pef
     get_data, sc+'_pef_nsectors', data= nsect

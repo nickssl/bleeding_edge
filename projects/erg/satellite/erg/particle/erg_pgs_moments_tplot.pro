@@ -32,8 +32,8 @@
 ;History:
 ;  ver.0.0: The 1st experimental release 
 ;  
-;$LastChangedDate: 2019-10-23 14:19:14 -0700 (Wed, 23 Oct 2019) $
-;$LastChangedRevision: 27922 $
+;$LastChangedDate: 2025-07-11 11:41:37 -0700 (Fri, 11 Jul 2025) $
+;$LastChangedRevision: 33455 $
 ;-
 pro erg_pgs_moments_tplot, moments, $
                            get_error=get_error, $
@@ -52,16 +52,22 @@ pro erg_pgs_moments_tplot, moments, $
 
 
   ;Get names of valid moments
-  if keyword_set(get_error) || keyword_set(no_mag) then begin
+  if keyword_set(get_error) then begin
     ;error estimates produced by moments_3d
     valid_moments = ['avgtemp', 'density', 'eflux', 'flux', $
                      'mftens', 'ptens', 'sc_current', $
                      'velocity', 'vthermal'] 
+
+  endif else if keyword_set(no_mag) then begin
+    ;error estimates produced by moments_3d
+    valid_moments = ['avgtemp', 'density', 'eflux', 'flux', $
+      'mftens', 'ptens', 'sc_current', $
+      'velocity', 'vthermal', 'qflux']
   endif else begin
     ;moments produced by moments_3d
     valid_moments = ['avgtemp', 'density', 'eflux', 'flux', $
                      'mftens', 'ptens', 'sc_current', $
-                     'velocity', 'vthermal', $
+                     'velocity', 'vthermal', 'qflux', $
                      'magf', 'magt3', 't3', 'sc_pot', 'symm', $
                      'symm_theta', 'symm_phi', 'symm_ang']
   endelse
@@ -101,6 +107,7 @@ pro erg_pgs_moments_tplot, moments, $
   options,strfilter(mom_tnames,'*_avgtemp'+suffix),/def ,yrange=[0,2000.],/ystyle,ysubtitle='!c[eV]'
   options,strfilter(mom_tnames,'*_flux'+suffix),/def ,yrange=[-1e9,1e9],/ystyle,ysubtitle='!c[#/s/cm2]'
   options,strfilter(mom_tnames,'*_eflux'+suffix),/def ,yrange=[-1e9,1e9],/ystyle,ysubtitle='!c[eV/s/cm2 ??]'
+  options,strfilter(mom_tnames,'*_qflux'+suffix),/def ,yrange=[-1e9,1e9],/ystyle,ysubtitle='!c[eV/s/cm2 ??]'
   options, strfilter(mom_tnames, '*_t3'+suffix), yrange=[1e+3, 1e+5], /ystyle, /ylog, ysubtitle='!c[eV]', $
            labels='T_'+strsplit(/ext, 'xx yy zz xy xz yz'), labflag=-1
   options, strfilter(mom_tnames, '*_magt3'+suffix), yrange=[1e+3, 1e+5], /ystyle, /ylog, ysubtitle='!c[eV]', $
@@ -130,6 +137,7 @@ pro erg_pgs_moments_tplot, moments, $
   spd_new_coords, strfilter(mom_tnames,'*_flux'+suffix), coords_in = 'DSI'
   spd_new_coords, strfilter(mom_tnames,'*_t3'+suffix), coords_in = 'DSI'
   spd_new_coords, strfilter(mom_tnames,'*_eflux'+suffix), coords_in = 'DSI'
+  spd_new_coords, strfilter(mom_tnames,'*_qflux'+suffix), coords_in = 'DSI'
   spd_new_coords, strfilter(mom_tnames,'*tens'+suffix), coords_in = 'DSI'
   spd_new_coords, strfilter(mom_tnames,'*_magf'+suffix), coords_in = 'DSI'
   spd_new_coords, strfilter(mom_tnames,'*_magt3'+suffix), coords_in = 'FA'

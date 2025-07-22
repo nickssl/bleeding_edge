@@ -21,8 +21,8 @@
 ;                        0B = affected by low-energy anomaly
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-07-06 13:42:55 -0700 (Thu, 06 Jul 2023) $
-; $LastChangedRevision: 31939 $
+; $LastChangedDate: 2024-11-13 11:17:05 -0800 (Wed, 13 Nov 2024) $
+; $LastChangedRevision: 32956 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_padsum.pro $
 ;
 ;CREATED BY:    David L. Mitchell  03-29-14
@@ -91,7 +91,7 @@ function mvn_swe_padsum, pad, qlevel=qlevel
   padsum.dtc = 1.         ; summing corrected counts is not reversible
   padsum.bkg = total(pad.bkg,3)/float(npts)
 
-  padsum.quality = min(pad.quality)
+  if (ok) then padsum.quality = min(pad.quality) else str_element, padsum, 'quality', 1B, /add
 
   mvn_swe_convert_units, pad, old_units
   mvn_swe_convert_units, padsum, old_units

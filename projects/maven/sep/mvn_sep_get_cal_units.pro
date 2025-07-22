@@ -1,7 +1,7 @@
 ; Created by Davin Larson
-; $LastChangedBy: ali $
-; $LastChangedDate: 2021-07-27 21:41:52 -0700 (Tue, 27 Jul 2021) $
-; $LastChangedRevision: 30145 $
+; $LastChangedBy: rjolitz $
+; $LastChangedDate: 2025-03-21 12:15:11 -0700 (Fri, 21 Mar 2025) $
+; $LastChangedRevision: 33195 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/sep/mvn_sep_get_cal_units.pro $
 ; $ID: $
 
@@ -133,7 +133,7 @@ function mvn_sep_get_cal_units ,rawdat  ,units_names=units_name,background=bkgda
   sepn = byte(median(rawdat.sensor))
 
   if ~keyword_set(bkgdat) then begin
-    dprint,dlevel=1,"Background distribution not provided - using default
+    dprint,dlevel=1,"Background distribution not provided - using default"
     bkgdat = rawdat[0]
     bkgdat.data = .2
     bkgdat.duration = 1

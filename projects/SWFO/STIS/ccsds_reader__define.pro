@@ -1,12 +1,7 @@
-; $LastChangedBy:  $
-; $LastChangedDate: 2022-05-01 12:57:34 -0700 (Sun, 01 May 2022) $
-; $LastChangedRevision: 30793 $
-; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu:36867/repos/spdsoft/trunk/projects/SWFO/STIS/swfo_gsemsg_lun_read.pro $
-
-
-
-
-
+; $LastChangedBy: davin-mac $
+; $LastChangedDate: 2025-02-21 16:59:13 -0800 (Fri, 21 Feb 2025) $
+; $LastChangedRevision: 33145 $
+; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/ccsds_reader__define.pro $
 
 
 
@@ -17,126 +12,130 @@
 ;  When a complete ccsds packet is read in  it will execute the routine "swfo_ccsds_spkt_handler"
 ;-
 
-pro ccsds_reader::read,source,source_dict=parent_dict
-
-  dwait = 10.
-
-  if isa(parent_dict,'dictionary') &&  parent_dict.haskey('cmbhdr') then begin
-    header = parent_dict.cmbhdr
-    ;   dprint,dlevel=4,verbose=self.verbose,header.description,'  ',header.size
-  endif else begin
-    dprint,verbose=self.verbose,dlevel=4,'No cmbhdr'
-    header = {time: !values.d_nan , gap:0 }
-  endelse
-
-  source_dict = self.source_dict
-
-  if ~source_dict.haskey('sync_ccsds_buf') then source_dict.sync_ccsds_buf = !null   ; this contains the contents of the buffer from the last call
-
-  on_ioerror, nextfile
-  time = systime(1)
-  source_dict.time_received = time
-
-  msg = time_string(source_dict.time_received,tformat='hh:mm:ss.fff -',local=localtime)
-
-  remainder = !null
-  nbytes = 0UL
-  sync_errors =0ul
-  ns = self.nsync
-  sync_pattern = ns eq 0 ? !null : self.sync[0:ns-1]
-  source_dict.sync_pattern = sync_pattern
-  nb = ns + 6   ; length of sync bytes plus 6 byte ccsds header
-  while isa( (buf= self.read_nbytes(nb,source,pos=nbytes) ) ) do begin
-    if n_elements(buf) ne nb then begin
-      dprint,verbose=self.verbose,'Invalid length of CCSDS header',dlevel=1
-      hexprint,buf
-      source_dict.remainder = buf
-      break
-    endif
-    if debug(3,self.verbose,msg=strtrim(nb)) then begin
-      dprint,nb,dlevel=3
-      hexprint,buf
-    endif
-    msg_buf = [remainder,buf]
-    sz = msg_buf[4+ns]*256L + msg_buf[5+ns]
-    bad_sync = (ns gt 0) && ~array_equal(sync_pattern,msg_buf[0:ns-1] )
-    if bad_sync || (sz lt self.minsize) || (sz gt self.maxsize)  then  begin     ;; Lost sync - read one byte at a time
-      remainder = msg_buf[1:*]
-      nb = 1
-      sync_errors += 1
-      if debug(2) then begin
-        dprint,verbose=self.verbose,dlevel=2,'Lost sync:' ,dwait=2
-      endif
-      continue
-    endif
-
-    pkt_size = sz +1
-    buf = self.read_nbytes(pkt_size,source,pos=nbytes)
-    ccsds_buf = [msg_buf[ns:ns+5],buf]    ;   ccsds header and payload  (remove sync)
-
-    if  self.run_proc then  call_procedure,self.decom_procedure,ccsds_buf,source_dict=source_dict
-    ;if n_elements(source_dict.sync_ccsds_buf) eq pkt_size+4 then source_dict.sync_ccsds_buf = !null $
-    ;else    source_dict.sync_ccsds_buf = source_dict.sync_ccsds_buf[pkt_size+4:*]
 
 
-    if debug(3,self.verbose,msg=strtrim(n_elements(ccsds_buf))) then begin
-      hexprint,dlevel=3,ccsds_buf    ;,nbytes=32
-    endif
-    nb = ns+6     ; initialize for next read
-  endwhile
 
-  if sync_errors then begin
-    dprint,dlevel=2,sync_errors,' sync errors at "'+time_string(source_dict.time_received)+'"'
-    ;printdat,source
-    ;hexprint,source
+
+
+function ccsds_reader::header_struct,header
+
+  nsync = self.sync_size
+  if nsync ne 0 then  sync = self.sync_pattern[0:nsync-1] else sync = !null
+
+  
+  if n_elements(header) lt self.header_size then return, !null                    ; Not enough bytes in packet header
+  if  (isa(sync) && (array_equal(sync,header[0:nsync-1] and self.sync_mask) eq 0)) then return,!null   ; Not a valid packet
+  
+
+  strct = { $
+    time:!values.d_nan, $
+    apid:0u, $
+    seqn:0u, $
+    psize: 0u , $
+    frm_seqn:0ul ,$
+    frm_seqid: 0 , $
+    replay: 0b, $
+    valid:0b, $
+    gap:0b ,  $
+ ;   sync:0b, $
+    quality_bits:0UL}
+  
+  
+  strct.apid  = (header[nsync+0] * 256U + header[nsync+1]) and 0x7FF 
+  strct.seqn  = (header[nsync+2] * 256u + header[nsync+3]) and 0x3FFF
+  strct.psize = header[nsync+4] * 256u + header[nsync+5] + 1   ; size of payload  (6 bytes less than size of ccsds packet)
+  
+  strct.frm_seqn = self.last_frm_seqn
+  strct.frm_seqid = self.frm_seqid
+  strct.replay   = self.replay
+
+  if nsync eq 4 &&  header[0] eq 0x3b then begin
+    strct.replay = 1
   endif
 
-  if isa(output_lun) then  flush,output_lun
 
-  if 0 then begin
-    nextfile:
-    dprint,!error_state.msg
-    dprint,'Skipping file'
-  endif
+ ; if isa(sync) && header[0] eq 0x3b then begin    ; special case for SWFO
+ ;   strct.apid = strct.apid or 0x8000         ; turn on highest order bit to segregate different apid
+ ; endif
 
-  if nbytes ne 0 then msg += string(/print,nbytes,format='(i6 ," bytes: ")')  $
-  else msg+= ' No data available'
 
-  dprint,verbose=self.verbose,dlevel=3,msg
-  source_dict.msg = msg
-
-  ;    dprint,dlevel=2,'Compression: ',float(fp)/fi.size
+  return,strct
 
 end
 
 
 
 
-function ccsds_reader::init,sync=sync,decom_procedure = decom_procedure,_extra=ex
+
+
+
+pro ccsds_reader::handle,buffer
+
+  if debug(4,self.verbose) then begin
+    dprint,self.name
+    hexprint,buffer
+    dprint
+  endif
+  
+  if self.run_proc then begin
+    swfo_ccsds_spkt_handler,buffer[self.sync_size:*],source_dict=self.source_dict         ; Process the complete packet
+  endif
+  
+  if self.ccsds_output_lun ne 0 then BEGIN
+    dprint ,dlevel=2,'Writing output',dwait=10.
+    writeu,self.ccsds_output_lun,buffer[self.sync_size:*]
+  endif
+
+  headerstr = self.source_dict.headerstr
+  if self.save_data then begin
+    self.dyndata.append, headerstr
+  endif
+
+end
+
+
+
+
+
+function ccsds_reader::init,sync_pattern=sync_pattern,sync_mask=sync_mask,decom_procedure = decom_procedure,mission=mission,_extra=ex
   ret=self.socket_reader::init(_extra=ex)
   if ret eq 0 then return,0
-  
-  if keyword_set(decom_procedure) then  self.decom_procedure = decom_procedure else self.decom_procedure ='swfo_ccsds_spkt_handler'
-  self.nsync = n_elements(sync)
+
+  if isa(mission,'string') && mission eq 'SWFO' then begin
+    if ~isa(sync_pattern) && ~isa(sync_pattern,/null) then sync_pattern = ['1a'xb,  'cf'xb ,'fc'xb, '1d'xb ]
+    decom_procedure = 'swfo_ccsds_spkt_handler'
+  endif
+  self.sync_size = n_elements(sync_pattern)
   self.maxsize = 4100
   self.minsize = 10
-  if self.nsync gt 4 then begin
+  if self.sync_size gt 4 then begin
     dprint,'Number of sync bytes must be <= 4'
     return, 0
   endif
-  if self.nsync ne 0 then self.sync = sync 
+  if self.sync_size ne 0 then begin
+    self.sync_pattern = sync_pattern
+    self.sync_mask = ['ff'xb,  'ff'xb ,'ff'xb, 'ff'xb ]
+  endif
+  if isa(sync_mask) then self.sync_mask = sync_mask
+  self.header_size = self.sync_size + 6
 
   return,1
 end
 
+
+
+
+
 PRO ccsds_reader__define
   void = {ccsds_reader, $
     inherits socket_reader, $    ; superclass
+    last_frm_seqn: 0ul,  $            ; if the parent ccsds frame exists then this will contain the last frame seq number
+    frm_seqid:  0b,  $                ; indicates which VC contained the data
+    replay:     0b,  $                ; byte indicates this was a replay packet
     decom_procedure: '',  $
-    minsize: 0UL,  $
-    maxsize: 0UL,  $
-    sync:  bytarr(4),  $
-    nsync:  0  $
+    minsize: 0UL , $
+    maxsize: 0UL , $
+    ccsds_output_lun: 0  $ ; Use this to generate ccsds output
   }
 END
 

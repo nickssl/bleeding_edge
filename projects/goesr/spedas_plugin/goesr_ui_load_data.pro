@@ -7,8 +7,8 @@
 ;
 ;
 ; $LastChangedBy: nikos $
-; $LastChangedDate: 2021-10-14 19:51:44 -0700 (Thu, 14 Oct 2021) $
-; $LastChangedRevision: 30360 $
+; $LastChangedDate: 2024-06-10 12:53:07 -0700 (Mon, 10 Jun 2024) $
+; $LastChangedRevision: 32692 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/goesr/spedas_plugin/goesr_ui_load_data.pro $
 ;-
 
@@ -246,8 +246,8 @@ pro goesr_ui_load_data,tabid,loadedData,historyWin,statusBar,treeCopyPtr,timeRan
     uname='time_widget',$
     startyear=1995)
 
-  probeArrayValues = ['8', '9', '10', '11', '12', '13', '14', '15', '16', '17']
-  probeArrayDisplayed = ['GOES 8', 'GOES 9', 'GOES 10', 'GOES 11', 'GOES 12', 'GOES 13', 'GOES 14', 'GOES 15', 'GOES 16', 'GOES 17']
+  probeArrayValues = ['8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18']
+  probeArrayDisplayed = ['GOES 8', 'GOES 9', 'GOES 10', 'GOES 11', 'GOES 12', 'GOES 13', 'GOES 14', 'GOES 15', 'GOES 16', 'GOES 17', 'GOES 18']
 
   typeArray = ['mag', 'mpsh', 'sgps', 'xrs']
   ;typeArray = ['*','b_gsm','b_gei','b_enp','b_total','pos_gsm','pos_gei','vel_gei','t1_counts','t2_counts','dataqual','longitude','mlt']
@@ -303,7 +303,7 @@ pro goesr_ui_load_data,tabid,loadedData,historyWin,statusBar,treeCopyPtr,timeRan
     'MAG: full (0.1s), 1995-07-01 to 2017-12-09' +  string(10B) + $
     'GOES 13, 14, 15:' +  string(10B) + $
     'XRS: full (2s), avg (1m) 2013-06-01 to 2020-03-04' +  string(10B) + $
-    'GOES 16, 17:' +  string(10B)  + $
+    'GOES 16, 17, 18:' +  string(10B)  + $
     'MAG: full (0.1s), avg (1m), 2018-09-01 to now' +  string(10B) + $
     'XRS: full (1s), avg (1m), 2017-02-07 to now' +  string(10B) + $
     'SGPS: full (1m), avg (5m), 2020-11-01 to now' +  string(10B) + $

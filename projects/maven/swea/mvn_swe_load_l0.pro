@@ -94,8 +94,8 @@
 ;                      to a higher number to see more diagnostic messages.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-08-22 13:44:21 -0700 (Tue, 22 Aug 2023) $
-; $LastChangedRevision: 32053 $
+; $LastChangedDate: 2025-06-03 11:58:01 -0700 (Tue, 03 Jun 2025) $
+; $LastChangedRevision: 33363 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_load_l0.pro $
 ;
 ;CREATED BY:    David L. Mitchell  04-25-13
@@ -368,9 +368,16 @@ pro mvn_swe_load_l0, trange, filename=filename, latest=latest, maxbytes=maxbytes
 
   mvn_swe_makespec
 
-; Set the quality flag
+; Load MAG data and rotate to the SWEA frame
+;   priority order: L2, L1, PAD MAG angles (L0)
 
-  mvn_swe_set_quality, /doplot
+  print,"Getting MAG data in the SWEA frame:",format='(/,a)'
+  mvn_swe_addmag, /usepadmag
+  print,""
+
+; Set the quality flag (do not attempt to generate missing flags)
+
+  mvn_swe_set_quality, refresh=0, /doplot, /silent
 
 ; Report status of data loaded
 

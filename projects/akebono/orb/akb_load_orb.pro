@@ -11,9 +11,9 @@ PRO akb_load_orb, source=source, $
 
   ;Set up the structure including the local/remote data directories.
   source = file_retrieve( /struct )
-  source.local_data_dir = root_data_dir()+'exosd/orb/'
+  source.local_data_dir = root_data_dir()+'akebono/orb/'
   source.remote_data_dir = $
-   'http://darts.isas.jaxa.jp/stp/data/exosd/orbit/daily/'
+   'https://data.darts.isas.jaxa.jp/pub/akebono/orbit/daily/'
   
   ;Relative path with wildcards for data files
   pathformat = 'YYYYMM/EDyyMMDD.txt'
@@ -29,7 +29,7 @@ PRO akb_load_orb, source=source, $
   if keyword_set(verbose) then source.verbose=verbose
   if keyword_set(trange) and n_elements(trange) eq 2 then timespan, time_double(trange)
 
-  files = file_retrieve(relpathnames, _extra=source, /last_version)
+  files = spd_download(remote_file=relpathnames, _extra=source, /last_version)
   if keyword_set(downloadonly) then return 
 
   ;Exit unless data files are downloaded or found locally.

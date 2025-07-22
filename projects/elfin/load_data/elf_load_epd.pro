@@ -9,6 +9,7 @@
 ;         trange:       time range of interest [starttime, endtime] with the format
 ;                       ['YYYY-MM-DD','YYYY-MM-DD'] or to specify more or less than a day
 ;                       ['YYYY-MM-DD/hh:mm:ss','YYYY-MM-DD/hh:mm:ss']
+;                       Default: ['2022-08-19', '2022-08-20']
 ;         probes:       list of probes, valid values for elf probes are ['a','b'].
 ;                       if no probe is specified the default is probe 'a'
 ;         datatype:     valid datatypes include level 1 - ['pif', 'pef']  (there may be 
@@ -18,6 +19,7 @@
 ;         level:        indicates level of data processing. levels include 'l1' and 'l2'
 ;                       The default if no level is specified is 'l1' 
 ;         type:         ['raw','cps', 'nflux', 'eflux']  (eflux not fully tested)
+;         full_spin:    data defaults to half_spin resolution, set this flag to return full_spin resolution
 ;         local_data_dir: local directory to store the CDF files; should be set if
 ;                       you're on *nix or OSX, the default currently assumes Windows (c:\data\elfin\)
 ;         source:       specifies a different system variable. By default the elf mission system
@@ -64,7 +66,7 @@
 ;-
 pro elf_load_epd, trange = trange, probes = probes, datatype = datatype, $
   level = level, data_rate = data_rate, no_spec = no_spec, no_time_sort=no_time_sort, $
-  local_data_dir = local_data_dir, source = source,  $
+  local_data_dir = local_data_dir, source = source, resolution=resolution, $
   get_support_data = get_support_data, type=type, no_suffix=no_suffix, $
   tplotnames = tplotnames, no_color_setup = no_color_setup, $
   no_time_clip = no_time_clip, no_update = no_update, suffix = suffix, $
@@ -80,7 +82,7 @@ pro elf_load_epd, trange = trange, probes = probes, datatype = datatype, $
 
   if ~undefined(trange) && n_elements(trange) eq 2 $
     then tr = timerange(trange) $
-  else tr = timerange()
+  else tr = time_double(['2022-08-19', '2022-08-20'])
 
   if undefined(probes) then probes = ['a', 'b'] 
   if probes EQ ['*'] then probes = ['a', 'b']
@@ -104,8 +106,7 @@ pro elf_load_epd, trange = trange, probes = probes, datatype = datatype, $
   undefine, cdf_filenames
   
   if undefined(level) then level = ['l1'] 
-  if level EQ '*' then level = ['l1']  ; we don't have l2 data yet
-  if level EQ 'l2' then get_support_data=1
+  if level EQ '*' then level = ['l1'] 
 
   ; check for valid datatypes for level 1 NOTE: we only have l1 data so far
   ; NOTE: Might need to add pis, and pes
@@ -127,6 +128,12 @@ pro elf_load_epd, trange = trange, probes = probes, datatype = datatype, $
   if undefined(type) then type='nflux' else type=type
   if type EQ 'cal' || type EQ 'calibrated' then type='nflux'
   if undefined(suffix) OR keyword_set(no_suffix) then suffix = ''
+  if undefined(resolution) then resolution=['halfspin','fullspin']
+  if level eq 'l2' then begin
+    if type NE 'nflux' and type NE 'eflux' then begin
+      dprint, dlevel = 1, 'Invalid level 2 data type. Defaulting to nflux'
+    endif
+  endif
   
   Case type of
     'raw': unit = 'counts/sector'
@@ -159,9 +166,7 @@ pro elf_load_epd, trange = trange, probes = probes, datatype = datatype, $
 
   ; Level 2 Post processing - calibration and fix meta data
   if level eq 'l2' then begin
-    elf_epd_l2_postproc, tplotnames, probes=probes
-    tn=tnames('*_epa_spec')
-    del_data, tn
+    elf_epd_l2_postproc, tplotnames, probes=probes   ;, full_spin=full_sping
   endif
    
 END

@@ -10,10 +10,10 @@
 ; Author:
 ;    Davin Larson - April 2011
 ;
-; $LastChangedBy: ali $
-; $LastChangedDate: 2021-09-24 16:07:57 -0700 (Fri, 24 Sep 2021) $
-; $LastChangedRevision: 30319 $
-; $URL:  $
+; $LastChangedBy: davin-mac $
+; $LastChangedDate: 2023-11-13 07:46:41 -0800 (Mon, 13 Nov 2023) $
+; $LastChangedRevision: 32242 $
+; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/swfo_recorder.pro $
 ;
 ;-
 

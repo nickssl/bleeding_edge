@@ -27,9 +27,9 @@
 ;  Much of this code was copied from thm_part_moments.pro
 ;
 ;
-;$LastChangedBy: jimm $
-;$LastChangedDate: 2019-02-19 11:17:18 -0800 (Tue, 19 Feb 2019) $
-;$LastChangedRevision: 26643 $
+;$LastChangedBy: jwl $
+;$LastChangedDate: 2025-07-10 22:30:45 -0700 (Thu, 10 Jul 2025) $
+;$LastChangedRevision: 33445 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/spacecraft/particles/thm_part_products/thm_pgs_moments_tplot.pro $
 ;-
 pro thm_pgs_moments_tplot, moments, $
@@ -61,11 +61,11 @@ pro thm_pgs_moments_tplot, moments, $
     ;moments produced by moments_3d
     valid_moments = ['avgtemp', 'density', 'eflux', 'flux', $
                      'mftens', 'ptens', 'sc_current', $
-                     'velocity', 'vthermal', $
+                     'velocity', 'vthermal', 'qflux', $
                      'magf', 'magt3', 't3', 'sc_pot', 'symm', $
                      'symm_theta', 'symm_phi', 'symm_ang']
     ;moments with coordinate systems, subject to coord keyword
-    coord_vector_moments = ['eflux', 'flux', 'velocity']
+    coord_vector_moments = ['eflux', 'flux', 'velocity', 'qflux']
     coord_tensor_moments = ['ptens', 'mftens']    
   endelse
 
@@ -103,7 +103,9 @@ pro thm_pgs_moments_tplot, moments, $
   options,strfilter(mom_tnames,'*_flux'+suffix),/def ,yrange=[-1e8,1e8],/ystyle,ysubtitle='!c[#/s/cm2 ??]'
   options,strfilter(mom_tnames,'*t3'+suffix),/def ,yrange=[1,10000.],/ystyle,/ylog,ysubtitle='!c[eV]'
   options,strfilter(mom_tnames,'*tens'+suffix),/def ,colors='bgrmcy',ysubtitle='!c[eV/cm^3]'
-  
+  options,strfilter(mom_tnames,'*_eflux'+suffix), /def, colors='bgr',ysubtitle= '!c[#/s/cm^2)]'
+  options,strfilter(mom_tnames,'*_qflux'+suffix), /def, colors='bgr',ysubtitle= '!c[eV/(cm^2-s)]'
+   
   ;set units (copied from thm_part_moments)
   spd_new_units, strfilter(mom_tnames, '*_density'+suffix), units_in = '1/cm^3'
   spd_new_units, strfilter(mom_tnames,'*_velocity'+suffix), units_in = 'km/s'
@@ -113,6 +115,7 @@ pro thm_pgs_moments_tplot, moments, $
   spd_new_units, strfilter(mom_tnames,'*_avgtemp'+suffix), units_in = 'eV'
   spd_new_units, strfilter(mom_tnames,'*_sc_pot'+suffix), units_in = 'V'
   spd_new_units, strfilter(mom_tnames,'*_eflux'+suffix), units_in = 'eV/(cm^2-s)'
+  spd_new_units, strfilter(mom_tnames,'*_qflux'+suffix), units_in = 'eV/(cm^2-s)'
   spd_new_units, strfilter(mom_tnames,'*tens'+suffix), units_in = 'eV/cm^3'
   spd_new_units, strfilter(mom_tnames,'*_symm_theta'+suffix), units_in = 'degrees'
   spd_new_units, strfilter(mom_tnames,'*_symm_phi'+suffix), units_in = 'degrees'

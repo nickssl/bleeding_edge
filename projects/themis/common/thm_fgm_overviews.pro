@@ -11,9 +11,9 @@
 ; 
 ;       device(optional):switch to 'z' device for cron plotting
 ;
-; $LastChangedBy: aaflores $
-; $LastChangedDate: 2012-01-24 11:22:53 -0800 (Tue, 24 Jan 2012) $
-; $LastChangedRevision: 9600 $
+; $LastChangedBy: jimm $
+; $LastChangedDate: 2025-01-28 16:16:23 -0800 (Tue, 28 Jan 2025) $
+; $LastChangedRevision: 33102 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/common/thm_fgm_overviews.pro $
 ;-
 
@@ -52,16 +52,9 @@ var_string2 = ''
 for i = 0L,n_elements(probe_list)-1L do begin
     sc = probe_list[i]
     sample_rate_var = thm_sample_rate_bar(date, 1, sc, /outline)
-    thm_load_fgm, probe = sc, coord = 'gse', level = 'l2' ;level 2 data has a suffix
-;check for existence of data, if it is not there, try L1
-    If ~is_string(tnames('th'+sc+'_fgl_gse')) Then begin
-      thm_load_fgm, probe = sc, coord = 'gse', suff = '_gse', level = 'l1'
-    endif
-     
-    ;fallback if fgs data not present from level2 file
-    if ~is_string(tnames('th'+sc+'_fgs_gse')) then begin
-      thm_load_fit, probe = sc, coord = 'gse', suff = '_gse';level 1 is default
-    endif
+;Use L1 data
+    thm_load_fgm, probe = sc, coord = 'gse', suff = '_gse', level = 'l1'
+    thm_load_fit, probe = sc, coord = 'gse', suff = '_gse', level = 'l1' ;level 1 is default    
     
     if ~is_string(tnames('th'+sc+'_fgl_gse')) then begin
       store_data,'th'+sc+'_fgl_gse',data={x:time_double(date2)+findgen(2)*86400., y:[!VALUES.D_NAN,!VALUES.D_NAN]}
@@ -80,6 +73,21 @@ for i = 0L,n_elements(probe_list)-1L do begin
 ;kill units in ytitles
     options, 'th'+sc+'_fgs_gse', 'ysubtitle', ''
     options, 'th'+sc+'_fgl_gse', 'ysubtitle', ''
+;for recent THENIS E FGS data, if there is an estimated Bz, put the Bz curve
+;behind Bx and By. jmm, 2024-12-12
+   If(sc Eq 'e' And time_double(date) Ge time_double('2024-05-25')) Then Begin
+      options, 'th'+sc+'_fgs_gse', 'indices', [2,0,1]
+      options, 'th'+sc+'_fgl_gse', 'indices', [2,0,1]
+;check for l1b data, if there is none yet, set Bz to NaN 
+      If(~is_string(thm_l1b_check(date, sc))) Then Begin
+         get_data, 'th'+sc+'_fgs_gse', data = btmp
+         btmp.y[*, 2] = !values.f_nan
+         store_data, 'th'+sc+'_fgs_gse', data = btmp
+         get_data, 'th'+sc+'_fgl_gse', data = btmp
+         btmp.y[*, 2] = !values.f_nan
+         store_data, 'th'+sc+'_fgl_gse', data = btmp
+      Endif
+   Endif
 endfor
 
 var_string = var_string1 + ' ' + var_string2

@@ -38,6 +38,9 @@
 ;       TRANGE:        Search for files only within this time range.
 ;                      Only year, month, day are used.
 ;
+;       DATES:         Search only for specific dates.  Can be an array
+;                      in any format accepted by time_double.
+;
 ;       PDS:           Search for files only in this PDS release
 ;                      number or range.
 ;
@@ -45,15 +48,15 @@
 ;                      This will force immediate delivery to the SDC.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2019-02-11 12:14:26 -0800 (Mon, 11 Feb 2019) $
-; $LastChangedRevision: 26597 $
+; $LastChangedDate: 2024-05-12 16:29:11 -0700 (Sun, 12 May 2024) $
+; $LastChangedRevision: 32577 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_catalog.pro $
 ;
 ;CREATED BY:    David L. Mitchell  04-25-13
 ;FILE: mvn_swe_catalog.pro
 ;-
 pro mvn_swe_catalog, version=version, revision=revision, mtime=mtime, result=dat, $
-                     verbose=verbose, touch=touch, trange=trange, pds=pds, $
+                     verbose=verbose, touch=touch, trange=trange, dates=dates, pds=pds, $
                      dropbox=dropbox
 
 ; Process keywords
@@ -105,6 +108,49 @@ pro mvn_swe_catalog, version=version, revision=revision, mtime=mtime, result=dat
 
   data_dir = 'maven/data/sci/swe/l2/'
   froot = 'mvn_swe_l2_'
+  
+  ftypes = ['svy3d','svypad','svyspec','arc3d','arcpad']
+  ntypes = n_elements(ftypes)
+
+; Process a list of dates
+
+  ndates = n_elements(dates)
+  if (ndates gt 0L) then begin
+    dates = time_string(dates,prec=-3)
+    yyyy = strmid(dates,0,4)
+    mm = strmid(dates,5,2)
+    dd = strmid(dates,8,2)
+    print,"Number of dates: " + strtrim(string(ndates),2)
+    dat = replicate('',ndates*ntypes)
+
+    for i=0L,(ndates-1L) do begin
+      path = data_dir + yyyy[i] + '/' + mm[i] + '/'
+      for k=0L,(ntypes-1L) do begin
+        fname = path + froot + ftypes[k] + '_' + yyyy[i] + mm[i] + dd[i] + '_v' + ver + '_r' + rev + '.cdf'
+        file = file_retrieve(fname,/no_server,last_version=last)
+        chksum = file_dirname(file) + '/' + file_basename(file,'.cdf') + '.md5'
+        finfo = file_info(file)
+        valid = finfo.exists and (finfo.mtime ge mtime)
+
+        if (valid) then begin
+          j = i*5L + k
+          dat[j] = file_basename(file)
+          print, dat[j]
+          if (tflg) then begin
+            spawn, 'touch ' + file
+            spawn, 'touch ' + chksum
+          endif
+          if (dflg) then begin
+            file_copy, file, drop_dir, /overwrite, /verbose
+            file_copy, chksum, drop_dir, /overwrite, /verbose
+          endif
+        endif
+      endfor
+    endfor
+    return
+  endif
+
+; Process a time range
 
   tmin = time_double('2014-03-01')
   tmax = double(ceil(systime(/sec,/utc)/oneday))*oneday
@@ -138,9 +184,6 @@ pro mvn_swe_catalog, version=version, revision=revision, mtime=mtime, result=dat
   tstr.year = cat.year
   tstr.month = cat.month
   cat.date = time_double(tstr)
-  
-  ftypes = ['svy3d','svypad','svyspec','arc3d','arcpad']
-  ntypes = n_elements(ftypes)
   
   dat = replicate({ftype : '', years : cat[*,0].year, cat : cat}, ntypes)
   dat.ftype = ftypes

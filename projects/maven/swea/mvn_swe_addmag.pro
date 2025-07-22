@@ -35,8 +35,8 @@
 ;    L2ONLY:        Insist on loading L2 data.  (Useful for generating PDS data.)
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2021-03-22 16:52:00 -0700 (Mon, 22 Mar 2021) $
-; $LastChangedRevision: 29802 $
+; $LastChangedDate: 2025-06-03 12:01:10 -0700 (Tue, 03 Jun 2025) $
+; $LastChangedRevision: 33364 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_addmag.pro $
 ;
 ;CREATED BY:    David L. Mitchell  03/18/14
@@ -53,15 +53,17 @@ pro mvn_swe_addmag, full=full, usepadmag=usepadmag, l2only=l2only
 
 ; Get the highest level MAG data available
 
-  store_data, 'mvn_B_1sec', /delete
-  mvn_mag_load, 'L2_1SEC', mag_frame='pl', l2only=l2only
+  i = find_handle('mvn_B_1sec', verbose=-1)
+  if (i gt 0) then store_data, 'mvn_B_1sec', /delete
+  mvn_mag_load, 'L2_1SEC', mag_frame='pl', l2only=l2only, verbose=-1
   get_data, 'mvn_B_1sec', data=mag1, alim=lim, index=i
 
   if (i eq 0) then begin
     print,"No L2 MAG PL data found!"
     if (l2only) then begin  ; try to load l2 pc data as a last resort
-      store_data, 'mvn_B_1sec_MAVEN_SPACECRAFT', /delete
-      mvn_mag_load, 'L2_1SEC', mag_frame='pc', spice_frame='spacecraft', l2only=l2only
+      i = find_handle('mvn_B_1sec_MAVEN_SPACECRAFT', verbose=-1)
+      if (i gt 0) then store_data, 'mvn_B_1sec_MAVEN_SPACECRAFT', /delete
+      mvn_mag_load, 'L2_1SEC', mag_frame='pc', spice_frame='spacecraft', l2only=l2only, verbose=-1
       get_data, 'mvn_B_1sec_MAVEN_SPACECRAFT', data=mag1, alim=lim, index=i
       if (i eq 0) then print,"No L2 MAG PC data found!" $
                   else print,"Using L2 MAG PC data instead."
@@ -98,8 +100,7 @@ pro mvn_swe_addmag, full=full, usepadmag=usepadmag, l2only=l2only
   if (maglev gt 0) then begin
     print, string(maglev,format='("Using MAG L",i1," data.")')
 
-    indx = where((mag1.x gt t_mtx[0]) and (mag1.x lt t_mtx[2]), nstow, $
-                  complement=jndx, ncomplement=ndeploy)
+    indx = where(mag1.x lt t_mtx[2], nstow, complement=jndx, ncomplement=ndeploy)
 
     if (nstow gt 0L) then begin
       print,"Using stowed boom rotation matrix for MAG1"

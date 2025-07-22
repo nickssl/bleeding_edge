@@ -3,7 +3,7 @@
 ;  generic_object
 ;  This basic object can be inherited by other objects and defines some basic functions and operations
 ; $LastChangedBy: davin-mac $
-; $LastChangedDate: 2024-10-15 18:12:13 +0300 (Tue, 15 Oct 2024) $
+; $LastChangedDate: 2024-10-15 08:12:13 -0700 (Tue, 15 Oct 2024) $
 ; $LastChangedRevision: 32887 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/general/misc/generic_object__define.pro $
 ;

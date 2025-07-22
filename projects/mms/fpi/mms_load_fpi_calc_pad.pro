@@ -9,9 +9,9 @@
 ;
 ;
 ;
-;$LastChangedBy: egrimes $
-;$LastChangedDate: 2016-08-26 11:40:59 -0700 (Fri, 26 Aug 2016) $
-;$LastChangedRevision: 21736 $
+;$LastChangedBy: jwl $
+;$LastChangedDate: 2024-08-29 16:35:34 -0700 (Thu, 29 Aug 2024) $
+;$LastChangedRevision: 32805 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/fpi/mms_load_fpi_calc_pad.pro $
 ;-
 pro mms_load_fpi_calc_pad, probe, autoscale = autoscale, level = level, datatype = datatype, $
@@ -45,18 +45,8 @@ pro mms_load_fpi_calc_pad, probe, autoscale = autoscale, level = level, datatype
         get_data, pad_vars[2], data=highEn, dlimits=dl
 
         ; skip avg/sum when we can't find the tplot names
-        if ~is_struct(lowEn) || ~is_struct(midEn) || ~is_struct(highEn) then begin
+        if ~is_struct(lowEn) || ~is_struct(midEn) || ~is_struct(highEn) then continue
           
-          ; kludge to create the PAD for v3 of the CDFs; once the older versions are
-          ; removed from the SDC, these variable names will need to be moved up ^
-          v3_pad_vars = tnames(strlowcase(pad_vars)+'_'+data_rate)
-          if ~is_array(v3_pad_vars) then continue
-          
-
-          get_data, v3_pad_vars[0], data=lowEn, dlimits=dl
-          get_data, v3_pad_vars[1], data=midEn, dlimits=dl
-          get_data, v3_pad_vars[2], data=highEn, dlimits=dl
-        endif
 
         e_PAD_sum=(lowEn.Y+midEn.Y+highEn.Y)
         e_PAD_avg=e_PAD_sum/3.0

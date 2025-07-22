@@ -1,6 +1,6 @@
-; $LastChangedBy: ali $
-; $LastChangedDate: 2021-08-30 15:16:49 -0700 (Mon, 30 Aug 2021) $
-; $LastChangedRevision: 30270 $
+; $LastChangedBy: orlando $
+; $LastChangedDate: 2025-03-14 14:23:43 -0700 (Fri, 14 Mar 2025) $
+; $LastChangedRevision: 33179 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SPP/sweap/SPAN/electron/spp_swp_spe_load.pro $
 ; Created by Davin Larson 2018
 ; Major updates by Phyllis Whittlesey 2019
@@ -34,7 +34,7 @@ pro spp_swp_spe_load,spxs=spxs,types=types,varformat=varformat,trange=trange,no_
   if types eq 'hkp' then dir = 'spe/'+level+'/SP?_TYP/YYYY/MM/'
   if ~keyword_set(fileformat) then fileformat=dir+'psp_swp_SP?_TYP_'+level+'*_YYYYMMDD_v??.cdf'
 
-  vars['hkp'] = '*TEMP* *_BITS *_FLAG* *CMD* *PEAK* *CNT*'
+  vars['hkp'] = '*TEMP* *_BITS *_FLAG* *CMD* *PEAK* *CNT* *MCP*'
   if keyword_set(allvars) then varformat='*'
 
   tr = timerange(trange)
@@ -94,10 +94,10 @@ pro spp_swp_spe_load,spxs=spxs,types=types,varformat=varformat,trange=trange,no_
             paval = median(pitchangle[*,pa])
             ytitle = 'psp!cswp!c'+spx+'!c'+type+'!c'+level+'!cEFLUX!cVS!cENERGY!c'+strtrim(round(paval),2)+' Deg'
             eflux_pa = reform(eflux_vs_pa_e[*,pa,*])
-            store_data,prefix+'EFLUX_VS_PA'+panum+'_E',time,eflux_pa[*,0:13],energy[*,0:13],dlim={spec:1,ystyle:3,ylog:1,zlog:1,yrange:[1e2,1e3],ytitle:ytitle,ysubtitle:'[eV]',ztitle:'[eV/cm2-s-ster-eV]',ytickunits:'scientific'}
+            store_data,prefix+'EFLUX_VS_PA'+panum+'_E',time,eflux_pa,energy,dlim={spec:1,ystyle:3,ylog:1,zlog:1,ytitle:ytitle,ysubtitle:'[eV]',ztitle:'[eV/cm2-s-ster-eV]',ytickunits:'scientific'}
             if 0 && spx eq 'spe' then begin
               SPX_VS_E = reform(SPX_VS_PA_E[*,pa,*])
-              store_data,prefix+'SPX_VS_PA'+panum+'_E',time,SPX_VS_E[*,0:13],energy[*,0:13],dlim={spec:1,ystyle:3,ylog:1,ztitle:'SPA=1 SPB=2'}
+              store_data,prefix+'SPX_VS_PA'+panum+'_E',time,SPX_VS_E,energy,dlim={spec:1,ystyle:3,ylog:1,ztitle:'SPA=1 SPB=2'}
             endif
           endforeach
           mag_sc = cdf.vars['MAGF_SC'].data.array

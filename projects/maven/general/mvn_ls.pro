@@ -1,23 +1,83 @@
 ;+
 ;FUNCTION: mvn_ls
 ;PURPOSE:
-;  Calculates the Mars season (i.e. solar longitude)
+;  Calculates the Mars season (solar longitude and Mars year).
+;
+;    Ls =   0  --> Northern spring equinox  (beginning of Mars year)
+;    Ls =  90  --> Northern summer solstice
+;    Ls = 180  --> Northern fall equinox
+;    Ls = 270  --> Northern winter solstice
+;
+;    Ls =  71  --> Aphelion
+;    Ls = 251  --> Perihelion
+;
+;    Ls = 180-320  --> Dust storm season
+;
+;  Ls (pronounced "L sub S") is the angular position of Mars in its orbit about the
+;  Sun, starting at the northern spring equinox and ranging from 0 to 360 degrees.
+;  This is different from longitude in the rotating IAU_SUN frame, which is used to 
+;  specify the positions of features (flares, sunspots) on the Sun as well as the 
+;  face of the Sun seen by an observer.
+;
+;  For the definition of Mars year, see Piqueux et al., Icarus 251 (2015) 332–338.
+;
+;    Mars year  0 began 1953-05-24/11:54:39
+;    Mars year 34 began 2017-05-05/11:28:03
 ;
 ;USAGE:
-;  ls = mvn_ls(time)
+;  result = mvn_ls(time)
 ;
-;INPUT:
-;       time: time in any format accepted by time_double.
+;INPUTS:
+;       time:      An array of times in any format accepted by time_double.  If no
+;                  time is provided, then all values in the common block are returned.
+;                  If keyword DT is set, then the minimum and maximum values of time
+;                  are used to create an array of evenly spaced values sampled every
+;                  DT seconds.
 ;
-;OUTPUT:                
-;       Mars solar longitude
+;OUTPUT:
+;                  By default, returns an array of Ls (L_sub_s) values with the same
+;                  number of elements as time.  If keyword ALL is set, then returns a
+;                  structure with three tags:
+;
+;                    time      : the times at which the Mars season is calculated
+;                    Ls        : the longitude of Mars in its orbit about the Sun,
+;                                with Ls=0 at Mars' northern spring equinox
+;                    Mars_year : the Mars year (Ls = 0 to 360) -- Mars year 0 began
+;                                at 1953-05-24/11:54:39.  Year 1 was chosen to 
+;                                correspond to a global dust storm in 1956.
 ;
 ;KEYWORDS:
-;       TPLOT: make a tplot variable of Ls
+;       DT :       Optional.  Time resolution in seconds for calculating the result.
+;                  If set, then the minimum and maximum values of time are used to 
+;                  create an array of values sampled every DT seconds.  Linear 
+;                  interpolation between calculated values spaced by 1 day provides 
+;                  an accuracy of ~0.0001 deg, so there's typically no need for DT 
+;                  to be any smaller.  If not set, then the result is calculated for
+;                  all values in the time array.
 ;
-; $LastChangedBy: hara $
-; $LastChangedDate: 2023-04-16 15:08:05 -0700 (Sun, 16 Apr 2023) $
-; $LastChangedRevision: 31754 $
+;       ALL:       By default, this function returns an array of Ls (L_sub_s) values
+;                  with the same number of elements as time.  Set this keyword to 
+;                  instead get a structure with three tags: time, Ls, and Mars_year.
+;
+;       TPLOT:     Make a tplot variable.
+;
+;       BAR:       If TPLOT is set, then setting this keyword creates a detached horizontal
+;                  time axis with labels for Mars year and Ls.  This axis can be placed
+;                  below any panel or at the top.  Only seems to work for Mars years 24-36
+;                  (1998-2023).
+;
+;       CALC:      Instead of interpolating on an array of pre-calculated values, use
+;                  spice to calculate values based on time and DT.  This mode always
+;                  returns a structure of arrays, as if ALL were set.  Use this if you
+;                  need a precision better than ~0.0001 deg.
+;
+;       SILENT:    Suppress diagnostic output (mostly from spice).
+;
+;       RESET:     Re-calculate mars_season and refresh the common block.
+;
+; $LastChangedBy: dmitchell $
+; $LastChangedDate: 2025-07-11 17:52:59 -0700 (Fri, 11 Jul 2025) $
+; $LastChangedRevision: 33456 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/general/mvn_ls.pro $
 ;
 ;CREATED BY:	Robert J. Lillis 2017-10-09
@@ -42,8 +102,13 @@ PRO mvn_ls_bar, data=data, limits=lim, _extra=extra
   xrange = INTERPOL(data.y, data.x, lim.xrange)
 
   str_element, lim, 'xaxis', value=xaxis
-  IF undefined(xaxis) THEN xaxis = {xtickinterval: 90., xminor: 3}
-
+  IF undefined(xaxis) THEN BEGIN
+     IF xrange[1]-xrange[0] LT 30. THEN xaxis = {xtickinterval: 5., xminor: 5} $
+     ELSE IF xrange[1]-xrange[0] LT 90. THEN xaxis = {xtickinterval: 10., xminor: 5} $
+     ELSE IF xrange[1]-xrange[0] LT 360. THEN xaxis = {xtickinterval: 30., xminor: 3} $
+     ELSE xaxis = {xtickinterval: 90., xminor: 3}
+  ENDIF
+  
   IF is_struct(xaxis) THEN BEGIN
      extract_tags, aopt, xaxis, /axis
      extract_tags, aopt, xaxis, tags=['xtickinterval']
@@ -108,83 +173,138 @@ PRO mvn_ls_bar, data=data, limits=lim, _extra=extra
   RETURN
 END
 
-;This subroutine was initially written by Rob, and was modified by T.Hara on 2022-08-18.
-function mvn_ls_calc, time
+; This subroutine was initially written by Rob, and was modified by T.Hara on 2022-08-18.
+; Modified by D. Mitchell on 2025-02-09 so that it can be used by orrery.pro.  The default
+; time resolution of 10 minutes was overkill.  Linear interpolation on calculated values 
+; with a time resolution of 1 day provides an accuracy of ~0.0001 deg, which should be 
+; plenty.  With this change, it is possible to extend the coverage to match the Mars kernel
+; (mars097.bsp), which goes from 1900 to 2100.  If higher accuracy is needed, then mvn_ls 
+; can be called with CALC=1 and custom values of time and/or DT.  Changed the logic so that 
+; a uniform time array is generated when either DT is provided or time is not provided.  
+; Otherwise, the result is calculated for all elements of time.
+
+function mvn_ls_calc, time, dt=dt, silent=silent
+
+  if (~spice_test(v=0)) then begin
+    print,"  You must have spice installed to calculate Mars seasons."
+    return, !values.f_nan
+  endif
+
+  shh = keyword_set(silent)
+  if (shh) then begin
+    dprint,' ', getdebug=bug, dlevel=4
+    dprint,' ', setdebug=0, dlevel=4
+  endif
+
+  mvn_spice_stat, summary=sinfo, info=info, /silent  ; only load kernels if necessary
+  if (~sinfo.planets_exist or ~sinfo.frames_exist) then maven_kernels = mvn_spice_kernels(['STD', 'FRM'], /load)
+
+  oneday = 86400D
   if undefined(time) then begin
-     start_time = time_double('1997-01-01')
-     end_time = time_double('2040-01-01')
+    start_time = time_double('1600-01-01')
+    end_time = time_double('2600-01-01')
+    if undefined(dt) then dt = oneday
+    times = dgen(range=[start_time, end_time], resolution=dt[0])
   endif else begin
-     if n_elements(time) eq 2 then start_time = min(time, max=end_time)
-     if n_elements(time) gt 2 then times = time
+    if ~undefined(dt) then begin
+      start_time = min(time_double(time), max=end_time)
+      times = dgen(range=[start_time, end_time], resolution=dt[0])
+    endif else times = time_double(time)
   endelse 
-  if undefined(dt) then dt = 600.0
-  if undefined(times) then times = dgen(range=[start_time, end_time], resolution=dt)
 
   et = time_ephemeris(times)
-  maven_kernels = mvn_spice_kernels(['STD', 'FRM'], /load)
+  ntimes = n_elements(et)
 
-  ; Mars Year 34 started at 2017-05-05/18
-  start_MY_34 = time_double('2017-05-05/17:47:31')
+  ; Mars Year 34 started on 2017-05-05
+  start_MY_34 = time_double('2017-05-05/11:28:03')  ; previous value was 2017-05-05/17:47:31
+  oneyear = 686.980D * oneday  ; Mars siderial year (precise value not important)
 
-  ls = dblarr(n_elements(et))
-  for i=0ll, n_elements(et)-1 do ls[i] = cspice_dpr() * cspice_lspcn('MARS', et[i], 'NONE')
-  dls = deriv(ls)
+  ls = dblarr(ntimes)
+  for i=0L, ntimes-1L do ls[i] = cspice_dpr() * cspice_lspcn('MARS', et[i], 'NONE')
 
-  ends = where(abs(dls) gt 20.0)
-  ends = ends[2*indgen(23)]     ; because evey year boundary is two points
-  nend = n_elements(ends)
+  if (ntimes gt 1L) then begin
+    dls = ls - shift(ls,1)
+    dls[0] = dls[1]
+  endif else dls = [1D]
 
-  year_boundary_times = times[ends+1]
-  index_MY34 = nn(year_boundary_times, start_MY_34)
-  MYs = 34 - index_MY34 + indgen(n_elements(year_boundary_times))
+  imy = where(dls lt 0, count)
+  if (count gt 0) then begin
+    year_boundary_times = times[imy]
+    MYi = round((year_boundary_times - start_MY_34)/oneyear) + 34L
+    imax = n_elements(MYi) - 1L
 
-  mars_years = dblarr(n_elements(et))
-  mars_years[*] = max(MYs)
-  for i=nend-1, 0, -1 do mars_years[0ll:ends[i]] = MYs[i] - 1
+    MY = dblarr(ntimes)
+    if (imy[0] gt 0L) then MY[0L:imy[0]-1L] = MYi[0] - 1L
+    for i=0L,imax-1L do MY[imy[i]:imy[i+1L]-1L] = MYi[i]
+    if (imy[imax] lt (ntimes-1L)) then MY[imy[imax]:*] = MYi[imax]
+    Mars_year_decimal = MY + ls/360D
+  endif else begin
+    MYi = replicate(floor((times[0] - start_MY_34)/oneyear) + 34L, ntimes)
+    Mars_year_decimal = double(MYi) + ls/360D
+  endelse
 
-  Mars_year_decimal = mars_years + reform(Ls)/360.d0
-  
-  ;year_boundary_times = times[ends]
-  ;year = times[ends[1:*]] - times[ends[0:nend-2]]
-  ;ave_year = mean(year)
+  Mars_season = {time:times, Mars_year:Mars_year_decimal, Ls:Ls}
 
-  ;Mars_year_decimal = (time_double(times) - start_MY_34)/ave_year + 34.0
-  ;Mars_year_integer = floor(Mars_year_decimal)
-  Mars_season = {time:times, Mars_year:Mars_year_decimal, Ls:reform(Ls)}
+  if (shh) then dprint,' ', setdebug=bug, dlevel=4
 
   return, Mars_season
 end 
 
-function mvn_ls, time, tplot = tplot, calc = calc, last = last, all = all, bar=bar;, no_load_kernels
+function mvn_ls, time, dt=dt, tplot=tplot, calc=calc, all=all, bar=bar, silent=silent, reset=reset
   
-  common ephemeris, mars_season
+  common mvn_ls_eph, mars_season
 
-  if size(mars_season, /type) ne 8 then begin
-     if keyword_set(calc) then mars_season = mvn_ls_calc(time) $
-     else begin
-        rootdir = 'maven/anc/spice/sav/'
-        pathname = rootdir + 'Mars_seasons_1997_2040*.sav'
-        file = mvn_pfp_file_retrieve(pathname, last_version=last)
-        if (findfile(file[0]) eq '') then begin
-           print,"File not found: ",pathname
-           return, !values.f_nan
-        endif
-        restore, file[0]
-     endelse
-  endif 
-  
+  if keyword_set(calc) then return, mvn_ls_calc(time, dt=dt, silent=silent)
+  shh = keyword_set(silent) ? 0 : 2
+
+  if ((size(mars_season,/type) ne 8) or keyword_set(reset)) then begin
+    rootdir = 'maven/anc/spice/sav/'
+    pathname = rootdir + 'Mars_seasons_1600_2600*.sav'
+    file = mvn_pfp_file_retrieve(pathname, /last_version, /valid, verbose=shh)
+    if (file[0] eq '') then begin
+      print,"  File not found: ", pathname
+      print,"  Attempting to calculate."
+      mars_season = mvn_ls_calc(silent=silent)
+      if (size(mars_season,/type) ne 8) then return, !values.f_nan
+    endif else restore, file[0]
+  endif
+
   if keyword_set(tplot) then begin
-     data = {x: Mars_season.time, y: Mars_season.Ls}
-     if keyword_set(bar) then str_element, data, 'v', Mars_season.mars_year, /add
+     data = {x:mars_season.time, y:mars_season.Ls}
+     if keyword_set(bar) then str_element, data, 'v', mars_season.mars_year, /add
      
      store_data, 'ls', data = data, $
-                 dlimits={yrange: [0., 360.], ystyle: 1, yticks: 4, yminor: 3}
+                 dlimits={yrange:[0.,360.], ystyle:1, yticks:4, yminor:3}
      if keyword_set(bar) then options, 'ls', tplot_routine='mvn_ls_bar', panel_size=0.3
   endif 
 
-  
-  if keyword_set(all) then return, Mars_season
-  
-  if undefined(time) then return, Mars_season.ls $
-  else return, interpol(Mars_season.Ls, Mars_season.time, time_double(time))
+  if (size(time,/type) ne 0) then begin
+    if (size(dt,/type) ne 0) then begin
+      start_time = min(time_double(time), max=end_time)
+      t = dgen(range=[start_time, end_time], resolution=dt[0])
+    endif else t = time_double(time)
+
+    indx = where((t ge min(mars_season.time)) and (t le max(mars_season.time)), ngud, ncomplement=nbad)
+    if (ngud eq 0L) then begin
+      print,"  No ephemeris coverage for input times."
+      return, !values.f_nan
+    endif
+    if (nbad gt 0L) then print,"  Some input times extend outside ephemeris coverage."
+
+    Ls = replicate(!values.d_nan, n_elements(t))
+    My = Ls
+    Ls_x = interpol(cos(mars_season.Ls * !dtor), mars_season.time, t[indx])
+    Ls_y = interpol(sin(mars_season.Ls * !dtor), mars_season.time, t[indx])
+    Ls[indx] = atan(Ls_y, Ls_x) * !radeg
+    jndx = where(Ls[indx] lt 0D, count)
+    if (count gt 0L) then Ls[indx[jndx]] += 360D
+    My[indx] = interpol(mars_season.mars_year, mars_season.time, t[indx])
+  endif else begin
+    t = mars_season.time
+    Ls = mars_season.Ls
+    My = mars_season.mars_year
+  endelse
+
+  if keyword_set(all) then return, {time:t, Ls:Ls, mars_year:My} else return, Ls  
+
 end 

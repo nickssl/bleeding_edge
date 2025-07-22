@@ -1,3 +1,4 @@
+message,'obsolete, now part of mvn_sep_batch.pro'
 ;;---------------------------------------------
 ;; Temporarily add level 1 process, 
 mvn_mag_gen_l1_sav,init=1

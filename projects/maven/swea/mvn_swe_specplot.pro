@@ -27,8 +27,8 @@
 ;       TAVG:         Time averaging when using ENERGY or ERATIO keywords.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2017-08-14 11:18:45 -0700 (Mon, 14 Aug 2017) $
-; $LastChangedRevision: 23786 $
+; $LastChangedDate: 2024-05-22 14:25:16 -0700 (Wed, 22 May 2024) $
+; $LastChangedRevision: 32628 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_specplot.pro $
 ;
 ;CREATED BY:    David L. Mitchell  2015-05-06
@@ -62,7 +62,7 @@ pro mvn_swe_specplot, trange=trange, orbit=orbit, units=units, energy=energy, ta
   tsp = [start_day, (start_day + oneday)]
   ok = 0
   while (not ok) do begin
-    mvn_swe_load_l2, tsp, /spec, /nospice
+    mvn_swe_load_l2, tsp, apid='a4', /nospice
     mvn_swe_sumplot, /loadonly, eunits=units
     get_data,'swe_a4',data=spec,index=j
     if (j gt 0) then begin
@@ -81,7 +81,7 @@ pro mvn_swe_specplot, trange=trange, orbit=orbit, units=units, energy=energy, ta
   
   while (tsp[1] lt stop_day) do begin
     tsp += oneday
-    mvn_swe_load_l2, tsp, /spec, /nospice
+    mvn_swe_load_l2, tsp, apid='a4', /nospice
     store_data,'swe_a4',/delete
     mvn_swe_sumplot, /loadonly, eunits=units
     get_data,'swe_a4',data=spec,index=j

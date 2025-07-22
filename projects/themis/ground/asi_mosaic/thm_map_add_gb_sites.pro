@@ -7,10 +7,10 @@
 ; KEYWORDS:
 ; HISTORY:
 ; VERSION:
-;   $LastChangedBy$
-;   $LastChangedDate$
-;   $LastChangedRevision$
-;   $URL$
+;   $LastChangedBy: nikos $
+;   $LastChangedDate: 2024-12-13 09:03:48 -0800 (Fri, 13 Dec 2024) $
+;   $LastChangedRevision: 32990 $
+;   $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/ground/asi_mosaic/thm_map_add_gb_sites.pro $
 ;-
 
 ;---------------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 ; +
 ; $LastChangedBy: davin-mac $
-; $LastChangedDate: 2023-04-02 23:51:40 -0700 (Sun, 02 Apr 2023) $
-; $LastChangedRevision: 31699 $
+; $LastChangedDate: 2024-11-03 23:43:14 -0800 (Sun, 03 Nov 2024) $
+; $LastChangedRevision: 32928 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/swfo_apdat_info.pro $
 ; $ID: $
 ; This is the master routine that changes or accesses the ccsds data structures for each type of packet that is received
@@ -26,6 +26,9 @@ pro swfo_apdat_info,apid_description,name=name,verbose=verbose,$
   cdf_pathname = cdf_pathname, $
   cdf_linkname = cdf_linkname, $
   make_cdf = make_cdf, $
+  make_ncdf = make_ncdf,  $
+  trange = trange,  $
+  file_resolution = file_resolution, $
   nonzero=nonzero,  $
   dlevel=dlevel, $
   all = all, $
@@ -42,7 +45,7 @@ pro swfo_apdat_info,apid_description,name=name,verbose=verbose,$
   create_tplot_vars=create_tplot_vars, $
   rt_flag=rt_flag,trim=trim
 
-  common swfo_apdat_info_com, all_apdat, alt_apdat, all_info,temp1,temp2
+  common spp_apdat_info_com, all_apdat, alt_apdat, all_info,temp1,temp2
 
 
   if keyword_set(reset) then begin   ; not recommended!
@@ -52,7 +55,7 @@ pro swfo_apdat_info,apid_description,name=name,verbose=verbose,$
     all_info = !null
   endif
 
-  if ~keyword_set(all_apdat) then all_apdat = replicate( obj_new() , 2^11 )
+  if ~keyword_set(all_apdat) then all_apdat = replicate( obj_new() , 2^12 )   ; increased size to allow for artificial apids
 
   if ~keyword_set(alt_apdat) then alt_apdat = orderedhash()
 
@@ -170,6 +173,9 @@ pro swfo_apdat_info,apid_description,name=name,verbose=verbose,$
     if keyword_set(sort_flag) then apdat.sort
     if keyword_set(finish)    then apdat.finish
     if keyword_set(make_cdf)  then apdat.cdf_create_file
+    if keyword_set(make_ncdf) then begin
+      if obj_hasmethod(apdat,'ncdf_make_file') then apdat.ncdf_make_file,trange=trange,resolution=file_resolution else dprint ,'No ncdf method for ',apdat.name
+    endif
     if keyword_set(clear)  then    apdat.clear
     if keyword_set(zero)   then    apdat.zero
     if keyword_set(trim)   then    apdat.trim

@@ -21,8 +21,8 @@
 ;                     incomplete or not available.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2017-04-05 10:03:02 -0700 (Wed, 05 Apr 2017) $
-; $LastChangedRevision: 23109 $
+; $LastChangedDate: 2024-01-25 09:06:24 -0800 (Thu, 25 Jan 2024) $
+; $LastChangedRevision: 32412 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/l2gen/mvn_swe_resample_pad_daily.pro $
 ;
 ;CREATED BY:    David L. Mitchell
@@ -35,7 +35,7 @@ pro mvn_swe_resample_pad_daily, trange, l2only=l2only
   oneday = 86400D
   ndays = (t1 - t0)/oneday + 1L
 
-  opath = root_data_dir() + 'maven/data/sci/swe/l1/pad_resample/'
+  proot = root_data_dir() + 'maven/data/sci/swe/l1/pad_resample'
   froot = 'mvn_swe_pad_'
 
   for i=0L,(ndays - 1L) do begin
@@ -46,7 +46,13 @@ pro mvn_swe_resample_pad_daily, trange, l2only=l2only
     yyyy = strmid(tstring,0,4)
     mm = strmid(tstring,5,2)
     dd = strmid(tstring,8,2)
-    ofile = opath + yyyy + '/' + mm + '/' + froot + yyyy + mm + dd
+    opath = proot + '/' + yyyy + '/' + mm
+    ofile = opath + '/' + froot + yyyy + mm + dd
+
+    if (n_elements(file_search(opath)) eq 0) then begin
+      file_mkdir2, opath, mode = '0775'o
+      file_chgrp, opath, 'maven'
+    endif
 
     mvn_swe_clear
     mvn_swe_load_l0,/spice
@@ -68,8 +74,10 @@ pro mvn_swe_resample_pad_daily, trange, l2only=l2only
       mvn_swe_pad_resample,nbins=128,erange=[100.,150.],/norm,/mask,/silent
       options,'mvn_swe_pad_resample','maglev',maglev
       tplot_save,'mvn_swe_pad_resample',file=ofile
-      if (file_test(ofile+'.tplot',/user)) then file_chmod, ofile+'.tplot', '664'o $
-                                           else print,"Can't chmod - I'm not the owner!"
+      if (file_test(ofile+'.tplot',/user)) then begin
+        file_chmod, ofile+'.tplot', '664'o
+        file_chgrp, ofile+'.tplot', 'maven'
+      endif else print,"Can't alter file permissions - I'm not the owner!"
     endif
 
   endfor

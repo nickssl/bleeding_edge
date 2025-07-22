@@ -19,8 +19,8 @@
 ;     Yuki Harada on 2015-01-23
 ;
 ; $LastChangedBy: haraday $
-; $LastChangedDate: 2018-05-29 23:13:05 -0700 (Tue, 29 May 2018) $
-; $LastChangedRevision: 25297 $
+; $LastChangedDate: 2025-02-24 23:31:40 -0800 (Mon, 24 Feb 2025) $
+; $LastChangedRevision: 33148 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/kaguya/map/kgy_map_make_tplot.pro $
 ;-
 
@@ -118,9 +118,11 @@ pro kgy_map_make_tplot, sensor=sensor, trange=trange, bkgd=bkgd, suffix=suffix, 
         if size(info_str,/tname) ne 'STRUCT' then noinfo = 1 else noinfo = 0
 
         times = $
-           time_double( string(header_arr[*].yyyymmdd,format='(i8.8)') $
-                        +string(header_arr[*].hhmmss,format='(i6.6)'), $
-                        tformat='YYYYMMDDhhmmss' ) $
+           time_double( string(header_arr[*].yyyymmdd,format='(i8.8)'),tformat='YYYYMMDD' ) $
+           + header_arr[*].time_ms/1d3 $
+           ;; time_double( string(header_arr[*].yyyymmdd,format='(i8.8)') $
+           ;;              +string(header_arr[*].hhmmss,format='(i6.6)'), $
+           ;;              tformat='YYYYMMDDhhmmss' ) $
            + header_arr[*].time_resolution / 2.d3
         indexes = header_arr[*].index
 

@@ -10,9 +10,9 @@
 ; To run:
 ;     IDL> mgunit, 'mms_flipbookify_ut'
 ;
-; $LastChangedBy: egrimes $
-; $LastChangedDate: 2018-08-02 16:54:33 -0700 (Thu, 02 Aug 2018) $
-; $LastChangedRevision: 25562 $
+; $LastChangedBy: jwl $
+; $LastChangedDate: 2023-11-09 10:31:32 -0800 (Thu, 09 Nov 2023) $
+; $LastChangedRevision: 32226 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/common/tests/mms_flipbookify_ut__define.pro $
 ;-
 
@@ -143,13 +143,13 @@ function mms_flipbookify_ut::test_fpi_video_with_lineplots_yrange
 end
 
 pro mms_flipbookify_ut::teardown
-  window, 0 ; clear the current window
+  if (!d.name ne "Z") then window, 0 ; clear the current window
 end
 
 pro mms_flipbookify_ut::setup
   del_data, '*'
   mms_load_fpi, level='l2', data_rate='fast', trange=['2017-12-15', '2017-12-16'], datatype=['dis-moms', 'des-moms'], probe=1
-  window, 0 ; clear the current window
+  if (!d.name ne "Z") then window, 0 ; clear the current window
 end
 
 function mms_flipbookify_ut::init, _extra=e

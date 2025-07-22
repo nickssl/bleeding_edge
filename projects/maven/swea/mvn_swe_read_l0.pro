@@ -58,8 +58,8 @@
 ;       VERBOSE:       If set, then print diagnostic information to stdout.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-08-02 11:13:26 -0700 (Wed, 02 Aug 2023) $
-; $LastChangedRevision: 31973 $
+; $LastChangedDate: 2024-01-08 16:01:00 -0800 (Mon, 08 Jan 2024) $
+; $LastChangedRevision: 32336 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_read_l0.pro $
 ;
 ;CREATED BY:    David L. Mitchell  04-25-13
@@ -709,7 +709,7 @@ pro mvn_swe_read_l0, filename, trange=trange, cdrift=cdrift, maxbytes=maxbytes, 
 	pkt = mav_pfdpu_part_decompress_data2(tlm[i:j])
 	plen = n_elements(pkt)
 
-	if (plen lt 272) then begin
+    if ((plen ne 1040) && (plen ne 528) && (plen ne 272)) then begin
 	  print,"Bad A2 packet: ",n,format='(a,Z)'
 
 	  bad_str.addr = n
@@ -783,7 +783,7 @@ pro mvn_swe_read_l0, filename, trange=trange, cdrift=cdrift, maxbytes=maxbytes, 
 	pkt = mav_pfdpu_part_decompress_data2(tlm[i:j])
 	plen = n_elements(pkt)
 
-	if (plen lt 272) then begin
+    if ((plen ne 1040) && (plen ne 528) && (plen ne 272)) then begin
 	  print,"Bad A3 packet: ",n,format='(a,Z)'
 
 	  bad_str.addr = n

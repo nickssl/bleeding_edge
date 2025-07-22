@@ -7,8 +7,8 @@
 ;  All times are for the center of the sample.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-06-23 12:34:13 -0700 (Fri, 23 Jun 2023) $
-; $LastChangedRevision: 31909 $
+; $LastChangedDate: 2025-06-03 11:54:58 -0700 (Tue, 03 Jun 2025) $
+; $LastChangedRevision: 33361 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_struct.pro $
 ;
 ;CREATED BY:	David L. Mitchell  2013-07-26
@@ -331,14 +331,14 @@ pro mvn_swe_struct
   swe_mag_struct = {project_name    : 'MAVEN'                 , $
                     data_name       : 'SWEA PAD MAG'          , $
                     units_name      : 'nT'                    , $
-                    frame           : 'swea'                  , $
+                    spice_frame     : 'MAVEN_SWEA'            , $
                     level           : 0B                      , $
                     valid           : 0B                      , $
                     time            : 0D                      , $  ; unix time
                     Bamp            : 0.                      , $  ; amplitude (nT)
                     Bphi            : 0.                      , $  ; SWEA azimuth (radians)
                     Bthe            : 0.                      , $  ; SWEA elevation (radians)
-                    magf            : fltarr(3)                  } ; vector in SWEA coord. (nT)
+                    magf            : fltarr(3)                  } ; vector in SWEA frame (nT)
 
   return
 

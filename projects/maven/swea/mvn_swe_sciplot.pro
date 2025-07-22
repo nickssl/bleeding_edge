@@ -78,8 +78,8 @@
 ;OUTPUTS:
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-08-25 08:37:09 -0700 (Fri, 25 Aug 2023) $
-; $LastChangedRevision: 32063 $
+; $LastChangedDate: 2025-06-19 14:45:39 -0700 (Thu, 19 Jun 2025) $
+; $LastChangedRevision: 33393 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_sciplot.pro $
 ;
 ;-
@@ -124,8 +124,14 @@ pro mvn_swe_sciplot, sun=sun, ram=ram, sep=sep, swia=swia, static=static, lpw=lp
     return
   endif
 
+; Get the time range of loaded SWEA data
+
   str_element, a4, 'time', etime, success=ok
-  if (not ok) then str_element, mvn_swe_engy, 'time', etime, success=ok
+  if (ok) then trange = minmax(etime) + [0D,34D]
+  if (not ok) then begin
+    str_element, mvn_swe_engy, 'time', etime, success=ok
+    if (ok) then trange = minmax(etime) + [-1D,1D]
+  endif
   if (not ok) then begin
     print,"This should be impossible: mvn_swe_stat says that data are loaded,"
     print,"but I can't find the L0 or L2 SPEC data."
@@ -135,13 +141,12 @@ pro mvn_swe_sciplot, sun=sun, ram=ram, sep=sep, swia=swia, static=static, lpw=lp
 ; Make sure ephemeris covers loaded data
 
   tplot_options, get=topt
-  if (max(topt.trange) lt 1D) then timespan, (minmax(etime) + [0D,34D])
+  if (max(topt.trange) lt 1D) then timespan, trange
 
   if (find_handle('alt2',v=-1) gt 0) then begin
     get_data,'alt',data=alt
     tsp = minmax(alt.x)
-    indx = where((etime lt tsp[0]) or (etime gt tsp[1]), count)
-    if (count gt 0) then maven_orbit_tplot, /loadonly, /shadow, datum=datum
+    if ((etime[0] lt tsp[0]) or (etime[1] gt tsp[1])) then maven_orbit_tplot, /loadonly, /shadow, datum=datum
   endif else maven_orbit_tplot, /loadonly, /shadow, datum=datum
 
   mvn_swe_sumplot,/loadonly
@@ -168,11 +173,16 @@ pro mvn_swe_sciplot, sun=sun, ram=ram, sep=sep, swia=swia, static=static, lpw=lp
     endif
     zlim,pad_pan,0,2,0
     options,pad_pan,'zticks',2
+    options,pad_pan,'x_no_interp',1
+    options,pad_pan,'y_no_interp',1
+    options,pad_pan,'datagap',129D
   endif else pad_pan = 'swe_a2_280'
 
 ; Spacecraft orientation
 
   alt_pan = 'alt2'
+  mvn_attitude_bar
+  att_pan = 'mvn_att_bar'
 
   if keyword_set(sun) then begin
     mvn_sundir, frame='swe', /polar
@@ -197,7 +207,7 @@ pro mvn_swe_sciplot, sun=sun, ram=ram, sep=sep, swia=swia, static=static, lpw=lp
 
 ; MAG data
 
-  mvn_swe_addmag
+  if (size(swe_mag1,/type) ne 8) then mvn_swe_addmag
   if keyword_set(magfull) then begin
     mvn_mag_load, 'L2_FULL'
     mvn_mag_geom, var='mvn_B_full'
@@ -281,12 +291,17 @@ pro mvn_swe_sciplot, sun=sun, ram=ram, sep=sep, swia=swia, static=static, lpw=lp
   i = find_handle('swe_a3_bar', verbose=-1)
   if (i gt 0) then bst_pan = 'swe_a3_bar' else bst_pan = ''
 
+; Quality flag, if available
+
+  i = find_handle('swe_quality', verbose=-1)
+  if (i gt 0) then q_pan = 'swe_quality' else q_pan = ''
+
 ; Assemble the panels and plot
 
-  pans = [ram_pan, ndr_pan, sun_pan, alt_pan, $
-          euv_pan, swi_pan, sta_pan, mag_pan, $
-          sep_pan, lpw_pan, pad_pan, pot_pan, $
-          bst_pan, shape_pan, engy_pan]
+  pans = [ram_pan, ndr_pan, sun_pan, alt_pan, att_pan, $
+          euv_pan, swi_pan, sta_pan, mag_pan, sep_pan, $
+          lpw_pan, pad_pan, pot_pan, bst_pan, shape_pan, $
+          q_pan, engy_pan]
 
   indx = where(pans ne '', npans)
   if (npans gt 0) then begin

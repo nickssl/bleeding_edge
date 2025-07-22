@@ -10,10 +10,10 @@
 ; Author:
 ;    Davin Larson - April 2011
 ;
-; $LastChangedBy: ali $
-; $LastChangedDate: 2021-09-24 16:07:57 -0700 (Fri, 24 Sep 2021) $
-; $LastChangedRevision: 30319 $
-; $URL:  $
+; $LastChangedBy: davin-mac $
+; $LastChangedDate: 2023-12-02 00:15:24 -0800 (Sat, 02 Dec 2023) $
+; $LastChangedRevision: 32264 $
+; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/escapade/esa/common/esc_recorder.pro $
 ;
 ;-
 

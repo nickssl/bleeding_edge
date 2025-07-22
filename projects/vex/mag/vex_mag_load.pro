@@ -27,8 +27,8 @@
 ;
 ;LAST MODIFICATION:
 ; $LastChangedBy: hara $
-; $LastChangedDate: 2020-03-20 17:00:57 -0700 (Fri, 20 Mar 2020) $
-; $LastChangedRevision: 28447 $
+; $LastChangedDate: 2024-01-31 15:55:56 -0800 (Wed, 31 Jan 2024) $
+; $LastChangedRevision: 32430 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/vex/mag/vex_mag_load.pro $
 ;
 ;-
@@ -53,8 +53,9 @@ PRO vex_mag_list, trange, verbose=verbose, l4=l4, file=file, time=modify_time, l
   ENDCASE 
   IF lvl EQ '2' THEN prefix = 'BIO_' ELSE prefix = 'MAG_'
 
-  rpath = 'ftp://psa.esac.esa.int/pub/mirror/VENUS-EXPRESS/MAG/'
-
+  ;rpath = 'ftp://psa.esac.esa.int/pub/mirror/VENUS-EXPRESS/MAG/'
+  rpath = 'https://archives.esac.esa.int/psa/ftp/VENUS-EXPRESS/MAG/'
+  
   mtime = ['2005-11', '2007-10-03', '2009-10-06', '2010-09-01', '2013']
   mtime = time_double(mtime)
 
@@ -74,7 +75,6 @@ PRO vex_mag_list, trange, verbose=verbose, l4=l4, file=file, time=modify_time, l
   ldir = root_data_dir() + 'vex/mag/'
   file_mkdir2, ldir, dlevel=2, verbose=verbose
 
-  dprint, dlevel=2, verbose=verbose, 'Starts connecting ESA/PSA FTP server...'
   FOR i=0, ndat-1 DO BEGIN
      IF date[i] GE time_double('2006-05-14') THEN subdir = 'ORB' + time_string(date[i], tformat='YYYYMM') $
      ELSE subdir = 'CAPTORBIT'
@@ -84,25 +84,33 @@ PRO vex_mag_list, trange, verbose=verbose, l4=l4, file=file, time=modify_time, l
      dflg = 0
      IF SIZE(cmd_old, /type) EQ 0 THEN dflg = 1 $
      ELSE IF cmd NE cmd_old THEN dflg = 1
-     IF (dflg) THEN list_file = spd_download(remote_path=cmd, remote_file='*', local_path=ldir, local_file='vex_mag_lists.txt', ftp_connection_mode=0)
+     IF (dflg) THEN list_file = spd_download(remote_path=cmd, local_path=ldir, local_file='vex_mag_lists.txt')
 
      OPENR, unit, list_file, /get_lun
      text = STRARR(FILE_LINES(list_file))
      READF, unit, text
      FREE_LUN, unit
 
-     text = STRSPLIT(text, ' ', /extract)
-     text = text.toarray()
-     
-     text[*, 6] = STRING(LONG(text[*, 6]), '(I2.2)')
-     mod_time = time_double(text[*, 5] + text[*, 6] + text[*, 7], tformat='MTHDDYYYY')
+     idx = WHERE(text.matches('.TAB') EQ 1, nidx)
+     IF nidx GT 0 THEN BEGIN
+        text = text[idx]
 
-     w = WHERE(STRMATCH(text[*, -1], prefix + time_string(date[i], tformat='YYYYMMDD_') + '*.TAB') EQ 1, nw)
-     IF nw GT 0 THEN afile = cmd + text[w, -1]
-     IF SIZE(afile, /type) NE 0 THEN BEGIN
-        append_array, file, afile
-        append_array, modify_time, mod_time[w]
+        afile = text.extract('<a href[^>]+>')
+        afile = afile.extract('"[^"]+"')
+        afile = afile.substring(1, -2)
+        
+        mod_time = text.extract('>[^>]+</td>')
+        mod_time = mod_time.extract('>[^>]+<')
+        mod_time = time_double(mod_time.substring(1, -4), tformat='YYYY-MM-DD hh:mm')
+
+        w = WHERE(STRMATCH(afile, prefix + time_string(date[i], tformat='YYYYMMDD_') + '*.TAB') EQ 1, nw)
+
+        IF nw GT 0 THEN BEGIN
+           append_array, file, cmd + afile[w]
+           append_array, modify_time, mod_time[w]
+        ENDIF 
      ENDIF
+     undefine, idx, nidx
      undefine, w, nw, text, afile
      cmd_old = cmd
   ENDFOR 
@@ -170,6 +178,7 @@ PRO vex_mag_load, trange, verbose=verbose, pos=pos, result=result, l2=l2, l3=l3,
 
   IF (nflg) THEN BEGIN
      vex_mag_list, trange, verbose=verbose, l4=l4, file=rfile, time=rtime, level=lvl, resolution=res
+
      IF SIZE(rfile, /type) EQ 0 THEN BEGIN
         dprint, 'No data found.', dlevel=2, verbose=verbose
         RETURN
@@ -189,7 +198,7 @@ PRO vex_mag_load, trange, verbose=verbose, pos=pos, result=result, l2=l2, l3=l3,
            IF lvl EQ 'l2' THEN ldir = root_data_dir() + 'vex/mag/' + lvl + '/' + res + suffix $
            ELSE ldir = root_data_dir() + 'vex/mag/' + lvl + suffix
 
-           append_array, file, spd_download(remote_file=rfile[i], local_path=ldir, ftp_connection_mode=0)
+           append_array, file, spd_download(remote_file=rfile[i], local_path=ldir)
            file_touch, file[-1], rtime[i] - DOUBLE(time_zone_offset()) * 3600.d0, /mtime
         ENDIF ELSE append_array, file, files[w]
      ENDFOR

@@ -38,7 +38,6 @@ function execute_mms_sitl_query, netURL, url_path, query, filename=filename
       206: printf, -2, "WARNING in execute_mms_sitl_query: Only partial results were returned."
       404: begin
         printf, -2, "ERROR in execute_mms_sitl_query: Service not found."
-        stop
       end
       401: begin
         mms_sitl_logout
@@ -56,20 +55,20 @@ function execute_mms_sitl_query, netURL, url_path, query, filename=filename
     endcase
     return, code ;the http or other IDLnetURL error code (http://www.exelisvis.com/docs/IDLnetURL.html#objects_network_1009015_1417867)
   endif
-  
+
   ; Set the path and query for the request.
   netURL->SetProperty, URL_PATH=url_path
   netURL->SetProperty, URL_QUERY=query
   netURL->SetProperty, timeout=5400
-  
+
   ; Make the request.
   ; If the 'filename' parameter is set, assume we want to download a file.
   ; Otherwise, get the results as a string array.
   if (n_elements(filename) eq 1) then result = netURL->Get(filename=filename)  $  ;download file, result should be path of file
   else result = netURL->Get(/string_array)  ;get results as array of comma separated values
-  
+
   ; Cancel catch so other errors don't get caught here.
   catch, /cancel
-  
+
   return, result
 end

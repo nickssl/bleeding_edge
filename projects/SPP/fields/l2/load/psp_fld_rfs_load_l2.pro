@@ -1,8 +1,8 @@
 ;+
 ;
 ; $LastChangedBy: pulupalap $
-; $LastChangedDate: 2023-09-19 16:04:38 -0700 (Tue, 19 Sep 2023) $
-; $LastChangedRevision: 32108 $
+; $LastChangedDate: 2023-12-18 16:02:04 -0800 (Mon, 18 Dec 2023) $
+; $LastChangedRevision: 32305 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SPP/fields/l2/load/psp_fld_rfs_load_l2.pro $
 ;
 ;-
@@ -143,7 +143,7 @@ pro psp_fld_rfs_load_l2, files, hfr_only = hfr_only, lfr_only = lfr_only, $
           str_element, l, 'ytitle', ytitle0, success = ytitle_found
 
           if ytitle_found ne 0 then begin
-            if ytitle0.StartsWith(ytitle) then begin
+            if ytitle0.startsWith(ytitle) then begin
               ytitle = ytitle0
             endif else begin
               ytitle = ytitle + ytitle0
@@ -246,7 +246,7 @@ pro psp_fld_rfs_load_l2, files, hfr_only = hfr_only, lfr_only = lfr_only, $
             options, var, 'ztitle', '[V^2/Hz]'
           endif
 
-          if var.EndsWith('sfu') then options, var, 'ztitle', '[sfu]'
+          if var.endsWith('sfu') then options, var, 'ztitle', '[sfu]'
 
           get_data, var, data = d
 
@@ -296,10 +296,13 @@ pro psp_fld_rfs_load_l2, files, hfr_only = hfr_only, lfr_only = lfr_only, $
 
       options, name, 'ytitle', ytitle
 
-      if ytitle.Contains('STOKES') then begin
+      if ytitle.contains('STOKES') then begin
         options, name, 'zrange', [-1, 1]
         options, name, 'ztitle', 'V/I'
-        if set_colors then options, name, 'color_table', 98
+        if set_colors then begin
+          options, name, 'color_table', 98
+          options, name, 'reverse_color_table', 1
+        endif
       endif else begin
         if set_colors then options, name, 'color_table', 129
       endelse
@@ -308,7 +311,7 @@ pro psp_fld_rfs_load_l2, files, hfr_only = hfr_only, lfr_only = lfr_only, $
     l3_pos_tnames = tnames('psp_fld_l3_rfs_?fr_position*')
 
     foreach name, l3_pos_tnames do begin
-      frame = name.Remove(0, 27)
+      frame = name.remove(0, 27)
 
       options, name, 'ytitle', 'PSP!Cpos' + '!C' + frame
       options, name, 'ysubtitle', '[km]'
@@ -318,7 +321,7 @@ pro psp_fld_rfs_load_l2, files, hfr_only = hfr_only, lfr_only = lfr_only, $
       options, name, 'colors', [2, 3, 6] ; 'bgr'
       options, name, 'line_colors', 10
 
-      if name.Contains('RTN') then begin
+      if name.contains('RTN') then begin
         options, name, 'labels', ['R', 'T', 'N']
         options, name, 'bins', [1, 0, 0]
       endif else begin
@@ -334,7 +337,7 @@ pro psp_fld_rfs_load_l2, files, hfr_only = hfr_only, lfr_only = lfr_only, $
     l3_temp_tnames = tnames('psp_fld_l3_rfs_' + strlowcase(rec) + '_temperature_*')
 
     foreach name, l3_temp_tnames, l3_temp_tnames_i do begin
-      sensor = name.Remove(0, 30)
+      sensor = name.remove(0, 30)
 
       options, name, 'ytitle', sensor + ' Temp'
       options, name, 'ysubtitle', '[C]'
@@ -342,8 +345,8 @@ pro psp_fld_rfs_load_l2, files, hfr_only = hfr_only, lfr_only = lfr_only, $
       options, name, 'yrange'
       options, name, 'line_colors', 8
 
-      if name.EndsWith('DCB') then color = 0 else $
-        color = fix(name.SubString(-1))
+      if name.endsWith('DCB') then color = 0 else $
+        color = fix(name.subString(-1))
 
       if color ge 4 then color += 1
 
@@ -357,13 +360,13 @@ pro psp_fld_rfs_load_l2, files, hfr_only = hfr_only, lfr_only = lfr_only, $
       options, name, 'panel_size'
     endforeach
 
-    store_data, l3_temp_tnames[0].SubString(0, 29), data = l3_temp_tnames
+    store_data, l3_temp_tnames[0].subString(0, 29), data = l3_temp_tnames
 
-    options, l3_temp_tnames[0].SubString(0, 29), 'ytitle', 'Temp'
+    options, l3_temp_tnames[0].subString(0, 29), 'ytitle', 'Temp'
   endif
 
   ; For quality flag filtering support
-  r = where(tn.Matches('quality_flag'))
+  r = where(tn.matches('quality_flag'))
   qf_root = tn[r[0]]
   options, tn, /def, qf_root = qf_root
 end

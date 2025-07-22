@@ -9,6 +9,7 @@
 ;         trange:       time range of interest [starttime, endtime] with the format
 ;                       ['YYYY-MM-DD','YYYY-MM-DD'] or to specify more or less than a day
 ;                       ['YYYY-MM-DD/hh:mm:ss','YYYY-MM-DD/hh:mm:ss']
+;                       Default: ['2022-08-19', '2022-08-20']
 ;         probes:       list of probes, valid values for elf probes are ['a','b'].
 ;                       if no probe is specified the default is probe 'a'
 ;         datatypes:    see list below 
@@ -80,6 +81,8 @@ pro elf_load_eng, trange = trange, probes = probes, datatype = datatype, $
   if undefined(probes) then probes = ['a','b'] else probes = strlowcase(probes) ; default to ELFIN A
   if probes[0] eq '*' then probes = ['a','b']
   probes = strcompress(string(probes), /rem) ; probes should be strings
+  
+  if undefined(trange) then trange = time_double(['2022-08-19', '2022-08-20']) else trange = trange
 
   if n_elements(probes) GT 2 then begin
     dprint, dlevel = 1, 'There are only 2 ELFIN probes - a and b. Please select again.'

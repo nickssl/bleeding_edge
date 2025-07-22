@@ -37,13 +37,15 @@
 ; no_download = if set, do not download data, passed through to
 ;               mvn_pfp_spd_download.pro
 ; no_update = if set, do not check for files if a file exists
+; parent_files = an array of the files input, only file basenames,
+;                only files that exist
 ;OUTPUT:
 ; No variables, data are loaded into common blocks
 ;HISTORY:
 ; 16-may-2014, jmm, jimm@ssl.berkeley.edu
 ; $LastChangedBy: jimm $
-; $LastChangedDate: 2021-05-12 10:47:54 -0700 (Wed, 12 May 2021) $
-; $LastChangedRevision: 29950 $
+; $LastChangedDate: 2024-06-27 12:54:12 -0700 (Thu, 27 Jun 2024) $
+; $LastChangedRevision: 32711 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/sta/mvn_sta_l2_load.pro $
 ;-
 Pro mvn_sta_l2_load, files = files, trange = trange, sta_apid = sta_apid, $
@@ -51,7 +53,8 @@ Pro mvn_sta_l2_load, files = files, trange = trange, sta_apid = sta_apid, $
                      tplot_vars_create = tplot_vars_create, $
                      tvar_names = tvar_names, l2_version_in = l2_version_in, $
                      iv_level = iv_level, bkg_only = bkg_only, $
-                     no_download = no_download, no_update = no_update
+                     no_download = no_download, no_update = no_update, $
+                     parent_files = parent_files
 ;Keep track of software versioning here
   If(keyword_set(l2_version_in)) Then sw_vsn = l2_version_in $
   Else sw_vsn = mvn_sta_current_sw_version()
@@ -160,19 +163,26 @@ Pro mvn_sta_l2_load, files = files, trange = trange, sta_apid = sta_apid, $
   Endif Else Begin
      bkg_sub = keyword_set(iv_level) ;will only load/subtract background if iv_Level is set
   Endelse
-;Only files that exist here, strange IDL issue is causing problem with
-;file search for iv1 filex names
-;  filex = file_search(filex)
-;  If(~is_string(filex)) Then Begin
-;     dprint, 'No files found for time range and app_ids:'+app_id
-;     Return
-;  Endif
+
 ;Only unique files here
   filex_u = filex[bsort(filex)]
   filex = filex_u[uniq(filex_u)]
+  nfiles = n_elements(filex)
+;Output the files to be loaded
+  parent_files = file_basename(filex)
+;But we apparently also want the revision number
+  For j = 0, nfiles-1 Do Begin
+     fj0 = strsplit(filex[j],'.',/extract)
+     fj1 = file_search(strjoin(fj0,'*.'))
+     parent_files[j] = file_basename(fj1[n_elements(fj1)-1])
+  Endfor
+;Add bck files if not bkg_only,
+  If(keyword_set(iv_level) And ~keyword_set(bkg_only)) Then Begin
+     parent_files = [parent_files, file_basename(ivfilex)]
+  Endif
+
 ;Ok, load the files, extract app_ids from filenames-because you may
 ;have to concatenate data app_id by app_id
-  nfiles = n_elements(filex)
   app_ids_all = ''
   For j = 0, nfiles-1 Do Begin
      xxxx = strsplit(file_basename(filex[j]), '_', /extract)

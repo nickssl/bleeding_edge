@@ -48,14 +48,14 @@
 ;   None - Result is stored in the common block variables swe_sc_pot and 
 ;          mvn_swe_engy, and as the TPLOT variable 'neg_pot'.
 ;
-; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-08-13 13:53:20 -0700 (Sun, 13 Aug 2023) $
-; $LastChangedRevision: 31992 $
+; $LastChangedBy: xussui_lap $
+; $LastChangedDate: 2025-03-13 16:36:15 -0700 (Thu, 13 Mar 2025) $
+; $LastChangedRevision: 33173 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_sc_negpot.pro $
 ;
 ;-
 
-pro mvn_swe_sc_negpot, potential=pot, fill=fill, reset=reset, qlevel=qlevel
+pro mvn_swe_sc_negpot, potential=pot, fill=fill, reset=reset, qlevel=qlevel, maxalt=maxalt
 
     compile_opt idl2
     
@@ -66,7 +66,8 @@ pro mvn_swe_sc_negpot, potential=pot, fill=fill, reset=reset, qlevel=qlevel
 
     reset = keyword_set(reset)
     dofill = keyword_set(fill)
-
+    
+    if ~keyword_set(maxalt) then maxalt = 1000.
 ; Make sure SWEA data are loaded, initialize potential structure
 
     if (size(mvn_swe_engy, /type) ne 8) then begin
@@ -118,11 +119,12 @@ pro mvn_swe_sc_negpot, potential=pot, fill=fill, reset=reset, qlevel=qlevel
     f40 = mvn_swe_engy.data[40]  ; electron energy flux at 43 eV
 
 ; Get d2(logF)/d(logE)2.  Calculate it if necessary.
-
-    if (size(ee,/type) eq 0) then begin
-      foo = mvn_swe_sc_pospot(mvn_swe_engy.energy, mvn_swe_engy.data)
-      foo = 0
-    endif
+    foo = mvn_swe_sc_pospot(mvn_swe_engy.energy, mvn_swe_engy.data)
+    foo = 0
+;    if (size(ee,/type) eq 0) then begin
+;      foo = mvn_swe_sc_pospot(mvn_swe_engy.energy, mvn_swe_engy.data)
+;      foo = 0
+;    endif
 
     n_t = n_elements((transpose(ee))[*,0])
     if (n_t ne n_elements(mvn_swe_engy.time)) then begin
@@ -144,10 +146,11 @@ pro mvn_swe_sc_negpot, potential=pot, fill=fill, reset=reset, qlevel=qlevel
     ;calculate terminator
     base=150 ;to set a slightly higher altitude to avoid falsely identifying potentials
     R_m=3396.
+    ;maxalt = 1000.
     term=90+acos((R_m+base)/(R_m+alt1))*!radeg
     indx=where((f40 gt 1.e6 and sza1 le term) and $
-        (alt1 le altcut or (alt1 gt altcut and alt1 le 1000 and shape le 0.9)),cts)
-
+        (alt1 le altcut or (alt1 gt altcut and alt1 le maxalt and shape le 0.9)),cts)
+    ;indx=where((f40 gt 1.e6) and sza1 le term and (shape le .9),cts)
     lim=-0.05
     ebase=23-0.705
 
@@ -189,8 +192,10 @@ pro mvn_swe_sc_negpot, potential=pot, fill=fill, reset=reset, qlevel=qlevel
             inc=where(pot1[indx[ino]] eq pot1[indx[ino]], mpts)
             dx=indx[ino[inc]]
             if dx[0] ne -1 then pot1[indx[ino[inc[0]:inc[mpts-1]]]]=$
-                interpol(pot1[indx[ino[inc[0]:inc[mpts-1]]]],$
-                t1[indx[ino[inc[0]:inc[mpts-1]]]],t1[indx[ino[inc[0]:inc[mpts-1]]]],/nan)
+                interp(pot1[dx],t1[dx],t1[indx[ino[inc[0]:inc[mpts-1]]]],interp_thres=120.d)
+;            if dx[0] ne -1 then pot1[indx[ino[inc[0]:inc[mpts-1]]]]=$
+;                interpol(pot1[indx[ino[inc[0]:inc[mpts-1]]]],$
+;                t1[indx[ino[inc[0]:inc[mpts-1]]]],t1[indx[ino[inc[0]:inc[mpts-1]]]],/nan)
             ;stop
         endif
     endfor

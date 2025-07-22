@@ -49,25 +49,40 @@
 ;       VOLT:     Use analyzer voltage readback in housekeeping to 
 ;                 identify tables 7-9.
 ;
+;       VMEAN:    Mean values of the ANALV readback for 50, 125, and
+;                 200 eV, as recorded in flight.
+;
+;                    Ideal   = [ 7.97, 20.24, 32.26]
+;                    Actual  = [ 8.23, 20.52, 32.50]  <-- default
+;                    Stddev  = [ 0.30,  0.22,  0.25]
+;                    Spacing = [ 0.88,  2.22,  3.55]  ; step spacing (Volts)
+;                    Spacing = [ 2.93, 10.09, 14.20]  ; step spacing (sigma)
+;
+;                 The ANALV readback is systematically high by about
+;                 0.25 Volts, or one standard deviation.
+;
 ;       DV_MAX:   Maximum absolute difference between measured analyzer
 ;                 voltage and nominal voltage.  Three values: one each
-;                 for 50, 200, and 125 eV.  Default: [0.7, 2.0, 1.0].
+;                 for 50, 125, and 200 eV.  Default: [0.7, 1.5, 2.0].
 ;
 ;       FLUX:     Use constant flux at all energy steps to determine if
 ;                 one of the high-cadence tables (7-9) is in use.  If so,
 ;                 then the nearest housekeeping SSCTL value uniquely 
 ;                 identifies which table is in use.
 ;
+;       RESULT:   Table number for each SPEC.
+;
 ;       TPLOT:    Make a tplot variable of LUT vs time.
 ;
 ;       DIAG:     Make diagnostic plots to evaluate and tune VOLT method.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2022-06-16 16:03:25 -0700 (Thu, 16 Jun 2022) $
-; $LastChangedRevision: 30865 $
+; $LastChangedDate: 2025-05-23 15:46:17 -0700 (Fri, 23 May 2025) $
+; $LastChangedRevision: 33327 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_getlut.pro $
 ;-
-pro mvn_swe_getlut, tplot=tplot, dt_lut=dt_lut, volt=volt, dv_max=dv, diag=diag, flux=flux
+pro mvn_swe_getlut, dt_lut=dt_lut, volt=volt, vmean=vmean, dv_max=dv, flux=flux, diag=diag, tplot=tplot, $
+                    result=result
 
   @mvn_swe_com
   common lutcom, dtl, vflg, fflg
@@ -80,16 +95,21 @@ pro mvn_swe_getlut, tplot=tplot, dt_lut=dt_lut, volt=volt, dv_max=dv, diag=diag,
 
   if (n_elements(dt_lut) gt 0) then dtl = double(dt_lut[0])
   if (n_elements(volt) gt 0) then vflg = keyword_set(volt)
+  if (n_elements(flux) gt 0) then fflg = keyword_set(flux)
+
   case n_elements(dv) of
-     0   : dv_max = [0.7, 2.0, 1.0]
-     1   : dv_max = [dv, 2.0, 1.0]
-     2   : dv_max = [dv, 1.0]
-     3   : dv_max = dv
+     0   : dv_max = [0.7, 1.5, 2.0]
+     1   : dv_max = [dv, 1.5, 2.0]
+     2   : dv_max = [dv, 2.0]
     else : dv_max = dv[0:2]
   endcase
   dv_max = abs(dv_max)
-  if (n_elements(flux) gt 0) then fflg = keyword_set(flux)
-;  if (vflg or fflg) then dtl = 0D
+  case n_elements(vmean) of
+     0   : vmean = [ 8.23, 20.52, 32.50]
+     1   : vmean = [vmean, 20.52, 32.50]
+     2   : vmean = [vmean, 32.50]
+    else : vmean = vmean[0:2]
+  endcase
 
   if (abs(dtl) gt 0D) then begin
     msg = strtrim(string(dtl, format='(f12.1)'),2)
@@ -159,7 +179,7 @@ pro mvn_swe_getlut, tplot=tplot, dt_lut=dt_lut, volt=volt, dv_max=dv, diag=diag,
     indx = where(lutnum eq 1 and swe_hsk.time gt t_swp[4], count)
     if (count gt 0L) then tabnum[indx] = 9B  ; hires @ 125 eV
     indx = where(lutnum eq 2, count)
-    if (count gt 0L) then tabnum[indx] = 7B  ; hires @ 200 eV
+    if (count gt 0L) then tabnum[indx] = 0B  ; normal
     indx = where(lutnum eq 3, count)
     if (count gt 0L) then tabnum[indx] = 8B  ; hires @ 50 eV
   endelse
@@ -187,10 +207,13 @@ pro mvn_swe_getlut, tplot=tplot, dt_lut=dt_lut, volt=volt, dv_max=dv, diag=diag,
 ; variations within the 2-second measurement interval (as in the sheath).
 
   if (fflg) then begin
+    mvn_swe_sweep, tab=5, result=swp
+    hndx = where(swp.e gt 1400.)
+    lndx = where((swp.e gt 30.) and (swp.e lt 100.))
     print,"MVN_SWE_GETLUT%  Using constant flux method."
     cnts = reform(a4.data, 64L, 16L*n_elements(a4))
-    loav = mean(cnts[45:60,*],dim=1,/nan)  ; low-energy average
-    hiav = mean(cnts[ 5:20,*],dim=1,/nan)  ; high-energy average
+    loav = mean(cnts[lndx,*],dim=1,/nan)  ; low-energy average
+    hiav = mean((cnts[hndx,*] > 1e-6),dim=1,/nan)  ; high-energy average
     i7_9 = where(((hiav/loav) gt 0.1) and (loav gt 10.), n7_9, comp=i1_5, ncomp=n1_5)
   endif
 
@@ -266,6 +289,11 @@ pro mvn_swe_getlut, tplot=tplot, dt_lut=dt_lut, volt=volt, dv_max=dv, diag=diag,
     a3.lut = mvn_swe_engy[indx].lut
   endif
 
+  if (size(a4,/type) eq 8) then begin
+    indx = 16L*lindgen(n_elements(mvn_swe_engy.lut)/16L) + 8L
+    a4.lut = mvn_swe_engy[indx].lut
+  endif
+
   if (size(swe_3d,/type) eq 8) then begin
     indx = nn2(mvn_swe_engy.time, (swe_3d.time + delta_t))
     swe_3d.lut = mvn_swe_engy[indx].lut
@@ -275,6 +303,8 @@ pro mvn_swe_getlut, tplot=tplot, dt_lut=dt_lut, volt=volt, dv_max=dv, diag=diag,
     indx = nn2(mvn_swe_engy.time, (swe_3d_arc.time + delta_t))
     swe_3d_arc.lut = mvn_swe_engy[indx].lut
   endif
+
+  result = mvn_swe_engy.lut
 
 ; Make a tplot panel
 

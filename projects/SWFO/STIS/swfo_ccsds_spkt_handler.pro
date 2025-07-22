@@ -5,8 +5,8 @@
 ; Written by Davin Larson
 ;
 ; $LastChangedBy: davin-mac $
-; $LastChangedDate: 2023-04-06 17:33:45 -0700 (Thu, 06 Apr 2023) $
-; $LastChangedRevision: 31711 $
+; $LastChangedDate: 2024-11-01 10:08:56 -0700 (Fri, 01 Nov 2024) $
+; $LastChangedRevision: 32915 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/swfo_ccsds_spkt_handler.pro $
 ;
 ;-
@@ -20,12 +20,24 @@ pro swfo_ccsds_spkt_handler,dbuffer, source_dict = source_dict , wrap_ccsds=wrap
     endif
     return
   endif
-
-;  get object handler for the given apid:
-  apdat = swfo_apdat(ccsds.apid)
   
-  if keyword_set( apdat.ccsds_last) then begin
-    ccsds_last = apdat.ccsds_last
+  playback = 0
+  if isa(source_dict,'dictionary')  then begin
+    if source_dict.haskey('headerstr') && source_dict.headerstr.replay then begin
+      playback = 0x400      
+    endif
+;    if source_dict.headerstr.replay then begin
+;      playback = 0x400
+;    endif
+    source_dict.pkt_time = ccsds.time
+  endif
+
+  ;printdat,ccsds
+;  get object handler for the given apid:
+  apdat = swfo_apdat(ccsds.apid  or playback)
+  
+  if keyword_set( *apdat.ccsds_last) then begin
+    ccsds_last = *apdat.ccsds_last
     dseq = (( ccsds.seqn - ccsds_last.seqn ) and '3fff'xu)
     ccsds.seqn_delta = dseq
     ccsds.time_delta = (ccsds.met - ccsds_last.met)
@@ -35,7 +47,7 @@ pro swfo_ccsds_spkt_handler,dbuffer, source_dict = source_dict , wrap_ccsds=wrap
 
   ;if apdat.test then printdat,ccsds,time_string(ccsds.time)
 
-  if  debug(5) && ccsds.seqn_delta gt 1 then begin
+  if  debug(3) && ccsds.seqn_delta gt 1 then begin
     dprint,dlevel=2,format='("Lost ",i5," ",a," (0x", Z03,") packets ",i5," ",a)',  ccsds.seqn_delta-1,apdat.name,apdat.apid,ccsds.seqn,time_string(ccsds.time,prec=3)
   endif
 

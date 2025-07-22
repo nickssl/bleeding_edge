@@ -12,6 +12,7 @@ fmi|FMI||
 kyoto|KYOTO||
 leirv|Leirvogur||
 maccs|MACCS||
+magstar|MagStar||
 mcmac|McMAC||
 nrcan|NRCan||
 pen|PENGUIn||
@@ -61,20 +62,32 @@ ae|Themis AE|cigo|College Intl Geo. Observ, AK
 gima|GIMA|cigo|College Intl Geo. Observ, AK
 kyoto|KYOTO|cmo|Fairbanks, AK
 usgs|USGS|cmo|Fairbanks, AK
+magstar|MagStar|col|Pawnee, CO
 maccs|MACCS|crvr|Clyde River, NU
 maccs|MACCS|chbr|Coral Harbour, NU
+magstar|MagStar|dat|Lewis, NY
+magstar|MagStar|dbo|Boulder, CO
+magstar|MagStar|dct|NewBritain, CT
 ae|Themis AE|ded|Dead Horse, AK
 usgs|USGS|ded|Dead Horse, AK
+magstar|MagStar|dhe|Hennepin, MN
 ae|Themis AE|dik|Dikson, Russia
 aari|AARI|dik|Dikson, Russia
 kyoto|KYOTO|dik|Dikson, Russia
+magstar|MagStar|dma|Haystack Obs MIS, MA
+magstar|MagStar|dme|August, ME
 ae|Themis AE|dmh|Danmarkshavn, Greenland
 dtu|DTU|dmh|Danmarkshavn, Greenland
+magstar|MagStar|dhe|University of MO, MO
 dtu|DTU|dnb|Daneborg, Greenland
 ae|Themis AE|dob|Dombas, Norway
 tgo|TGO|dob|Dombas, Norway
+magstar|MagStar|doh|Wauseon, OH
 tgo|TGO|don|D����nna, Norway
 epo|Themis EPO|drby|Derby, VT
+magstar|MagStar|dsh|Lewis, NY
+magstar|MagStar|dtx|Odessa, TX
+magstar|MagStar|dva|Warrenton, VA
 gima|GIMA|eagl|Eagle, AK
 aeold|Themis AE (pre 2015)|ekat|Ekati, NT
 gbo|Themis GBO|ekat|Ekati, NT

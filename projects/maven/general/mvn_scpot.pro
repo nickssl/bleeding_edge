@@ -15,7 +15,7 @@
 ;
 ;       SWE-    : Estimate negative potentials by measuring shifts in
 ;                 position of the He-II photoelectron peak.  Mainly
-;                 for the ionosphere.
+;                 for the ionosphere.*
 ;                 (Author: S. Xu)
 ;
 ;       SWE/LPW : Use LPW I-V curves, empirically calibrated by the
@@ -27,17 +27,29 @@
 ;       STA-    : Estimate negative potentials by the low energy 
 ;                 cutoff of the H+ distribution (away from periapsis),
 ;                 or energy shifts, relative to the ram energy, of O+
-;                 and O2+ (near periapsis).
+;                 and O2+ (near periapsis).**
 ;                 (Author: J. McFadden)
 ;
 ;       SWEPAD  : Use pitch angle resolved photoelectron spectra to 
 ;                 estimate negative potentials in the wake.  Combined
 ;                 with the STA- method, may be used to distinguish 
 ;                 spacecraft and Mars potentials.  Only works with
-;                 burst data.
+;                 burst data.*
 ;                 (Author: S. Xu)
 ;
-;   The general order of precedence is: SWE/LPW, SWE+, SWE-, STA-, and
+;  * Warning: The SWE- and SWEPAD methods provide the sum of the spacecraft
+;             and Mars potentials.  Ionospheric photoelectrons are always subject
+;             to the ambipolar potential (~1 V) that forms at the electron exobase 
+;             to maintain charge neutrality with the gravitationally bound ions.  
+;             There are other Mars potentials that can sometimes play a role.  
+;             Comparison with the STA method is necessary to separate the spacecraft
+;             and Mars potentials.  Thus, the LPW, SWE+, and STA methods must take
+;             precedence.
+;
+; ** Warning: O2+ dominates at periapsis.  Using shifts in the O2+ energy alone
+;             assumes that thermospheric winds are negligible.
+;
+;   The general order of precedence is: SWE/LPW, SWE+, STA-, SWE-, and
 ;   SWEPAD (when activated by keyword).
 ;
 ;AUTHOR: 
@@ -57,7 +69,8 @@
 ;                 method          : -1          }
 ;
 ;              The methods are: -1 (invalid), 0 (manually set), 
-;              1 (SWE/LPW), 2 (SWE+), 3 (SWE-), 4 (STA-), 5 (SWEPAD).
+;              1 (SWE/LPW), 2 (SWE+), 3 (SWE-), 4 (STA-), 5 (SWEPAD),
+;              6 (interpolated).
 ;
 ;              The optimal value depends on the plasma environment.
 ;
@@ -81,7 +94,7 @@
 ;              will determine the potential from SWEA and STATIC.
 ;              Default = 1 (yes).
 ;
-;   POSPOT:    Calculate positive potentials with mvn_swe_sc_pot.
+;   POSPOT:    Calculate positive potentials with mvn_swe_sc_pot (SWE+).
 ;              Default = 1 (yes).
 ;
 ;   NEGPOT:    Calculate negative potentials with mvn_swe_sc_negpot.
@@ -103,7 +116,7 @@
 ;
 ;   PANS:      Named varible to hold the tplot panels created.
 ;
-;   BIAS:      Bias to add to final potential estimates.
+;   LOADONLY:  Load the potential but do not refresh the tplot window.
 ;
 ;   QLEVEL:    Minimum quality level for SWEA data.  Filters out the vast
 ;              majority of spectra affected by the sporadic low energy
@@ -121,6 +134,10 @@
 ;
 ;                Default = 1.
 ;
+;   QINTERP:   Interpolate the potential for small gaps caused by the 
+;              sporadic low-energy anomaly.  Set this keyword to the largest
+;              gap (in seconds) to interpolate across.
+;
 ;   SUCCESS:   Returns exit status.
 ;
 ;OUTPUTS:
@@ -130,15 +147,16 @@
 ;          the five unmerged methods in one panel.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-08-20 17:05:27 -0700 (Sun, 20 Aug 2023) $
-; $LastChangedRevision: 32039 $
+; $LastChangedDate: 2025-06-23 10:37:26 -0700 (Mon, 23 Jun 2025) $
+; $LastChangedRevision: 33410 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/general/mvn_scpot.pro $
 ;
 ;-
 
 pro mvn_scpot, potential=pot, setval=setval, pospot=pospot, negpot=negpot, $
                stapot=stapot, lpwpot=lpwpot, shapot=shapot, composite=composite, $
-               pans=pans, nocalc=nocalc, bias=bias, qlevel=qlevel, success=success
+               pans=pans, nocalc=nocalc, qlevel=qlevel, qinterp=qinterp, $
+               success=success, loadonly=loadonly, no_server=no_server
 
   compile_opt idl2
 
@@ -149,8 +167,13 @@ pro mvn_scpot, potential=pot, setval=setval, pospot=pospot, negpot=negpot, $
   success = 0
   NaN = !values.f_nan
   qlevel = (n_elements(qlevel) gt 0) ? byte(qlevel[0]) : 1B
+  loadonly = keyword_set(loadonly)
+
+; Parameters for each of the potential estimation methods are managed by
+; mvn_scpot_defaults.pro.  See that procedure for parameter definitions.
 
   if (size(Espan,/type) eq 0) then mvn_scpot_defaults
+
   tmin = min(timerange(), max=tmax)
 
 ; Set processing flags
@@ -167,7 +190,7 @@ pro mvn_scpot, potential=pot, setval=setval, pospot=pospot, negpot=negpot, $
 
   if (size(setval,/type) ne 0) then begin
     if (size(mvn_sc_pot,/type) ne 8) then begin
-      mvn_scpot_restore, result=comp, success=ok
+        mvn_scpot_restore, result=comp, success=ok, no_server=no_server
       if (ok) then begin
         mvn_sc_pot = replicate(mvn_pot_struct, n_elements(comp.time))
         mvn_sc_pot.time = comp.time
@@ -185,7 +208,7 @@ pro mvn_scpot, potential=pot, setval=setval, pospot=pospot, negpot=negpot, $
     phi = {x:mvn_sc_pot.time, y:mvn_sc_pot.potential}
     store_data,'mvn_sc_pot',data=phi
 
-    mvn_swe_addpot
+    mvn_swe_addpot, loadonly=loadonly
     mvn_sta_scpot_update
 
     pot = mvn_sc_pot
@@ -196,7 +219,7 @@ pro mvn_scpot, potential=pot, setval=setval, pospot=pospot, negpot=negpot, $
 ; Get pre-calculated composite potentials (this is the default)
 
   if (composite) then begin
-    mvn_scpot_restore, result=comp, /tplot, success=ok
+    mvn_scpot_restore, result=comp, /tplot, success=ok, no_server=no_server
     if (ok) then begin
       print,"Using SWE/LPW/STA composite potential."
       indx = where(comp.method eq -1, count)
@@ -313,7 +336,7 @@ pro mvn_scpot, potential=pot, setval=setval, pospot=pospot, negpot=negpot, $
 ; Step 2: Estimate positive potential from SWEA alone
   
   if (pospot) then begin
-    mvn_swe_sc_pot, potential=phi, qlevel=qlevel
+    mvn_swe_sc_pot, potential=phi, qlevel=qlevel, diag=diag
 
 ;   Don't trust SWE+ potentials in the EUV shadow
 
@@ -322,6 +345,16 @@ pro mvn_scpot, potential=pot, setval=setval, pospot=pospot, negpot=negpot, $
       phi[indx].potential = NaN
       phi[indx].method = -1
     endif
+
+;   Don't trust SWE+ potentials below min_swe_alt (default = 400 km)
+
+    indx = where(alt lt min_swe_alt, count)
+    if (count gt 0L) then begin
+      phi[indx].potential = NaN
+      phi[indx].method = -1
+    endif
+
+;   Insert valid SWE+ potentials into potential structure
 
     indx = where((mvn_sc_pot.method lt 1) and (phi.method eq 2), count)
     if (count gt 0) then mvn_sc_pot[indx] = phi[indx]
@@ -419,14 +452,7 @@ pro mvn_scpot, potential=pot, setval=setval, pospot=pospot, negpot=negpot, $
     options,'pot_inshdw','color',1
   endif
 
-; Add a bias
-
-  if (size(bias,/type) gt 0) then begin
-    print,'Adding potential bias: ',bias
-    mvn_sc_pot.potential += float(bias[0])
-  endif
-
-; Finish up
+; Mask missing data
 
   if (finite(badval)) then begin
     indx = where(mvn_sc_pot.method lt 1, count)
@@ -435,6 +461,21 @@ pro mvn_scpot, potential=pot, setval=setval, pospot=pospot, negpot=negpot, $
       mvn_sc_pot[indx].method = 0
     endif
   endif
+
+; Interpolate potential for anomalous spectra
+
+  if keyword_set(qinterp) then begin
+    bndx = where(mvn_swe_engy.quality eq 0, nbad)
+    pndx = where(mvn_sc_pot.method ge 1, npot)
+    if ((nbad gt 0L) and (npot gt 0L)) then begin
+      i = nn2(mvn_sc_pot[pndx].time, mvn_swe_engy[bndx].time, maxdt=qinterp, /valid, vindex=vndx)
+      qpot = interpol(mvn_sc_pot[pndx].potential, mvn_sc_pot[pndx].time, mvn_swe_engy[bndx[vndx]].time)
+      mvn_sc_pot[bndx[vndx]].potential = qpot
+      mvn_sc_pot[bndx[vndx]].method = 6
+    endif
+  endif
+
+; Finish
 
   pot = mvn_sc_pot
   success = 1

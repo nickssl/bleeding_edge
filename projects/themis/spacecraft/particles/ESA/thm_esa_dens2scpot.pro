@@ -8,7 +8,7 @@ Function Density_fraction, scp, _extra = _extra
   Endif Else Begin
      fraction = 0.0
   Endelse
-  Return, fraction-1.0          ;Zero is the good answer here
+  Return, fraction-1.75          ;Zero is the good answer here
 End
 ;Helper function to calculate electron/ion density for bisection
 ;Uses n_3d_new.pro for density calculations
@@ -95,8 +95,8 @@ End
 ;HISTORY:
 ; 2023-02-01, jmm, jimm@ssl.berkeley.edu
 ; $LastChangedBy: jimm $
-; $LastChangedDate: 2023-02-06 15:08:13 -0800 (Mon, 06 Feb 2023) $
-; $LastChangedRevision: 31478 $
+; $LastChangedDate: 2025-03-11 13:52:33 -0700 (Tue, 11 Mar 2025) $
+; $LastChangedRevision: 33164 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/spacecraft/particles/ESA/thm_esa_dens2scpot.pro $
 ;
 ;-

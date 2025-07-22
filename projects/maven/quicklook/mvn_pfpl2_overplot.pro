@@ -29,8 +29,8 @@
 ; Hacked from thm_over_shell, 2013-05-12, jmm, jimm@ssl.berkeley.edu
 ; CHanged to use thara's mvn_pl_pfp_tplot.pro, 2015-04-14, jmm
 ; $LastChangedBy: jimm $
-; $LastChangedDate: 2023-04-20 11:52:56 -0700 (Thu, 20 Apr 2023) $
-; $LastChangedRevision: 31767 $
+; $LastChangedDate: 2024-04-03 14:29:06 -0700 (Wed, 03 Apr 2024) $
+; $LastChangedRevision: 32518 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/quicklook/mvn_pfpl2_overplot.pro $
 ;-
 Pro mvn_pfpl2_overplot, orbit_number = orbit_number, $
@@ -85,6 +85,8 @@ Pro mvn_pfpl2_overplot, orbit_number = orbit_number, $
      mvn_spc_clear_spice_kernels
      del_data, '*'
   Endif
+;The ql_pfp_tplots can not be trusted to always load spice kernels
+  mvn_spice_load, trange = [-7.0*86400.0d0,7.0*86400.0d0]+tr0
 ; Load SEP from a different program, 2019-02-20
   If(keyword_set(no_bcrust)) Then Begin
      mvn_ql_pfp_tplot2, tr0, bcrust=0, sep = 0, /tplot, bvec = bvec
@@ -101,6 +103,7 @@ Pro mvn_pfpl2_overplot, orbit_number = orbit_number, $
 
 ;Re-init here
   mvn_qlook_init, device = device
+  mvn_spice_load, trange = [-7.0*86400.0d0,7.0*86400.0d0]+tr0
 ;Get a burst_data_bar
   mvn_bb = mvn_qlook_burst_bar(tr0[0], (tr0[1]-tr0[0])/86400.0d0, $
                                /outline, /from_l2)

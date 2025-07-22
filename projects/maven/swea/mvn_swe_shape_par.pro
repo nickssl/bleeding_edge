@@ -22,19 +22,21 @@
 ;              NaN for invalid results.  Otherwise, only valid results
 ;              are returned.
 ;
+;   TRANGE:    Process data over this time range.
+;
 ;   ERANGE:    If set, then calculate the shape parameter over this 
 ;              energy range.  Default is 0-100 eV.
 ;
 ;OUTPUTS:
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2015-11-02 14:14:58 -0800 (Mon, 02 Nov 2015) $
-; $LastChangedRevision: 19214 $
+; $LastChangedDate: 2024-05-19 10:40:08 -0700 (Sun, 19 May 2024) $
+; $LastChangedRevision: 32605 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_shape_par.pro $
 ;
 ;-
 
-pro mvn_swe_shape_par, pans=pans, var=var, keep_nan=keep_nan, erange=erange
+pro mvn_swe_shape_par, pans=pans, var=var, keep_nan=keep_nan, erange=erange, trange=trange
 
   compile_opt idl2
 
@@ -83,6 +85,21 @@ pro mvn_swe_shape_par, pans=pans, var=var, keep_nan=keep_nan, erange=erange
     f = mvn_swe_engy.data
   endelse
 
+; Select data within time range
+
+  if (n_elements(trange) ge 2) then begin
+    tmin = min(time_double(trange), max=tmax)
+    indx = where((t ge tmin) and (t le tmax), count)
+    if (count eq 0L) then begin
+      print,"No data from " + time_string(tmin) + " to " + time_string(tmax)
+      pans = ''
+      return
+    endif
+    t = t[indx]
+    e = e[*,indx]
+    f = f[*,indx]
+  endif
+
 ; Select energy channels
 
   n_e = n_elements(df_iono)
@@ -93,6 +110,7 @@ pro mvn_swe_shape_par, pans=pans, var=var, keep_nan=keep_nan, erange=erange
   endx = where((e[*,0] ge emin) and (e[*,0] le emax), ecnt)
   if (ecnt eq 0L) then begin
     print,"No data within energy range: ",emin,emax
+    pans = ''
     return
   endif
 

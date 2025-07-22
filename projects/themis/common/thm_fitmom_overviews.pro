@@ -224,7 +224,9 @@ var_string = ''
 
 ;-----------------------
 ;fgm with total
-thm_load_fgm,probe=probe,coord='gsm', level = 'l2'
+;thm_load_fgm,probe=probe,coord='gsm', level = 'l2'
+;Use L1 data
+thm_load_fit,probe=probe,coord='gsm',suffix='_gsm',level='l1'
 
 fgs_name = 'th'+probe+'_fgs_gsm'
 
@@ -241,6 +243,20 @@ if tnames(fgs_name) then begin
    dl.labels[3] = 'Bt'
 
    store_data,fgs_name+'+t',dlimit=dl
+
+;for recent FGS data, if there is an estimated Bz, put the Bz curve
+;behind Bx and By. jmm, 2024-12-12
+;Set Bz to zero if L1B data is not used, jmm, 2025-06-02
+   If(probe Eq 'e' And time_double(date) Ge time_double('2024-06-01')) Then Begin
+      options, fgs_name+'+t', 'indices', [2,0,1,3]
+      get_data, 'th'+probe+'_fgl_l1b_bz', data = temp_bz
+      If(~is_struct(temp_bz)) Then Begin ;reset Bz to zero
+         get_data, fgs_name+'+t', data = dbz
+         dbz.y[*, 2] = 0
+         dbz.y[*, 3] = sqrt(dbz.y[*, 0]^2+dbz.y[*, 1]^2)
+         store_data, fgs_name+'+t', data = dbz
+      Endif
+   Endif
 
 endif else begin 
 
@@ -275,6 +291,16 @@ if tnames(fgs_name) && tnames('th'+probe+'_state_pos_gsm') then begin
    thm_set_lim,fgs_name+'-t89',times[0],times[1],-100D,100D,0
 
    options,fgs_name+'-t89',ytitle='th'+probe+'!Cfgs!Cgsm!C-t89',ysubtitle='[nT]',labels=['Bx','By','Bz']
+
+   If(probe Eq 'e' And time_double(date) Ge time_double('2024-06-01')) Then Begin
+      options, fgs_name+'-t89', 'indices', [2,0,1]
+      get_data, 'th'+probe+'_fgl_l1b_bz', data = temp_bz
+      If(~is_struct(temp_bz)) Then Begin ;reset Bz to zero
+         get_data, fgs_name+'-t89', data = dbz
+         dbz.y[*, 2] = 0
+         store_data, fgs_name+'-t89', data = dbz
+      Endif
+   Endif
 
 endif else begin
   

@@ -45,6 +45,7 @@
 ;CREATED BY:
 ;	J.McFadden
 ;LAST MODIFICATION:  14/03/17		developed from get_2dt.pro
+;LAST MODIFICATION:  20/06/04		line 96, if dat.valid eq 0 then return
 ;MOD HISTORY:	
 ;
 ;NOTES:	  
@@ -68,7 +69,8 @@ pro get_4dt,funct,routine, $
         name  = name, $
 	bkg = bkg, $
         missing = missing, $
-        floor = floor
+        floor = floor, $
+	verbose = verbose
 
 ;	Time how long the routine takes
 ex_start = systime(1)
@@ -91,10 +93,10 @@ if keyword_set(t2) then tmpmax=min(abs(times-time_double(t2)),idxmax) else idxma
 		idx = idx + 1
 		dat = call_function(routine,t,index=idx)
 	endwhile
-
+	if dat.valid eq 0 then return
 
 ytitle = funct+"_"+routine
-if dat.valid eq 0 and idx eq idxmax then last_time=times[n] else last_time = (dat.time+dat.end_time)/2.
+last_time = (dat.time+dat.end_time)/2.
 
 default_gap_time = 500.
 if not keyword_set(gap_time) then gap_time = default_gap_time
@@ -113,7 +115,8 @@ while (idx lt idxmax) and (n lt maxpts) do begin
 
 if (dat.valid eq 1) then begin
 
-	if abs((dat.time+dat.end_time)/2.-last_time) ge gap_time then begin
+;	if abs((dat.time+dat.end_time)/2.-last_time) ge gap_time then begin
+	if abs((dat.time+dat.end_time)/2.-last_time) ge gap_time and (n lt maxpts) then begin
 		if n ge 2 then dbadtime = time(n-1) - time(n-2) else dbadtime = gap_time/2.
 		time(n) = (last_time) + dbadtime
 		data(n,*) = missing
@@ -133,7 +136,7 @@ if (dat.valid eq 1) then begin
 
 endif else begin
 ;	print,'Invalid packet, dat.valid ne 1, at: ',time_to_str(dat.time)
-	print,'Invalid packet, dat.valid ne 1, at: ',time_string(last_time)
+	if keyword_set(verbose) then print,'Invalid packet, dat.valid ne 1, at: ',time_string(last_time)
 endelse
 	idx=idx+1
 

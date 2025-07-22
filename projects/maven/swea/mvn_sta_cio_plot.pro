@@ -20,6 +20,7 @@
 ;                         'temp'   -> ion temperature
 ;                         'vbulk'  -> ion bulk velocity
 ;                         'vratio' -> ratio of ion bulk velocity to escape velocity
+;                         'voratio' -> ratio of O2+ to O+ bulk velocity
 ;                         'fbulk'  -> ion bulk flux (den_i * vbulk)
 ;                         'vel_x'  -> ion velocity X component
 ;                         'vel_y'  -> ion velocity Y component
@@ -158,8 +159,8 @@
 ;                   for outputting a png plot.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-04-11 19:19:05 -0700 (Tue, 11 Apr 2023) $
-; $LastChangedRevision: 31729 $
+; $LastChangedDate: 2025-04-07 15:27:02 -0700 (Mon, 07 Apr 2025) $
+; $LastChangedRevision: 33238 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_sta_cio_plot.pro $
 ;
 ;CREATED BY:	David L. Mitchell
@@ -172,12 +173,12 @@ pro mvn_sta_cio_plot, ptr, data=data, dst=dst, options=options, filter=filter, $
 
 ; Make sure inputs are reasonable
 
-  if (data_type(ptr) ne 10) then begin  
+  if (size(ptr,/type) ne 10) then begin  
     print,'You must provide a pointer to the data.'
     return
   endif
 
-  if (data_type(*ptr) ne 8) then begin
+  if (size(*ptr,/type) ne 8) then begin
     print,'Data pointer does not refer to a structure.'
     return
   endif
@@ -191,9 +192,21 @@ pro mvn_sta_cio_plot, ptr, data=data, dst=dst, options=options, filter=filter, $
 
   if not keyword_set(wscale) then wscale = 1.
 
-  xsize = 730.       ; x dimension in pixels
-  aspect1 = 1.17280  ; aspect ratio for 1x1 plot (x/y)
-  aspect2 = 1.24361  ; aspect ratio for 2x2 plot (x/y)
+  xsize = 730.                   ; x dimension in pixels
+  case (!d.name) of
+    'X'   : begin
+              aspect1 = 1.175  ; aspect ratio for 1x1 plot (x/y)
+              aspect2 = 1.175  ; aspect ratio for 2x2 plot (x/y)
+            end
+    'WIN' : begin
+              aspect1 = 1.175  ; aspect ratio for 1x1 plot (x/y)
+              aspect2 = 1.175  ; aspect ratio for 2x2 plot (x/y)
+            end
+     else : begin
+              aspect1 = 1.175  ; aspect ratio for 1x1 plot (x/y)
+              aspect2 = 1.175  ; aspect ratio for 2x2 plot (x/y)
+            end
+  endcase
 
   dst = keyword_set(dst)
 
@@ -1070,9 +1083,11 @@ pro mvn_sta_cio_plot, ptr, data=data, dst=dst, options=options, filter=filter, $
             ylog:ylog, zlog:zlog, xticks:xt, yticks:yt, zticks:zt, xminor:xm, yminor:ym, $
             zminor:zm, xmargin:[10,12], charsize:1.2, psym:psym}
 
+  if (bflg) then str_element, limits, 'isotropic', 1, /add
+
 ; User defined plotting options (override defaults and/or add new options)
 
-  if (data_type(ulimits) eq 8) then begin
+  if (size(ulimits,/type) eq 8) then begin
     tags = tag_names(ulimits)
     ntags = n_elements(tags)
 
@@ -1229,7 +1244,9 @@ pro mvn_sta_cio_plot, ptr, data=data, dst=dst, options=options, filter=filter, $
   if keyword_set(doall) then begin
     if (not execute('wset, doall',2,1)) then begin
       scale = 2.*wscale
-      win, doall, 2, xsize=xsize, aspect=aspect2, scale=scale, /ycenter, dx=20, corner=1
+      xsize1 = xsize*scale
+      ysize1 = xsize1/aspect2
+      win, doall, xsize=xsize1, ysize=ysize1, /secondary, /ycenter, dx=10
     endif
     !p.multi = [0,2,2,0,0]
     doall = 1
@@ -1246,7 +1263,9 @@ pro mvn_sta_cio_plot, ptr, data=data, dst=dst, options=options, filter=filter, $
     if (~doall) then begin
       if (not execute('wset, doplot',2,1)) then begin
         scale = wscale
-        win, doplot, 1, xsize=xsize, aspect=aspect1, scale=scale, /ycenter, dx=20, corner=0
+        xsize1 = xsize*scale
+        ysize1 = xsize1/aspect1
+        win, doplot, xsize=xsize1, ysize=ysize1, /secondary, /ycenter, dx=10
       endif
     endif
 
@@ -1349,7 +1368,9 @@ pro mvn_sta_cio_plot, ptr, data=data, dst=dst, options=options, filter=filter, $
     if (~doall) then begin
       if (not execute('wset, dosamp',2,1)) then begin
         scale = wscale
-        win, dosamp, 2, xsize=xsize, aspect=aspect1, scale=scale, /ycenter, dx=10, corner=1
+        xsize1 = xsize*scale
+        ysize1 = xsize1/aspect2
+        win, dosamp, /secondary, xsize=xsize1, ysize=ysize1, /ycenter, dx=10
       endif
     endif
 
@@ -1458,7 +1479,9 @@ pro mvn_sta_cio_plot, ptr, data=data, dst=dst, options=options, filter=filter, $
     if (~doall) then begin
       if (not execute('wset, domom',2,1)) then begin
         scale = wscale
-        win, domom, 1, xsize=xsize, aspect=aspect1, scale=scale, /ycenter, dx=20, corner=0
+        xsize1 = xsize*scale
+        ysize1 = xsize1/aspect2
+        win, domom, /secondary, xsize=xsize1, ysize=ysize1, /ycenter, dx=10
       endif
     endif
 

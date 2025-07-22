@@ -12,10 +12,13 @@
 ;       time:          An array of times for extracting one or more SPEC data structure(s).
 ;                      Can be in any format accepted by time_double.  If more than one time
 ;                      is specified, then all spectra between the earliest and latest times
-;                      in the array is returned.
+;                      in the array are returned.
+;
+;                      If no time is specified, then return all SPEC data that are currently
+;                      loaded.
 ;
 ;KEYWORDS:
-;       ARCHIVE:       Get SPEC data from archive instead (APID A5).
+;       ARCHIVE:       Get SPEC data from archive (APID A5).
 ;
 ;       BURST:         Synonym for ARCHIVE.
 ;
@@ -23,7 +26,10 @@
 ;
 ;       UNITS:         Convert data to these units.  Default = 'EFLUX'.
 ;
-;       SHIFTPOT:      Correct for spacecraft potential (must call mvn_scpot first).
+;       SHIFTPOT:      Correct for spacecraft potential.  It is recommended that you first
+;                      determine the spacecraft potential using mvn_scpot and then assess 
+;                      the quality of the potential estimates before trying to use this
+;                      keyword.
 ;
 ;       YRANGE:        Returns the data range, excluding zero counts.
 ;
@@ -32,30 +38,29 @@
 ;                        1B = uncertain
 ;                        0B = affected by low-energy anomaly
 ;
+;       MAXDT:         Tolerance for the input time aligning with a data time tag.
+;                      If there is no data time tag within MAXDT of the input time,
+;                      then no data are returned.  Default = 4 sec.
+;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-08-02 11:14:38 -0700 (Wed, 02 Aug 2023) $
-; $LastChangedRevision: 31975 $
+; $LastChangedDate: 2024-05-04 14:47:18 -0700 (Sat, 04 May 2024) $
+; $LastChangedRevision: 32548 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_getspec.pro $
 ;
 ;CREATED BY:    David L. Mitchell  03-29-14
 ;FILE: mvn_swe_getspec.pro
 ;-
 function mvn_swe_getspec, time, archive=archive, sum=sum, units=units, yrange=yrange, burst=burst, $
-                          shiftpot=shiftpot, qlevel=qlevel
+                          shiftpot=shiftpot, qlevel=qlevel, maxdt=maxdt
 
   @mvn_swe_com  
 
-  if (size(time,/type) eq 0) then begin
-    print,"You must specify a time."
-    return, 0
-  endif
-  
   npts = n_elements(time)
-  tmin = min(time_double(time), max=tmax)
-  if keyword_set(burst) then archive = 1
+  archive = keyword_set(archive) or keyword_set(burst)
   qlevel = n_elements(qlevel) gt 0L ? byte(qlevel[0]) < 2B : 0B
+  maxdt = n_elements(maxdt) gt 0L ? double(maxdt[0]) : 4D
 
-  if keyword_set(archive) then begin
+  if (archive) then begin
     if (size(mvn_swe_engy_arc, /type) ne 8) then begin
       print, "No SPEC archive data."
       return, 0
@@ -73,32 +78,50 @@ function mvn_swe_getspec, time, archive=archive, sum=sum, units=units, yrange=yr
     mvn_swe_engy.sc_pot = swe_sc_pot.potential
   endif
 
-  if keyword_set(archive) then begin
-    if (npts gt 1) then begin
-      iref = where((mvn_swe_engy_arc.time ge tmin) and $
-                   (mvn_swe_engy_arc.time le tmax), count)
-    endif else begin
-      dt = min(abs(mvn_swe_engy_arc.time - tmin), iref)
-      count = 1
-    endelse
-    if (count eq 0L) then begin
-        print,'No SPEC archive data within selected time range.'
-        return, 0
-    endif
-    spec = mvn_swe_engy_arc[iref]
+  if (archive) then begin
+    case npts of
+        0  : spec = mvn_swe_engy_arc
+        1  : begin
+               iref = nn2(mvn_swe_engy_arc.time, time, maxdt=maxdt)
+               if (iref eq -1) then begin
+                 print,'No SPEC archive data near selected time.'
+                 return, 0
+               endif
+               spec = mvn_swe_engy_arc[iref]
+             end
+      else : begin
+               tmin = min(time_double(time), max=tmax)
+               iref = where((mvn_swe_engy_arc.time ge tmin) and $
+                            (mvn_swe_engy_arc.time le tmax), count)
+               if (count eq 0L) then begin
+                 print,'No SPEC archive data within selected time range.'
+                 return, 0
+               endif
+               spec = mvn_swe_engy_arc[iref]
+             end
+    endcase
   endif else begin
-    if (npts gt 1) then begin
-      iref = where((mvn_swe_engy.time ge tmin) and $
-                   (mvn_swe_engy.time le tmax), count)
-    endif else begin
-      dt = min(abs(mvn_swe_engy.time - tmin), iref)
-      count = 1
-    endelse
-    if (count eq 0L) then begin
-      print,'No SPEC survey data within selected time range.'
-      return, 0
-    endif
-    spec = mvn_swe_engy[iref]
+    case npts of
+        0  : spec = mvn_swe_engy
+        1  : begin
+               iref = nn2(mvn_swe_engy.time, time, maxdt=maxdt)
+               if (iref eq -1) then begin
+                 print,'No SPEC survey data near selected time.'
+                 return, 0
+               endif
+               spec = mvn_swe_engy[iref]
+             end
+      else : begin
+               tmin = min(time_double(time), max=tmax)
+               iref = where((mvn_swe_engy.time ge tmin) and $
+                            (mvn_swe_engy.time le tmax), count)
+               if (count eq 0L) then begin
+                 print,'No SPEC survey data within selected time range.'
+                 return, 0
+               endif
+               spec = mvn_swe_engy[iref]
+             end
+    endcase
   endelse
 
 ; Quality check
@@ -121,6 +144,10 @@ function mvn_swe_getspec, time, archive=archive, sum=sum, units=units, yrange=yr
   endif
 
   mvn_swe_convert_units, spec, units
+
+; Insert an estimate for secondary electron contamination
+
+  if (max(spec.bkg) lt 1.e-30) then mvn_swe_secondary, spec
 
 ; Convenient plot limits (returned via keyword)
 

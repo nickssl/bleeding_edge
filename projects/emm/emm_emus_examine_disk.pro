@@ -85,6 +85,9 @@
 
 ;      JPEG: if this keyword is set, then JPEG's are saved for
 ;      all of the images.
+;
+;      PLOT: this is an array of indices, for which of the specified
+;      emissions or wavelength ranges you wish to be plotted.
 
 ;      DLAT_OUTPUT = resolution of geographic map of brightness
 ;      
@@ -123,7 +126,11 @@ pro emm_emus_examine_disk, time_range, MAVEN = MAVEN, MEX = MEX, $
                            output_directory = output_directory, $
                            disk = disk, buffer = buffer, jpeg = jpeg, $
                            dlat_output = dlat_output, l3 = l3, l2b =l2b,$
-                           roi = roi, save = save, record_by_hand = record_by_hand
+                           roi = roi, save = save, record_by_hand = record_by_hand, $
+                           mode = mode, plot = plot, binning_int = binning_int,$
+                           binning_pix = binning_pix
+
+
 
   if keyword_set (wv_range) and keyword_set (emission) then message, $
      'must choose either wavelength ranges or emission features, NOT BOTH'
@@ -174,7 +181,7 @@ pro emm_emus_examine_disk, time_range, MAVEN = MAVEN, MEX = MEX, $
 ; NOTE: the path below will work for anyone working on the SSL
 ; network. Others will need to clone the AWS directory mentioned the
 ; commented section above the code. A copy of this directory exists at LASP
-  if not keyword_set (local_path) then local_path = '/disks/hope/home2/rlillis/emm/data/'
+  if not keyword_set (local_path) then local_path = '/disks/hope/data/emm/data/'
   
 ; retrieve the file names from the requested time range, as well as
 ; the indices for each image set within the returned array of
@@ -183,7 +190,8 @@ pro emm_emus_examine_disk, time_range, MAVEN = MAVEN, MEX = MEX, $
   if keyword_set (l2b) then level = 'l2b'
   if keyword_set (l3) then level = 'l3disk'
 
-  
+;  if not keyword_set (mode)
+
   os2 = emm_file_retrieve (time_range,level = level, mode = 'os2', local_path = $
                            local_path)
 ;  print, 'OS2 complete'
@@ -192,8 +200,11 @@ pro emm_emus_examine_disk, time_range, MAVEN = MAVEN, MEX = MEX, $
                                 ; print, 'OS1 complete'
   osr = emm_file_retrieve (time_range,level = level, mode = 'osr', local_path = $
                            local_path)
+  osp = emm_file_retrieve (time_range,level = level, mode = 'osp', local_path = $
+                           local_path)
                                 ;print, 'OSr complete'
-
+  staring = emm_file_retrieve (time_range,level = level, mode = 'EMU042', local_path = $
+                           local_path)
   
 ; collate the three different kinds of scans together
   all_files = ''
@@ -206,6 +217,7 @@ pro emm_emus_examine_disk, time_range, MAVEN = MAVEN, MEX = MEX, $
 
  
 ; NOTE: the order of the next three if statements matters!
+; NOTE: ADD OSP!!!
   if size (os1,/type) eq 8 then begin
      all_files = [all_files,os1.directory +os1.files]
      nos1= n_elements (os1.times)
@@ -250,6 +262,39 @@ pro emm_emus_examine_disk, time_range, MAVEN = MAVEN, MEX = MEX, $
      mode = [mode, replicate ('osr',nosr)]
   endif
   
+  If size (staring,/type) eq 8 then begin
+; NOTE: for now, let's not include the staring observations
+ ; if 3 eq 5 then begin
+     nstaring= n_elements (staring.times)
+     all_files = [all_files,staring.directory +staring.files]
+     add  = max (file_indices) +1
+; do the same for STARING as we did above for OS2
+     tmp_file_indices = Staring.file_indices
+     Good = where (tmp_file_indices ge 0)
+     TMP_file_indices [good] += add
+     file_indices = [[file_indices],[TMP_file_indices]]
+     times = [times, staring.times]
+     UNIX_times = [UNIX_times, Staring.UNIX_times]
+     mode = [mode, replicate ('staring',nstaring)]
+  endif
+
+  
+  If size (osp,/type) eq 8 then begin
+; NOTE: for now, let's not include the osp observations
+ ; if 3 eq 5 then begin
+     nosp= n_elements (osp.times)
+     all_files = [all_files,osp.directory +osp.files]
+     add  = max (file_indices) +1
+; do the same for OSP as we did above for OS2
+     tmp_file_indices = Osp.file_indices
+     Good = where (tmp_file_indices ge 0)
+     TMP_file_indices [good] += add
+     file_indices = [[file_indices],[TMP_file_indices]]
+     times = [times, osp.times]
+     UNIX_times = [UNIX_times, Osp.UNIX_times]
+     mode = [mode, replicate ('osp',nosp)]
+  endif
+
   if n_elements (all_files) eq 1 then begin
      print, 'No valid files for this time range!'
      return
@@ -289,12 +334,15 @@ pro emm_emus_examine_disk, time_range, MAVEN = MAVEN, MEX = MEX, $
           mrh:fltarr (nint_max, npix_max, nc)*sqrt (-7.2), $ ,$
           sza:fltarr (nint_max, npix_max, nc)*sqrt (-7.2), $
           ea:fltarr (nint_max, npix_max, nc)*sqrt (-7.2), $
+          pa:fltarr (nint_max, npix_max, nc)*sqrt (-7.2), $
           latss:fltarr (nint_max)*sqrt (-7.2), $
           elonss:fltarr (nint_max)*sqrt (-7.2), $
           elon:fltarr (nint_max, npix_max, nc)*sqrt (-7.2), $
           lat:fltarr (nint_max, npix_max, nc)*sqrt (-7.2), $
           bands:bands,$
           Rad:fltarr (nint_max, npix_max, nb)*sqrt (-7.2), $
+          drad_rand:fltarr (nint_max, npix_max, nb)*sqrt (-7.2), $; random error
+          drad:fltarr (nint_max, npix_max, nb)*sqrt (-7.2), $; total error
           sc_alt:fltarr (nint_max)*sqrt (-7.2), $
           SC_pos: fltarr(3, nint_max)*sqrt (-7.2), $ ; MSO
           elon_ssc:fltarr (nint_max)*sqrt (-7.2), $
@@ -448,18 +496,31 @@ pro emm_emus_examine_disk, time_range, MAVEN = MAVEN, MEX = MEX, $
         FOV_geom = mrdfits(all_files [file_indices[l,p]],'FOV_GEOM')
         SC_geom = mrdfits(all_files [file_indices[l,p]],'SC_GEOM')
         tim = mrdfits(all_files [file_indices[l,p]],'TIME')
+        emiss = mrdfits (all_files [file_indices [l,p]], 'EMISS')
         if keyword_set (emission) then begin
-           emiss = mrdfits (all_files [file_indices [l,p]], 'EMISS')
            emission_indices = intarr (nb)
            for k = 0, nb-1 do begin
               emission_indices [k] = where (emiss.name eq emission [k])
               if emission_indices [k] eq -1 then message, 'Emission keyword must consist of a string or string array from the list of emissions shown in the comments at the top of this routine source code.'
            Endfor
-        endif else begin
-           wv = mrdfits(all_files [file_indices[l,p]],'WAVELENGTH')
-           nw = n_elements (wv.wavelength_l2a [*, 0])
-           cal = mrdfits(all_files [file_indices[l,p]],'CAL')
-        endelse
+        endif
+        wv = mrdfits(all_files [file_indices[l,p]],'WAVELENGTH')
+        nw = n_elements (wv.wavelength_l2a [*, 0])
+        cal = mrdfits(all_files [file_indices[l,p]],'CAL')
+        
+        
+; in case you want to do binning.  If the binning keywords are not
+; specified, then there is no binning     
+        
+        emm_emus_binning, FOV_geom, SC_geom, tim, emiss, cal, FOV_binned, SC_binned, Tim_binned, emiss_binned, cal_binned,$
+                       binning_int = binning_int, binning_pix = binning_pix
+        fov_geom = fov_binned
+        sc_geom = SC_binned
+        tim = tim_binned
+        emiss = emiss_binned
+        cal= cal_binned
+  
+
         if keyword_set (l3) then cd = mrdfits (all_files [file_indices [l,p]], 'COLUMN_DENSITY')
         print, all_files [file_indices [l, p]]
         
@@ -502,6 +563,9 @@ pro emm_emus_examine_disk, time_range, MAVEN = MAVEN, MEX = MEX, $
         
         disk [p, l].ea[0:nint-1,0:npix-1,*] = $
            transpose (reform (fov_geom.emission_angle), [2, 0, 1])
+         disk [p, l].pa[0:nint-1,0:npix-1,*] = $
+           transpose (reform (fov_geom.phase_angle), [2, 0, 1])
+        
         disk [p, l].local_time[0:nint-1,0:npix-1] = $
            transpose(reform (fov_geom.local_time[*,0,*]))
         
@@ -570,21 +634,31 @@ pro emm_emus_examine_disk, time_range, MAVEN = MAVEN, MEX = MEX, $
            for j = 0, nint-1 do begin 
               for i = 0, npix-1 do begin 
 ; find the wavelength indices
-                 wv_indices = value_locate (wv.wavelength_L2A[*,i], WV_ranges)
-                 for K = 0, nb-1 do begin                
+                 wv_indices = value_locate (wv.wavelength_L2A[*,i], WV_range)
+                 for K = 0, nb-1 do begin       
+                    rad_rand =  int_simple (wv.wavelength_l2a [wv_indices [0, k]+1: wv_indices [1, k], i], $
+                                   cal[j].radiance [wv_indices [0, k]+1: wv_indices [1, k],i], $
+                                   df = cal[j].rad_err_rand[wv_indices [0, k]+1: wv_indices [1, k],i], $
+                                   error = error)    
+                     
+                    disk [p, l].drad_rand [j,i, k] = error
+                    disk [p, l].rad[j,i, k] = rad_rand
                     band_radiance [j, i,k] = $
-                       int_simple (wv.wavelength_l2a [wv_indices [0, k]+1: $
-                                                      wv_indices [1, k]], $
-                                   cal[j].radiance [wv_indices [0, k]+1: wv_indices [1, k],i])
-                    disk [p, l].rad [j,i, k] = band_radiance [j,i, k]
+                       int_simple (wv.wavelength_l2a [wv_indices [0, k]+1: wv_indices [1, k], i], $
+                                   cal[j].radiance [wv_indices [0, k]+1: wv_indices [1, k],i], $
+                                   df = sqrt(cal[j].rad_err_rand[wv_indices [0, k]+1: wv_indices [1, k],i]^2 + $
+                                             cal[j].rad_err_sys[wv_indices [0, k]+1: wv_indices [1, k],i]^2), $
+                                   error = error)      
+                   
+                    disk [p, l].drad [j,i, k] = error
                  endfor
+               ;  if band_radiance [J, i, 3] gt 5.0 then stop
 ; some diagnostic plots              
                  if 5 eq 3 then begin 
                     Print, i, j, rad_Cal [ p, l, j, i, 1]
                     plot, wv.wavelength_l2A, cal [j].radiance [*, i], $
                           xtitle = 'wavelength, nm', ytitle = 'radiance, R/nm',$
-                          /ylog, PSy = 4, $
-                          yrange = [1e-2, 1e4]
+                          /ylog,  yrange = [1e-2, 1e4]
                     oplot, wavelength_array, radiance [i, j,*], color = 2  
                  endif  
               endfor
@@ -614,7 +688,7 @@ pro emm_emus_examine_disk, time_range, MAVEN = MAVEN, MEX = MEX, $
                             xr = xr,title = bands [band_index],$
                             /iso, zr =[0.1, 300],/zlog, $
                             yr = yr,/ystyle,/Xstyle, zstyle = 1
-           scatter_specmap,disk [p, l].elon [0: nint -1,*, 0], $
+         scatter_specmap,disk [p, l].elon [0: nint -1,*, 0], $
                            disk [p, l].lat [0: nint -1,*, 0], $
                            disk[p, l].rad_cal [0: nint -1,*, Band_index],$
                            zrange = [2, 20],/iso
@@ -638,14 +712,14 @@ pro emm_emus_examine_disk, time_range, MAVEN = MAVEN, MEX = MEX, $
 ; we want to make a gridded geographic map regardless. NOTE: need to
 ; use the JPEG keyword if you want to make JPEG's
      
-     emm_emu_map_disk, Disk [p, *], bands_wanted = indgen(nb), zrange = $
-                       brightness_range,zlog=zlog, $
-                       Color_Table = color_table, /no_crustal,$
-                       mode = mode[file_indices [*,p]],/cylindrical, $
-                       nxmap = nelon_map,nymap = nlat_map, $
-                       mean_brightness_map = mean_brightness_map, $
-                       stitched_brightness_map = stitched_brightness_map
-     
+     if keyword_set (plot) then emm_emu_map_disk, Disk [p, *], bands_wanted = plot, zrange = $
+        brightness_range,zlog=zlog, $
+        Color_Table = color_table, /no_crustal,$
+        mode = mode[file_indices [*,p]],/cylindrical, $
+        nxmap = nelon_map,nymap = nlat_map, $
+        mean_brightness_map = mean_brightness_map, $
+        stitched_brightness_map = stitched_brightness_map
+    
 ; look at regions of interest
      ;stop
      
@@ -654,16 +728,18 @@ pro emm_emus_examine_disk, time_range, MAVEN = MAVEN, MEX = MEX, $
      ;xroi, Image, statistics = roi
      
      
-     for l = 0,n_swath-1 do begin
-        if file_indices [l, p] eq -1 then continue
-        Disk [p, l].brightness_map = reform (mean_brightness_map[*,*,*, l])
+     for l = 0,n_swath-1 do begin & $
+        if file_indices [l, p] eq -1 or keyword_set (plot) eq 0 then continue & $
+        Disk [p, l].brightness_map = reform (mean_brightness_map[*,*,*, l]) & $
      endfor
      
+    ; specplot, disk [p, 0].maplon, disk [p, 0].maplat, reform (disk [p, 0].brightness_map[0,*,*])
+
 ; If you additionally want to make perspective maps with the hammer or
 ; satellite projections
      
      If keyword_set (hammer) or keyword_set (satellite)  then begin
-        emm_emu_map_disk, Disk [p, *], bands_wanted = indgen(nb), zrange = $
+        emm_emu_map_disk, Disk [p, *], bands_wanted = plot, zrange = $
                           brightness_range,zlog=zlog, $
                           Color_Table = color_table, $
                           mode = mode[file_indices [*,p]], hammer = hammer, $
@@ -674,8 +750,10 @@ pro emm_emus_examine_disk, time_range, MAVEN = MAVEN, MEX = MEX, $
      
                                 ;            bands [1] +'.jpeg'
                                 ;if p mod 10 eq 0 then save, Disk, file = Disk_file
-     if p eq set_count -1 and keyword_set (output_file) then save, disk, file = $
-        output_file
+     if p eq set_count -1 and keyword_set (output_file) then begin
+    
+        save, disk, file =   output_file
+     endif
   endfor
 
 end

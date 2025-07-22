@@ -9,6 +9,7 @@
 ;         trange:       time range of interest [starttime, endtime] with the format
 ;                       ['YYYY-MM-DD','YYYY-MM-DD'] or to specify more or less than a day
 ;                       ['YYYY-MM-DD/hh:mm:ss','YYYY-MM-DD/hh:mm:ss']
+;                       Default: ['2022-08-19', '2022-08-20']
 ;         probes:       list of probes, valid values for elf probes are ['a','b'].
 ;                       if no probe is specified the default is probe 'a'
 ;         datatypes:    only valid datatype is 'mrmi'
@@ -93,6 +94,13 @@ pro elf_load_mrmi, trange = trange, probes = probes, datatype = datatype, $
     dprint, dlevel = 1, 'Invalid probe name. Valid probes are a and/or b. Please select again.'
     return
   endif
+
+  if ~undefined(trange) then begin
+    dur=time_double(trange[1])-time_double(trange[0])
+    timespan, trange[0],dur,/sec
+  endif else begin
+    trange=time_double(['2022-08-19', '2022-08-20'])
+  endelse
 
   ;clear so new names are not appended to existing array
   undefine, tplotnames

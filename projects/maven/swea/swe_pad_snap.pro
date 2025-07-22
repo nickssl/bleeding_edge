@@ -20,6 +20,8 @@
 ;       LASTPAD:       Named variable to hold a PAD structure at the last time
 ;                      selected.
 ;
+;       RESULT:        Named variable to hold the data used in the various plots.
+;
 ;       DDD:           If set, compare with the nearest 3D spectrum.
 ;
 ;       CENTER:        Specify the center azimuth for 3D plots.  Only works when DDD
@@ -48,10 +50,17 @@
 ;
 ;       SEC:           Remove secondary electrons.
 ;
+;       SCONFIG:       Structure of parameters for the secondary electron models.
+;
+;                        {e0:e0, s0:s0, e1:e1, s1:s1, scl:scl}
+;
 ;       LABEL:         Label the anode and deflection bin numbers (label=1) or the
 ;                      solid angle bin numbers (label=2).
 ;
 ;       KEEPWINS:      If set, then don't close the snapshot window(s) on exit.
+;
+;       KILLWINS:      If set, then close the snapshot window(s) on exit no matter what.
+;                      Takes precedence over KEEPWINS.
 ;
 ;       MONITOR:       Put snapshot windows in this monitor.  Monitors are numbered
 ;                      from 0 to N-1, where N is the number of monitors recognized
@@ -184,13 +193,13 @@
 ;                         0B = affected by low-energy anomaly
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-06-23 12:34:13 -0700 (Fri, 23 Jun 2023) $
-; $LastChangedRevision: 31909 $
+; $LastChangedDate: 2025-04-05 14:36:55 -0700 (Sat, 05 Apr 2025) $
+; $LastChangedRevision: 33233 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/swe_pad_snap.pro $
 ;
 ;CREATED BY:    David L. Mitchell  07-24-12
 ;-
-pro swe_pad_snap, keepwins=keepwins, archive=archive, energy=energy, $
+pro swe_pad_snap, keepwins=keepwins, killwins=killwins, archive=archive, energy=energy, $
                   units=units, lastpad=pad, ddd=ddd, zrange=zrange, sum=sum, $
                   label=label, smo=smo, dir=dir, mask_sc=mask_sc, $
                   abins=abins, dbins=dbins, obins=obins, burst=burst, $
@@ -202,9 +211,10 @@ pro swe_pad_snap, keepwins=keepwins, archive=archive, energy=energy, $
                   xrange=xrange, error_bars=error_bars, yrange=yrange, trange=trange2, $
                   note=note, mincounts=mincounts, maxrerr=maxrerr, tsmo=tsmo, $
                   sundir=sundir, wscale=wscale, cscale=cscale, fscale=fscale, $
-                  result=result, vdis=vdis, padmap=padmap, sec=sec, color_table=color_table, $
-                  reverse_color_table=reverse_color_table, line_colors=line_colors, $
-                  pyrange=pyrange, qlevel=qlevel
+                  result=result, vdis=vdis, padmap=padmap, sec=sec, sconfig=sconfig, $
+                  color_table=color_table, reverse_color_table=reverse_color_table, $
+                  line_colors=line_colors, pyrange=pyrange, qlevel=qlevel, _extra=_extra,$
+                  mkpng=mkpng,figname=figname
 
   @mvn_swe_com
   @putwin_common
@@ -227,15 +237,15 @@ pro swe_pad_snap, keepwins=keepwins, archive=archive, energy=energy, $
 
   swe_snap_options, get=key, /silent
   ktag = tag_names(key)
-  tlist = ['KEEPWINS','ARCHIVE','ENERGY','UNITS','DDD','ZRANGE','SUM', $
-           'LABEL','SMO','DIR','MASK_SC','ABINS','DBINS','OBINS','BURST', $
+  tlist = ['KEEPWINS','KILLWINS','ARCHIVE','ENERGY','UNITS','DDD','ZRANGE', $
+           'SUM','LABEL','SMO','DIR','MASK_SC','ABINS','DBINS','OBINS','BURST', $
            'POT','SCP','SPEC','PLOTLIMS','NORM','CENTER','PEP','RESAMPLE', $
            'HIRES','FBDATA','MONITOR','ADIABATIC','NOMID','UNCERTAINTY', $
            'NOSPEC90','SHIFTPOT','POPEN','INDSPEC','TWOPOT','XRANGE',$
            'ERROR_BARS','YRANGE','TRANGE2','NOTE','MINCOUNTS','MAXRERR', $
            'TSMO','SUNDIR','WSCALE','CSCALE','FSCALE','RESULT','VDIS', $
            'PADMAP','COLOR_TABLE','REVERSE_COLOR_TABLE','LINE_COLORS', $
-           'PYRANGE','QLEVEL']
+           'PYRANGE','QLEVEL','SCONFIG']
   for j=0,(n_elements(ktag)-1) do begin
     i = strmatch(tlist, ktag[j]+'*', /fold)
     case (total(i)) of
@@ -252,14 +262,15 @@ pro swe_pad_snap, keepwins=keepwins, archive=archive, energy=energy, $
 ; Process keywords
 
   if (size(note,/type) ne 7) then note = ''
-  if keyword_set(archive) then aflg = 1 else aflg = 0
+  aflg = keyword_set(archive)
   if keyword_set(burst) then aflg = 1
   if (size(units,/type) ne 7) then units = 'eflux'
-  if keyword_set(energy) then sflg = 1 else sflg = 0
-  if keyword_set(keepwins) then kflg = 0 else kflg = 1
+  sflg = keyword_set(energy)
+  killwins = keyword_set(killwins)
+  kflg = ~keyword_set(keepwins) or killwins
   if not keyword_set(zrange) then zrange = 0
-  if keyword_set(ddd) then dflg = 1 else dflg = 0
-  if keyword_set(resample) then rflg = 1 else rflg = 0
+  dflg = keyword_set(ddd)
+  rflg = keyword_set(resample)
   if not keyword_set(wscale) then wscale = 1.
   if not keyword_set(cscale) then cscale = wscale
   if not keyword_set(fscale) then fscale = 1.
@@ -276,12 +287,12 @@ pro swe_pad_snap, keepwins=keepwins, archive=archive, energy=energy, $
        1 : begin
              trange2 = time_double(trange2)
              tflg = 1
-             kflg = 0
+             if (~killwins) then kflg = 0
            end
     else : begin
              trange2 = minmax(time_double(trange2))
              tflg = 1
-             kflg = 0
+             if (~killwins) then kflg = 0
            end
   endcase
 
@@ -627,7 +638,7 @@ pro swe_pad_snap, keepwins=keepwins, archive=archive, energy=energy, $
   nplot = 0
   
   while (ok) do begin
-    result = {null:0}
+    result = {units:units}
 
     if (dosmo) then begin
       tmin = min(trange, max=tmax)
@@ -723,6 +734,8 @@ pro swe_pad_snap, keepwins=keepwins, archive=archive, energy=energy, $
       endif else pot = 0.
       if (finite(scp)) then pot = scp  ; override with user-supplied value
       pad.sc_pot = pot
+
+      str_element, result, 'scpot', pot, /add
 
 ; Correct for spacecraft potential.  For instrumental units (COUNTS, RATE, or
 ; CRATE) only shift in energy.  For flux units (FLUX, EFLUX), shift in energy 
@@ -938,7 +951,8 @@ pro swe_pad_snap, keepwins=keepwins, archive=archive, energy=energy, $
               oplot,[3,5000],[yhi2[63,8],yhi2[63,8]],line=2
             endif
             if (sflg) then for k=0,(n_elements(penergy)-1) do oplot,[penergy[k],penergy[k]],[0,180],line=2
-            if (pad.quality eq 255B) then xyouts,0.5,0.5,"NO VALID DATA",/norm,align=0.5,charsize=csize2*1.5
+            str_element, pad, 'quality', pq, success=gotq
+            if (gotq) then if (pq eq 255B) then xyouts,0.5,0.5,"NO VALID DATA",/norm,align=0.5,charsize=csize2*1.5
 
             if (uflg) then begin
                str_element, rlim, 'ztitle', 'Relative Uncertainty', /add_replace
@@ -1125,6 +1139,16 @@ pro swe_pad_snap, keepwins=keepwins, archive=archive, energy=energy, $
         zmean = mean(z[i,*],/nan)
         zi = z[i,*]/zmean
         dzi = dz[i,*]/zmean
+
+        pad_cut = {x      : reform(y[i,*])    , $
+                   dx     : abs(yhi - ylo)/2. , $
+                   y      : reform(zi)        , $
+                   dy     : reform(dzi)       , $
+                   time   : tstring           , $
+                   energy : penergy           , $
+                   units  : 'normalized'         }
+
+        str_element, result, 'pad_cut', pad_cut, /add
 
         col = [replicate(2,8), replicate(6,8)]
 ;       col = replicate(!p.color,16)
@@ -1341,11 +1365,11 @@ pro swe_pad_snap, keepwins=keepwins, archive=archive, energy=energy, $
         
         plot_oo, [0.1,0.1], drange, xrange=xrange, yrange=drange, /xsty, /ysty, $
           xtitle='Energy (eV)', ytitle=ytitle, title=time_string(pad.time), $
-          charsize=1.4*cscale, xmargin=[10,3]
+          charsize=1.4*cscale, xmargin=[10,3] ; , _extra=_extra
 
-        oplot, x1, Fp, psym=10, color=6
-        oplot, x2, Fm, psym=10, color=2
-        if (domid) then oplot, x, Fz, psym=10, color=4
+        oplot, x1, Fp, psym=10, color=6 ; , _extra=_extra
+        oplot, x2, Fm, psym=10, color=2 ; , _extra=_extra
+        if (domid) then oplot, x, Fz, psym=10, color=4 ; , _extra=_extra
 
         if (ebar) then begin
           errplot, x1*0.999, (Fp-Fp_err)>tiny, Fp+Fp_err, color=6, width=0
@@ -1353,9 +1377,10 @@ pro swe_pad_snap, keepwins=keepwins, archive=archive, energy=energy, $
           if (domid) then errplot, x, (Fz-Fz_err)>tiny, Fz+Fz_err, color=4, width=0
         endif
 
-        str_element, result, 'spec_plus', {x:x1, y:Fp, dy:Fp_err}, /add
-        str_element, result, 'spec_minus', {x:x2, y:Fm, dy:Fm_err}, /add
-        str_element, result, 'spec_mid', {x:x, y:Fz, dy:Fz_err}, /add
+        dwidth = swidth*!radeg
+        str_element, result, 'spec_plus', {x:x1, y:Fp, dy:Fp_err, pa_range:[0.,dwidth]}, /add
+        str_element, result, 'spec_minus', {x:x2, y:Fm, dy:Fm_err, pa_range:[180.-dwidth,180.]}, /add
+        str_element, result, 'spec_mid', {x:x, y:Fz, dy:Fz_err, pa_range:[dwidth, 180.-dwidth]}, /add
 
         if (dopot) then begin
           if (spflg) then oplot,[-pot,-pot],drange,line=2,color=6 $
@@ -1540,12 +1565,23 @@ pro swe_pad_snap, keepwins=keepwins, archive=archive, energy=energy, $
       el = [swe_el[*,63,pad.group] - (swe_del[*,63,pad.group]/2.), elmax*!radeg]
       for i=0,6 do oplot,[0,360],[el[i],el[i]],color=4,linestyle=1
 
-      if (~dosmo and (npts eq 1)) then for k=0,15 do begin
+      if (dosmo or (npts gt 1)) then $  ; TSMO or SUM mode is active
+          xyouts,0.05,0.03,'* Data are averaged, so PA map is approximate.',/norm,charsize=1.2
+
+      for k=0,7 do begin
         i = pad.iaz[k]
         j = pad.jel[k]
         azbox = [az[i], az[i+1], az[i+1], az[i]   ,az[i]]
         elbox = [el[j], el[j]  , el[j+1], el[j+1] ,el[j]]
-        oplot,azbox,elbox,color=6,linestyle=2
+        oplot,azbox,elbox,color=col[0],linestyle=2
+      endfor
+
+      for k=8,15 do begin
+        i = pad.iaz[k]
+        j = pad.jel[k]
+        azbox = [az[i], az[i+1], az[i+1], az[i]   ,az[i]]
+        elbox = [el[j], el[j]  , el[j+1], el[j+1] ,el[j]]
+        oplot,azbox,elbox,color=col[8],linestyle=2
       endfor
 
       kb = where(swe_sc_mask[*,boom] eq 0, count)
@@ -1554,7 +1590,7 @@ pro swe_pad_snap, keepwins=keepwins, archive=archive, energy=energy, $
       for k=0,(count-1) do begin
         i = ib[k]
         j = jb[k]
-        oplot,[mean(az[i:i+1])],[mean(el[j:j+1])],psym=7,color=5
+        oplot,[mean(az[i:i+1])],[mean(el[j:j+1])],psym=7,symsize=3,thick=2,color=5
       endfor
 
       az = pad.Baz*!radeg
@@ -1579,7 +1615,13 @@ pro swe_pad_snap, keepwins=keepwins, archive=archive, energy=energy, $
     
   endwhile
 
-  str_element, result, 'null', /del
+  if keyword_set(mkpng) then begin
+    if ~keyword_set(figname) then figname='~/'
+    if (dospec) then makepng,figname+'_espec',wi=Ewin
+    if (rflg or hflg or uflg) then makepng, figname+'_epad',wi=Pwin
+    if (doind) then makepng, figname+'_indvspec', wi=Iwin
+    if (dov) then makepng, figname+'_phasespace', wi=vwin
+  endif
 
   if (kflg) then begin
     if (~rflg) then wdelete, Pwin

@@ -24,7 +24,7 @@ pro elf_create_instrument_all, trange = trange, nodownload = nodownload, probe =
   ; define local and remote paths
 
   if keyword_set(probe) then probes = probe else probes = ['a', 'b']
-  if keyword_set(instrument) then instruments = instrument else instruments = ['epd', 'fgm', 'mrm']
+  if keyword_set(instrument) then instruments = instrument else instruments = ['epde', 'epdi', 'fgm', 'mrm']
   if keyword_set(update) then update = update else update = 0
 ;  instruments='epd'
 ;  probes='b'
@@ -42,7 +42,7 @@ pro elf_create_instrument_all, trange = trange, nodownload = nodownload, probe =
            
       file_prefix = 'el'+probe+'_'+instrument+'_'
       
-      sz_directions = ['nasc', 'ndes', 'sasc', 'sdes', 'eq']
+      sz_directions = ['nasc', 'ndes', 'sasc', 'sdes']
       
       sz_start = []
       sz_end = []
@@ -51,12 +51,12 @@ pro elf_create_instrument_all, trange = trange, nodownload = nodownload, probe =
       directions = []
  
         ;obtain file
-     if update then begin
-       tdate = trange[1]
-       days = 1
-       days = (time_double(trange[1])-time_double(trange[0]))/(86400)
-       elf_update_data_availability_table, tdate, probe=probe, instrument='epd', days = days
-     endif
+;     if update then begin
+;       tdate = trange[1]
+;       days = 1
+;       days = (time_double(trange[1])-time_double(trange[0]))/(86400)
+;       elf_update_data_availability_table, tdate, probe=probe, instrument='epd', days = days
+;     endif
         
      foreach element, sz_directions do begin
        
@@ -91,13 +91,13 @@ pro elf_create_instrument_all, trange = trange, nodownload = nodownload, probe =
         
      endforeach
       
-      sorted = sort(sz_start)
+      sorted = uniq(sz_start(sort(sz_start)))
       sz_start = sz_start[sorted]
       sz_end = sz_end[sorted]
       lshells = lshells[sorted]
       mlt = mlt[sorted]
       directions = directions[sorted]
-
+;stop
       write_csv, local_path+'el'+probe+'_'+instrument+'_all.csv', sz_start, sz_end, lshells, mlt, directions, TABLE_HEADER = 'EL-'+strupcase(probe)+' '+strupcase(instrument)+' Science Collections', HEADER = ['Time Start', 'Time End', 'L-Shell Range', 'MLT Median', 'Direction']
       print, 'Data written to: ', local_path + 'el'+probe+'_'+instrument+'_all.csv'
    endforeach

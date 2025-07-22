@@ -1,9 +1,10 @@
 ;+
 ;PROCEDURE:   bindata2d
 ;PURPOSE:
-;  Bins a 3D data set and calculate moments for each bin.  The calculated
-;  moments are: mean, standard deviation, skewness, kurtosis, mean absolute
-;  deviation, and median.
+;  Bins a 3D data set and calculates moments for each bin: mean, standard 
+;  deviation, skewness, kurtosis, and mean absolute deviation.  Also 
+;  determines the median, upper quartile, lower quartile, minimum, and 
+;  maximum.
 ;
 ;    skewness: = 0 -> distribution is symmetric about the maximum
 ;              < 0 -> distribution is skewed to the left
@@ -16,11 +17,15 @@
 ;USAGE:
 ;  bindata2d, x, y, z
 ;INPUTS:
-;       x:         The first independent variable.
+;       x:         The first independent variable (N-element array).
 ;
-;       y:         The second independent variable.
+;       y:         The second independent variable (M-element array).
 ;
-;       z:         The dependent variable (2D array).
+;       z:         The dependent variable (N x M array).  If any elements
+;                  of z are not finite, they are treated as missing data.
+;                  They are not included when calculating statistics, and 
+;                  they are not included in the distribution (see keyword 
+;                  DST below).
 ;
 ;KEYWORDS:
 ;       XBINS:     The number of bins to divide x into.  Takes precedence
@@ -37,15 +42,15 @@
 ;
 ;       YRANGE:    The range for creating bins.  Default is [min(y),max(y)].
 ;
-;       RESULT:    A structure containing the moments, median, and the number
-;                  of points per bin.
+;       RESULT:    A structure containing the moments, median, quartiles, 
+;                  minimum, maximum, and the number of points per bin.
 ;
 ;       DST:       Stores the distribution for each bin.  Can take a lot of
 ;                  space.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2021-07-29 14:10:44 -0700 (Thu, 29 Jul 2021) $
-; $LastChangedRevision: 30158 $
+; $LastChangedDate: 2025-06-05 08:10:18 -0700 (Thu, 05 Jun 2025) $
+; $LastChangedRevision: 33369 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/bindata2d.pro $
 ;
 ;CREATED BY:	David L. Mitchell
@@ -54,6 +59,7 @@ pro bindata2d, x, y, z, xbins=xbins, dx=dx, xrange=xrange, ybins=ybins, $
                       dy=dy, yrange=yrange, result=result, dst=dst
 
   dodist = keyword_set(dst)
+  zgud = finite(z)
 
 ; Set up the grid for binning the data
 
@@ -82,12 +88,16 @@ pro bindata2d, x, y, z, xbins=xbins, dx=dx, xrange=xrange, ybins=ybins, $
   z_skew = z_mean
   z_kurt = z_mean
   z_medn = z_mean
+  z_lqrt = z_mean
+  z_uqrt = z_mean
+  z_min  = z_mean
+  z_max  = z_mean
   z_npts = lonarr(xbins,ybins)
 
   if (dodist) then begin
     for j=0,(xbins-1) do begin
       for k=0,(ybins-1) do begin
-        i = where(x ge xx[j] and x lt xx[j+1] and y ge yy[k] and y lt yy[k+1], count)
+        i = where(x ge xx[j] and x lt xx[j+1] and y ge yy[k] and y lt yy[k+1] and zgud, count)
         z_npts[j,k] = count
       endfor
     endfor
@@ -99,27 +109,66 @@ pro bindata2d, x, y, z, xbins=xbins, dx=dx, xrange=xrange, ybins=ybins, $
 
   for j=0,(xbins-1) do begin
     for k=0,(ybins-1) do begin
-      i = where(x ge xx[j] and x lt xx[j+1] and y ge yy[k] and y lt yy[k+1], count)
+      i = where(x ge xx[j] and x lt xx[j+1] and y ge yy[k] and y lt yy[k+1] and zgud, count)
       z_npts[j,k] = count
-      case (count) of
-        0 :  ; do nothing -> leave everything as NaN
-        1 :    z_mean[j,k] = z[i]
+      case (1) of
+        count eq 0 : ; do nothing -> leave everything as NaN
+        count eq 1 : begin
+                       z_mean[j,k] = z[i]
+
+                       z_min[j,k]  = z[i]
+                       z_medn[j,k] = z[i]
+                       z_max[j,k]  = z[i]
+                       if (dodist) then z_dist[j,k,0L] = z[i]
+                     end
+        count lt 5 : begin
+                       mom = moment(z[i], mdev=mdev)
+                       z_mean[j,k] = mom[0]
+                       z_sdev[j,k] = sqrt(mom[1])
+                       z_adev[j,k] = mdev
+                       z_skew[j,k] = mom[2]
+                       z_kurt[j,k] = mom[3]
+
+                       z_min[j,k]  = min(z[i], max=zmax)
+                       z_medn[j,k] = median(z[i])
+                       z_max[j,k]  = zmax
+                       if (dodist) then z_dist[j,k,0L:(count-1L)] = z[i]
+                     end
         else : begin
-                 mom = moment(z[i], mdev=mdev, /nan)
+                 mom = moment(z[i], mdev=mdev)
                  z_mean[j,k] = mom[0]
                  z_sdev[j,k] = sqrt(mom[1])
                  z_adev[j,k] = mdev
                  z_skew[j,k] = mom[2]
                  z_kurt[j,k] = mom[3]
-                 z_medn[j,k] = median(z[i])
+
+                 med = createboxplotdata(z[i])
+                 z_min[j,k]  = med[0]
+                 z_lqrt[j,k] = med[1]
+                 z_medn[j,k] = med[2]
+                 z_uqrt[j,k] = med[3]
+                 z_max[j,k]  = med[4]
                  if (dodist) then z_dist[j,k,0L:(count-1L)] = z[i]
                end
       endcase
     endfor
   endfor
 
-  result = {x:x_a, y:y_a, z:z_mean, sdev:z_sdev, adev:z_adev, $
-            skew:z_skew, kurt:z_kurt, med:z_medn, npts:z_npts}
+  result = { x    : x_a    , $   ; bin center locations in x
+             y    : y_a    , $   ; bin center locations in y
+             z    : z_mean , $   ; mean value
+             sdev : z_sdev , $   ; standard deviation
+             adev : z_adev , $   ; absolute deviation
+             skew : z_skew , $   ; skewness
+             kurt : z_kurt , $   ; kurtosis
+             med  : z_medn , $   ; median
+             lqrt : z_lqrt , $   ; lower quartile
+             uqrt : z_uqrt , $   ; upper quartile
+             min  : z_min  , $   ; minimum
+             max  : z_max  , $   ; maximum
+             dx   : dx     , $   ; bin size in x
+             dy   : dy     , $   ; bin size in y
+             npts : z_npts    }  ; number of values in each bin
 
   if (dodist) then str_element, result, 'dist', z_dist, /add
 

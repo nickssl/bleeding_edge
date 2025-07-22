@@ -34,12 +34,14 @@
 ;         
 ;         photoelectron_corrections: *experimental* photoelectron corrections for DES; enabled by default for DES moments; you can disable with photoelectron_corrections=0
 ;         remove_fpi_sw: Flag to remove the solar wind component from the FPI ion DFs prior to performing the calculations
+;         sdc_units: Flag to convert moments_3d pressure tensor and heat flux outputs to nPa and mW/m^2 respectively, for compatibility with MMS SDC moments
 ;         
 ;     The following are found by default for the requested instrument/probe/data_rate; use these keywords 
 ;     to override the defaults:
 ;         mag_name:  Use a different tplot variable containing magnetic field data for moments and FAC transformations
 ;         pos_name:  Use a different tplot variable containing spacecraft position for FAC transformations
 ;         vel_name:  Use a different tplot variable containing velocity data in km/s when subtracting the bulk velocity
+;         sc_pot_name: Use a different tplot variable containing spacecraft potential data
 ;  
 ; Notes:
 ;         Updated to automatically center HPCA measurements if not specified already, 18Oct2017
@@ -52,9 +54,9 @@
 ;             
 ;         Spacecraft photoelectrons are corrected in moments_3d
 ;         
-;$LastChangedBy: egrimes $
-;$LastChangedDate: 2023-03-28 15:52:31 -0700 (Tue, 28 Mar 2023) $
-;$LastChangedRevision: 31682 $
+;$LastChangedBy: jwl $
+;$LastChangedDate: 2025-07-12 19:14:21 -0700 (Sat, 12 Jul 2025) $
+;$LastChangedRevision: 33459 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/particles/mms_part_getspec.pro $
 ;-
 
@@ -95,7 +97,7 @@ pro mms_part_getspec, probes=probes, $
                       vel_name=vel_name_user, $  ; Tplot variable containing velocity data in km/s for use with /subtract_bulk
                       mag_name=mag_name_user, $  ; Tplot variable containing magnetic field data for moments and FAC transformations
                       pos_name=pos_name_user, $  ; Tplot variable containing spacecraft position for FAC transformations
-
+                      sc_pot_name=sc_pot_name_user, $ ; Tplot variable containing spacecraft potential for moments and spectra
                       center_measurement=center_measurement, $
                       tplotnames=tplotnames, $
                       
@@ -118,6 +120,7 @@ pro mms_part_getspec, probes=probes, $
                       dir_interval=dir_interval, $
                       
                       spdf=spdf, $
+                      sdc_units=sdc_units, $  ; Convert moments_3d ptens and qflux units to nPa and mW/m^2 respectively, for compatibility with MMS SDC moments
                       _extra=ex 
 
     compile_opt idl2
@@ -227,8 +230,7 @@ pro mms_part_getspec, probes=probes, $
     for probe_idx = 0, n_elements(probes)-1 do begin
         if undefined(mag_name_user) then bname = 'mms'+probes[probe_idx]+'_fgm_b_gse_'+mag_data_rate+'_l2_bvec'+mag_suffix else bname = mag_name_user
         if undefined(pos_name_user) then pos_name = 'mms'+probes[probe_idx]+'_mec_r_gse' else pos_name = pos_name_user
-
-        scpot_variable = 'mms'+probes[probe_idx]+'_edp_scpot_'+scpot_data_rate+'_l2'
+        if undefined(sc_pot_name_user) then scpot_variable = 'mms'+probes[probe_idx]+'_edp_scpot_'+scpot_data_rate+'_l2' else scpot_variable = sc_pot_name_user
 
         ;;;;;;;;;;;;; kludge zone;;;;;;;;;;;
         if keyword_set(with_aspoc) then begin
@@ -259,7 +261,7 @@ pro mms_part_getspec, probes=probes, $
             sc_pot_name=scpot_variable, data_rate=data_rate, correct_photoelectrons=photoelectron_corrections, $
             internal_photoelectron_corrections=internal_photoelectron_corrections, $
             correct_sc_potential=correct_sc_potential, zero_negative_values=zero_negative_values, $
-            remove_fpi_sw=remove_fpi_sw, _extra=ex
+            remove_fpi_sw=remove_fpi_sw, sdc_units=sdc_units, _extra=ex
 
         if undefined(tplotnames_thisprobe) then continue ; nothing created by mms_part_products
         append_array, tplotnames, tplotnames_thisprobe

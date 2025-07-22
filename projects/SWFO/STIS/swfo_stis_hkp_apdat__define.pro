@@ -1,10 +1,19 @@
-; $LastChangedBy: ali $
-; $LastChangedDate: 2023-05-08 19:36:16 -0700 (Mon, 08 May 2023) $
-; $LastChangedRevision: 31842 $
+; $LastChangedBy: rjolitz $
+; $LastChangedDate: 2025-03-23 18:07:39 -0700 (Sun, 23 Mar 2025) $
+; $LastChangedRevision: 33198 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/swfo_stis_hkp_apdat__define.pro $
 
 
 function swfo_stis_hkp_apdat::decom,ccsds,source_dict=source_dict      ;,header,ptp_header=ptp_header,apdat=apdat
+
+  if n_params() eq 0 then begin   ; Not working yet.  eventually should provide a dummy fill structure
+    message,'Not working yet'
+    dummy = bytarr(500)
+    dat = self.decom(dummy)
+    fill = fill_nan(dat)
+    return,fill
+  endif
+
   ccsds_data = swfo_ccsds_data(ccsds)
   str1=swfo_stis_ccsds_header_decom(ccsds)
 
@@ -22,8 +31,8 @@ function swfo_stis_hkp_apdat::decom,ccsds,source_dict=source_dict      ;,header,
   endif
 
   if ccsds.time lt time_double('2021-1-1') then begin
-    dprint,'Invalid CCSDS time. Ignoring Packet'
-    return,!null
+    dprint,'Invalid CCSDS time.  should be Ignoring Packet', dwait = 20.
+    ;return,!null
   endif
 
 
@@ -52,11 +61,28 @@ function swfo_stis_hkp_apdat::decom,ccsds,source_dict=source_dict      ;,header,
   voltages=[1.5,3.3,5,5.6,-5.6]
   d=24 ;header bytes (6 CCSDS header + 18 STIS header)
   hkp_size=ccsds.pkt_size-d
+  ;if str1.fpga_rev gt 209 then hkp_size-=2 ;checksum bytes at the end of each packet
   ana_size=2*16 ;analog hkp bytes
   dig_size=hkp_size-ana_size ;digital hkp bytes
   fifo_size=8190 ;bytes
+  
+  fpga_rev = str1.fpga_rev  
+  swx_flag = fpga_rev and 'f0'x  eq '50'x
+  emu_flag = fpga_rev and 'f0'x  eq 0
+  if swx_flag then begin
+    fpga_rev += ('c0'x - '50'x)
+    dig_size = 128
+    d = 20
+  endif else begin
+    dig_size = 128
+    d = 24
+  endelse
 
-  if str1.fpga_rev ge '99'x then ana_hkp={$
+  fpga_rev = 'ff'x  
+
+  if fpga_rev ge '99'x then begin
+;    dig_size = 128
+    ana_hkp={$
     adc_bias_voltage:         swfo_data_select(ccsds_data,(d+dig_size)*8,16,/signed)*(2.67+.402+49.9+49.9)/2.67*flt,$
     temp_dap:                 swfo_therm_temp(swfo_data_select(ccsds_data,(d+dig_size+1*2)*8,16,/signed),param=temp_par_16bit),$
     voltage_1p5_vd:           swfo_data_select(ccsds_data,(d+dig_size+2*2)*8,16,/signed)*flt*coeff[0],$
@@ -71,10 +97,16 @@ function swfo_stis_hkp_apdat::decom,ccsds,source_dict=source_dict      ;,header,
     adc_baselines:            swfo_data_select(ccsds_data,(d+dig_size+[10:15]*2)*8,16,/signed)*flt,$
     adc_voltages:             swfo_data_select(ccsds_data,(d+dig_size+[2:6]*2)*8,16,/signed)*flt*coeff-voltages,$
     adc_temps:                swfo_therm_temp(swfo_data_select(ccsds_data,(d+dig_size+[1,8,9]*2)*8,16,/signed),param=temp_par_16bit),$
-    mux_all:                  swfo_data_select(ccsds_data,(d+dig_size+[0:15]*2)*8,16,/signed)*flt}
+    mux_all:                  swfo_data_select(ccsds_data,(d+dig_size+[0:15]*2)*8,16,/signed)*flt, $
+    replay: 0b, $
+    valid: 1b, $
+    gap: 0b}
+  endif
 
-  if hkp_size eq 160 then begin
-    if str1.fpga_rev ge 'CD'x then begin
+
+  if hkp_size ge 160 then begin
+    if fpga_rev ge 'CD'x then begin
+      ; DEFAULT MODE:
       cmd_fifo_write_ptr=         swfo_data_select(ccsds_data,(d+14*2)*8+6, 13)
       cmd_fifo_read_ptr=          swfo_data_select(ccsds_data,(d+15*2)*8+3, 13)
       cmds_remaining=(fix(cmd_fifo_write_ptr)-fix(cmd_fifo_read_ptr))/3.
@@ -107,8 +139,8 @@ function swfo_stis_hkp_apdat::decom,ccsds,source_dict=source_dict      ;,header,
         test_pulse_width_1us:     swfo_data_select(ccsds_data,(d+39*2+1)*8, 8),$
         pulses_remaining:         swfo_data_select(ccsds_data,(d+40*2  )*8,12),$
         board_id:                 swfo_data_select(ccsds_data,(d+40*2)*8+12,2),$
-        self_tod_enable:          swfo_data_select(ccsds_data,(d+40*2)*8+13,1),$
-        memory_page:              swfo_data_select(ccsds_data,(d+40*2)*8+14,1),$
+        self_tod_enable:          swfo_data_select(ccsds_data,(d+40*2)*8+14,1),$
+        memory_page:              swfo_data_select(ccsds_data,(d+40*2)*8+15,1),$
         memory_address:           swfo_data_select(ccsds_data,(d+41*2  )*8,16),$
         expected_checksum1:       swfo_data_select(ccsds_data,(d+42*2  )*8,16),$
         expected_checksum0:       swfo_data_select(ccsds_data,(d+43*2  )*8,16),$
@@ -135,15 +167,14 @@ function swfo_stis_hkp_apdat::decom,ccsds,source_dict=source_dict      ;,header,
         sci_mode_bits:            swfo_data_select(ccsds_data,(d+61*2)*8+14,2),$
         timeouts_2us:             swfo_data_select(ccsds_data,(d+62*2  )*8+[0:2]*4,4),$
         sci_resolution:           swfo_data_select(ccsds_data,(d+62*2)*8+12,4),$
-        sci_translate:            swfo_data_select(ccsds_data,(d+63*2  )*8,16),$
-        gap:ccsds.gap }
+        sci_translate:            swfo_data_select(ccsds_data,(d+63*2  )*8,16)      }
       valid_rates_pps=str2.valid_rates/float(str2.pps_period_100us)*1e4
       str3={valid_rates_pps:valid_rates_pps,valid_rates_total:total(str2.valid_rates)}
       str=create_struct(str1,str2,str3,ana_hkp)
       return,str
     endif
 
-    if str1.fpga_rev ge 'CB'x then begin
+    if fpga_rev ge 'CB'x then begin
       cmd_fifo_write_ptr=         swfo_data_select(ccsds_data,(d+14*2)*8+6, 13)
       cmd_fifo_read_ptr=          swfo_data_select(ccsds_data,(d+15*2)*8+3, 13)
       cmds_remaining=(fix(cmd_fifo_write_ptr)-fix(cmd_fifo_read_ptr))/3.
@@ -176,8 +207,8 @@ function swfo_stis_hkp_apdat::decom,ccsds,source_dict=source_dict      ;,header,
         test_pulse_width_1us:     swfo_data_select(ccsds_data,(d+39*2+1)*8, 8),$
         pulses_remaining:         swfo_data_select(ccsds_data,(d+40*2  )*8,12),$
         board_id:                 swfo_data_select(ccsds_data,(d+40*2)*8+12,2),$
-        self_tod_enable:          swfo_data_select(ccsds_data,(d+40*2)*8+13,1),$
-        memory_page:              swfo_data_select(ccsds_data,(d+40*2)*8+14,1),$
+        self_tod_enable:          swfo_data_select(ccsds_data,(d+40*2)*8+14,1),$
+        memory_page:              swfo_data_select(ccsds_data,(d+40*2)*8+15,1),$
         memory_address:           swfo_data_select(ccsds_data,(d+41*2  )*8,16),$
         expected_checksum1:       swfo_data_select(ccsds_data,(d+42*2  )*8,16),$
         expected_checksum0:       swfo_data_select(ccsds_data,(d+43*2  )*8,16),$
@@ -245,8 +276,8 @@ function swfo_stis_hkp_apdat::decom,ccsds,source_dict=source_dict      ;,header,
         test_pulse_width_1us:     swfo_data_select(ccsds_data,(d+39*2+1)*8, 8),$
         pulses_remaining:         swfo_data_select(ccsds_data,(d+40*2  )*8,12),$
         board_id:                 swfo_data_select(ccsds_data,(d+40*2)*8+12,2),$
-        self_tod_enable:          swfo_data_select(ccsds_data,(d+40*2)*8+13,1),$
-        memory_page:              swfo_data_select(ccsds_data,(d+40*2)*8+14,1),$
+        self_tod_enable:          swfo_data_select(ccsds_data,(d+40*2)*8+14,1),$
+        memory_page:              swfo_data_select(ccsds_data,(d+40*2)*8+15,1),$
         memory_address:           swfo_data_select(ccsds_data,(d+41*2  )*8,16),$
         expected_checksum1:       swfo_data_select(ccsds_data,(d+42*2  )*8,16),$
         expected_checksum0:       swfo_data_select(ccsds_data,(d+43*2  )*8,16),$
@@ -314,8 +345,8 @@ function swfo_stis_hkp_apdat::decom,ccsds,source_dict=source_dict      ;,header,
         test_pulse_width_1us:     swfo_data_select(ccsds_data,(d+39*2+1)*8, 8),$
         pulses_remaining:         swfo_data_select(ccsds_data,(d+40*2  )*8,12),$
         board_id:                 swfo_data_select(ccsds_data,(d+40*2)*8+12,2),$
-        self_tod_enable:          swfo_data_select(ccsds_data,(d+40*2)*8+13,1),$
-        memory_page:              swfo_data_select(ccsds_data,(d+40*2)*8+14,1),$
+        self_tod_enable:          swfo_data_select(ccsds_data,(d+40*2)*8+14,1),$
+        memory_page:              swfo_data_select(ccsds_data,(d+40*2)*8+15,1),$
         memory_address:           swfo_data_select(ccsds_data,(d+41*2  )*8,16),$
         expected_checksum1:       swfo_data_select(ccsds_data,(d+42*2  )*8,16),$
         expected_checksum0:       swfo_data_select(ccsds_data,(d+43*2  )*8,16),$
@@ -382,8 +413,8 @@ function swfo_stis_hkp_apdat::decom,ccsds,source_dict=source_dict      ;,header,
         test_pulse_width_1us:     swfo_data_select(ccsds_data,(d+39*2+1)*8, 8),$
         pulses_remaining:         swfo_data_select(ccsds_data,(d+40*2  )*8,12),$
         board_id:                 swfo_data_select(ccsds_data,(d+40*2)*8+12,2),$
-        self_tod_enable:          swfo_data_select(ccsds_data,(d+40*2)*8+13,1),$
-        memory_page:              swfo_data_select(ccsds_data,(d+40*2)*8+14,1),$
+        self_tod_enable:          swfo_data_select(ccsds_data,(d+40*2)*8+14,1),$
+        memory_page:              swfo_data_select(ccsds_data,(d+40*2)*8+15,1),$
         memory_address:           swfo_data_select(ccsds_data,(d+41*2  )*8,16),$
         expected_checksum1:       swfo_data_select(ccsds_data,(d+42*2  )*8,16),$
         expected_checksum0:       swfo_data_select(ccsds_data,(d+43*2  )*8,16),$
@@ -450,8 +481,8 @@ function swfo_stis_hkp_apdat::decom,ccsds,source_dict=source_dict      ;,header,
         test_pulse_width_1us:     swfo_data_select(ccsds_data,(d+39*2+1)*8, 8),$
         pulses_remaining:         swfo_data_select(ccsds_data,(d+40*2  )*8,12),$
         board_id:                 swfo_data_select(ccsds_data,(d+40*2)*8+12,2),$
-        self_tod_enable:          swfo_data_select(ccsds_data,(d+40*2)*8+13,1),$
-        memory_page:              swfo_data_select(ccsds_data,(d+40*2)*8+14,1),$
+        self_tod_enable:          swfo_data_select(ccsds_data,(d+40*2)*8+14,1),$
+        memory_page:              swfo_data_select(ccsds_data,(d+40*2)*8+15,1),$
         memory_address:           swfo_data_select(ccsds_data,(d+41*2  )*8,16),$
         expected_checksum1:       swfo_data_select(ccsds_data,(d+42*2  )*8,16),$
         expected_checksum0:       swfo_data_select(ccsds_data,(d+43*2  )*8,16),$
@@ -519,8 +550,8 @@ function swfo_stis_hkp_apdat::decom,ccsds,source_dict=source_dict      ;,header,
         test_pulse_width_1us:     swfo_data_select(ccsds_data,(d+36*2+1)*8, 8),$
         pulses_remaining:         swfo_data_select(ccsds_data,(d+37*2  )*8,12),$
         board_id:                 swfo_data_select(ccsds_data,(d+37*2)*8+12,2),$
-        self_tod_enable:          swfo_data_select(ccsds_data,(d+37*2)*8+13,1),$
-        memory_page:              swfo_data_select(ccsds_data,(d+37*2)*8+14,1),$
+        self_tod_enable:          swfo_data_select(ccsds_data,(d+37*2)*8+14,1),$
+        memory_page:              swfo_data_select(ccsds_data,(d+37*2)*8+15,1),$
         memory_address:           swfo_data_select(ccsds_data,(d+38*2  )*8,16),$
         expected_checksum1:       swfo_data_select(ccsds_data,(d+39*2  )*8,16),$
         expected_checksum0:       swfo_data_select(ccsds_data,(d+40*2  )*8,16),$
@@ -587,8 +618,8 @@ function swfo_stis_hkp_apdat::decom,ccsds,source_dict=source_dict      ;,header,
         test_pulse_width_1us:     swfo_data_select(ccsds_data,(d+36*2+1)*8, 8),$
         pulses_remaining:         swfo_data_select(ccsds_data,(d+37*2  )*8,12),$
         board_id:                 swfo_data_select(ccsds_data,(d+37*2)*8+12,2),$
-        self_tod_enable:          swfo_data_select(ccsds_data,(d+37*2)*8+13,1),$
-        memory_page:              swfo_data_select(ccsds_data,(d+37*2)*8+14,1),$
+        self_tod_enable:          swfo_data_select(ccsds_data,(d+37*2)*8+14,1),$
+        memory_page:              swfo_data_select(ccsds_data,(d+37*2)*8+15,1),$
         memory_address:           swfo_data_select(ccsds_data,(d+38*2  )*8,16),$
         expected_checksum1:       swfo_data_select(ccsds_data,(d+39*2  )*8,16),$
         expected_checksum0:       swfo_data_select(ccsds_data,(d+40*2  )*8,16),$
@@ -1297,7 +1328,7 @@ function swfo_stis_hkp_apdat::decom,ccsds,source_dict=source_dict      ;,header,
     ;   if str.apid eq 863 then printdat,str
   endif
 
-  if  ccsds.time  gt 1.6297680e+09 then begin
+  if  ccsds.time  lt 1.6297680e+09 then begin
     dprint,dlevel=2,'Obsolete'
     if ~keyword_set(use_obsolete) then return,!null
     d= 20

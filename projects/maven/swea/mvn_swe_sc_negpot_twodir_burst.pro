@@ -31,9 +31,9 @@
 ;   None - Potential results are stored as a TPLOT variable 'negpot_pad'. 
 ;          Four additional TPLOT variables are created for diagnostics. 
 ;
-; $LastChangedBy: xussui $
-; $LastChangedDate: 2018-06-26 14:36:25 -0700 (Tue, 26 Jun 2018) $
-; $LastChangedRevision: 25398 $
+; $LastChangedBy: dmitchell $
+; $LastChangedDate: 2025-06-23 16:18:35 -0700 (Mon, 23 Jun 2025) $
+; $LastChangedRevision: 33411 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_sc_negpot_twodir_burst.pro $
 ;
 ;CREATED BY:    Shaosui Xu  01-03-2017
@@ -54,10 +54,12 @@ pro mvn_swe_sc_negpot_twodir_burst, potential=phi, shadow=shadow, swidth=swidth,
       return
     endif
 
-    if (size(mvn_swe_pad_arc,/type) ne 8) then mvn_swe_load_l2,/pad,/burst,/noerase
-    pad3 = mvn_swe_pad_arc
+    if (size(mvn_swe_pad_arc,/type) ne 8) then begin
+      mvn_swe_load_l2,prod=['arcpad'],/noerase
+      pad3 = temporary(mvn_swe_pad_arc)  ; undefine the L2 if it wasn't there to start with
+    endif else pad3 = mvn_swe_pad_arc    ; otherwise, leave the L2 alone
     npkt = n_elements(pad3)
-    
+
     if ((npkt eq 0L) or (size(pad3,/type) ne 8)) then begin
       print,"No PAD burst data within the current time range."
       phi = 0

@@ -230,6 +230,7 @@ pro elf_map_state_t96_intervals_mercator_conjugate, tstart, gifout=gifout, south
   ; COLLECT DATA FOR PLOTS
   ;--------------------------
   ; Get science collection times
+  trange=[time_double(tstart), time_double(tend)]
   epda_sci_zones=get_elf_science_zone_start_end(trange=trange, probe='a', instrument='epd')
   epdb_sci_zones=get_elf_science_zone_start_end(trange=trange, probe='b', instrument='epd') 
 

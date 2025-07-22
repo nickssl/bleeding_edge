@@ -5,7 +5,7 @@ pro spp_fld_rfs_burst_load_l1, file, prefix = prefix, varformat = varformat
 
   receiver_str = 'BURST'
 
-  if file.Contains('lusee') then lusee = 1 else lusee = 0
+  if file[0].Contains('lusee') then lusee = 1 else lusee = 0
   rfs_freqs = spp_fld_rfs_freqs(lusee = lusee)
 
   burst_freqs0 = rfs_freqs.reduced_freq

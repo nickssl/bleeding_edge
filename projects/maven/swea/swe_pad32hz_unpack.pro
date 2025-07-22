@@ -20,8 +20,8 @@
 ;       none
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2019-03-15 12:34:08 -0700 (Fri, 15 Mar 2019) $
-; $LastChangedRevision: 26802 $
+; $LastChangedDate: 2025-06-03 11:53:01 -0700 (Tue, 03 Jun 2025) $
+; $LastChangedRevision: 33360 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/swe_pad32hz_unpack.pro $
 ;
 ;CREATED BY:	David L. Mitchell  2019-03-01
@@ -81,6 +81,7 @@ function swe_pad32hz_unpack, pad
   str_element, pad32hz, 'dtc', fpad[0].dtc[0,*], /add
   str_element, pad32hz, 'bkg', fpad[0].bkg[0,*], /add
   str_element, pad32hz, 'data', fpad[0].data[0,*], /add
+  str_element, pad32hz, 'valid', fpad[0].valid[0,*], /add
   str_element, pad32hz, 'var', fpad[0].var[0,*], /add
 
 ; Repackage 64-energy pads into single-energy pads
@@ -105,6 +106,7 @@ function swe_pad32hz_unpack, pad
   pad32hz.dtc = reform(transpose(fpad.dtc,order),1,16,npts)
   pad32hz.bkg = reform(transpose(fpad.bkg,order),1,16,npts)
   pad32hz.data = reform(transpose(fpad.data,order),1,16,npts)
+  pad32hz.valid = reform(transpose(fpad.valid,order),1,16,npts)
   pad32hz.var = reform(transpose(fpad.var,order),1,16,npts)
 
   dt = 1.95D/64D

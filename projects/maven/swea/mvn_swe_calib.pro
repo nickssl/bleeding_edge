@@ -90,34 +90,40 @@
 ;
 ;       LIST:         List the current calibration constants.
 ;
+;       SILENT:       Shhh.
+;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-02-27 08:20:14 -0800 (Mon, 27 Feb 2023) $
-; $LastChangedRevision: 31553 $
+; $LastChangedDate: 2025-05-23 15:45:10 -0700 (Fri, 23 May 2025) $
+; $LastChangedRevision: 33325 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_calib.pro $
 ;
 ;CREATED BY:    David L. Mitchell  03-29-13
 ;FILE: mvn_swe_calib.pro
 ;-
-pro mvn_swe_calib, tabnum=tabnum, chksum=chksum, setcal=setcal, default=default, list=list
+pro mvn_swe_calib, tabnum=tabnum, chksum=chksum, setcal=setcal, default=default, list=list, silent=silent
 
   @mvn_swe_com
 
 ; Set the SWEA Ground Software Version
 
-    mvn_swe_version = 4
+  mvn_swe_version = 5  ; DLM, 2024-01-09
 
 ; Initialize
+
+  blab = ~keyword_set(silent)
 
   if (size(swe_hsk_str,/type) ne 8) then mvn_swe_init
 
   if (keyword_set(default) or (size(swe_G,/type) eq 0)) then begin
-    print, "Initializing SWEA constants"
+    if (blab) then print, "Initializing SWEA constants"
     swe_Ka       = 6.17       ; analyzer constant (1.4% variation around azim)
     swe_G        = 0.009/16.  ; nominal geometric factor per anode (IRAP)
     swe_Ke       = 2.80       ; nominal value, see mvn_swe_esuppress.pro
-    swe_dead     = 1.0e-6     ; deadtime for one MCP-Anode-Preamp chain (IRAP)
+    swe_dead     = 1.0e-6     ; deadtime for one MCP-Anode-Preamp chain (in-flight)
     swe_min_dtc  = 0.25       ; max 4x deadtime correction
     swe_paralyze = 0          ; use non-paralyzable deadtime model
+
+    swe_G *= 0.7              ; SWIA recalibration released 2022-03-30
   endif
 
 ; Process SETCAL structure
@@ -210,7 +216,7 @@ pro mvn_swe_calib, tabnum=tabnum, chksum=chksum, setcal=setcal, default=default,
     return
   endif
 
-  print, tabnum, mvn_swe_tabnum(tabnum,/inverse), format='("LUT: ",i2.2,3x,"Checksum: ",Z2.2)'
+  if (blab) then print, tabnum, mvn_swe_tabnum(tabnum,/inverse), format='("LUT: ",i2.2,3x,"Checksum: ",Z2.2)'
 
 ; Integration time per energy/angle bin prior to summing bins.
 ; There are 7 deflection bins for each of 64 energy bins spanning
@@ -296,6 +302,10 @@ pro mvn_swe_calib, tabnum=tabnum, chksum=chksum, setcal=setcal, default=default,
 
   mvn_swe_padlut, lut=lut, dlat=22.5  ; table used in flight software
   swe_padlut = lut
+
+; FOV map (unit vectors pointing to each solid angle element)
+
+  mvn_swe_fovmap, patch_size=15, /reset
 
 ; Geometric Factor
 ;   Simulations give a geometric factor of 0.03 (ignoring grids, posts, MCP 

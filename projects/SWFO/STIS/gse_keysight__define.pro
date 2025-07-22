@@ -1,10 +1,10 @@
 ;+
 ;gse_keysight
 ;  This object works with the common block files to decommutate data from Keysight power supplies
-; $LastChangedBy:  $
-; $LastChangedDate:  $
-; $LastChangedRevision:   $
-; $URL:  $
+; $LastChangedBy: davin-mac $
+; $LastChangedDate: 2023-11-13 07:46:41 -0800 (Mon, 13 Nov 2023) $
+; $LastChangedRevision: 32242 $
+; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/gse_keysight__define.pro $
 ;-
 
 COMPILE_OPT IDL2

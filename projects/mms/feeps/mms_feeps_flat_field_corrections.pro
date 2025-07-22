@@ -53,18 +53,25 @@
 ;Bot7: Gcorr = 0.6
 ;Bot8: Gcorr = 0.9
 ;
-; $LastChangedBy: egrimes $
-; $LastChangedDate: 2017-01-31 14:48:06 -0800 (Tue, 31 Jan 2017) $
-; $LastChangedRevision: 22697 $
+; $LastChangedBy: jwl $
+; $LastChangedDate: 2024-03-27 16:34:54 -0700 (Wed, 27 Mar 2024) $
+; $LastChangedRevision: 32511 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/feeps/mms_feeps_flat_field_corrections.pro $
 ;-
 
 
-pro mms_feeps_flat_field_corrections, probes = probes, data_rate = data_rate, suffix = suffix
+pro mms_feeps_flat_field_corrections, probes = probes, data_rate = data_rate, suffix = suffix, keep_bad_eyes=keep_bad_eyes
   if undefined(probes) then probes = ['1', '2', '3', '4'] else probes = strcompress(string(probes), /rem)
   if undefined(data_rate) then data_rate = 'brst'
   if undefined(suffix) then suffix = ''
-
+  if undefined(keep_bad_eyes) then keep_bad_eyes=0
+  
+  if keep_bad_eyes then begin
+    bad_eye_value = 1.0
+  endif else begin
+    ; Default case, zero out bad eyes
+    bad_eye_value = 0.0
+  endelse
   G_corr = hash()
   G_corr['mms1-top6'] = 0.7
   G_corr['mms1-top7'] = 2.5
@@ -76,10 +83,10 @@ pro mms_feeps_flat_field_corrections, probes = probes, data_rate = data_rate, su
 
   G_corr['mms2-top4'] = 1.2 ; added 1/24
   G_corr['mms2-top6'] = 1.3
-  G_corr['mms2-top7'] = 0 ; bad eye
+  G_corr['mms2-top7'] = bad_eye_value ; bad eye
   G_corr['mms2-top8'] = 0.8
   G_corr['mms2-bot6'] = 1.4
-  G_corr['mms2-bot7'] = 0 ; bad eye
+  G_corr['mms2-bot7'] = bad_eye_value ; bad eye
   G_corr['mms2-bot8'] = 1.5
   
   G_corr['mms3-top6'] = 0.7
@@ -90,7 +97,7 @@ pro mms_feeps_flat_field_corrections, probes = probes, data_rate = data_rate, su
   G_corr['mms3-bot8'] = 1.3
 
   G_corr['mms4-top6'] = 0.8
-  G_corr['mms4-top7'] = 0 ; bad eye
+  G_corr['mms4-top7'] = bad_eye_value ; bad eye
   G_corr['mms4-top8'] = 1.0
   G_corr['mms4-bot6'] = 0.8
   G_corr['mms4-bot7'] = 0.6

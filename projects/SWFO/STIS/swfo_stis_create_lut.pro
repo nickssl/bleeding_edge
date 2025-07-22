@@ -288,7 +288,7 @@ function swfo_stis_create_lut,mapname,mapnum=mapnum
       for fto = 1,7 do begin
         for tid = 0,1 do begin
           for adcval = 0,(4096*2)-1 do begin
-            adcval_s = adcval / shift4conc[fto]
+            adcval_s = adcval / shift4coinc[fto]
             lut[i++] = ((fto-1)*2+tid)*48 + swfo_stis_adc_compress(adcval_s)
           endfor
         endfor

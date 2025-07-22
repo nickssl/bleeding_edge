@@ -89,6 +89,10 @@
 ;                  keyword will show the nominal shock location on the
 ;                  orbit plots (see keyword OPLOT).  Default = no.
 ;
+;       SHCOL:     Colors for the shock and MPB.
+;
+;       SHSTY:     Line style for the shock and MPB.
+;
 ;       DT:        Time resolution (sec).  Default = PARAM.period/1000.
 ;
 ;       NORBIT:    Number of orbits for calculating the solution.
@@ -110,11 +114,10 @@
 ;                  The orbital velocity, and the orbit size and shape 
 ;                  parameters are also given.
 ;
-;       OPLOT:     The number of an IDL window for plotting the orbit
-;                  with three orthogonal views.  Default = none.
+;       OPLOT:     Plot the orbit with three orthogonal views.
 ;
-;       TPLOT:     The number of an IDL window for a time series plot
-;                  of altitude and orbital velocity.  Default = none.
+;       TPLOT:     Show a time series of altitude and orbital velocity.
+;                  (The dashed red line shows escape velocity.)
 ;
 ;       WSCALE:    Window size scale factor.  Default = 1.
 ;
@@ -140,9 +143,14 @@
 ;       SCOLORS:   Color for each segment.  Must have the same number of
 ;                  elements as SEGMENTS.
 ;
+;       STHICK:    Line thickness for segments.
+;
+;       NOPLOT:    No text output, no plots.  Useful for calling this 
+;                  routine within a loop.
+;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2019-12-20 11:02:44 -0800 (Fri, 20 Dec 2019) $
-; $LastChangedRevision: 28133 $
+; $LastChangedDate: 2025-01-03 12:12:29 -0800 (Fri, 03 Jan 2025) $
+; $LastChangedRevision: 33038 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/morbit.pro $
 ;
 ;CREATED BY:	David L. Mitchell
@@ -150,8 +158,9 @@
 pro morbit, param, dt=dt, planet=planet, nmax=nmax, oerr=oerr, result=result, $
                    norbit=norbit, oplot=oplot, tplot=tplot, orient=orient, $
                    flythru=flythru, shock=shock, ps=ps, xyrange=xyrange, $
-                   silent=silent, segments=segments, scolors=scolors, $
-                   wscale=wscale, xyplane=xyplane, nodot=nodot
+                   silent=silent, segments=segments, scolors=scolors, sthick=sthick, $
+                   wscale=wscale, xyplane=xyplane, nodot=nodot, noplot=noplot, $
+                   shcol=shcol, shsty=shsty
 
   if (size(param,/type) ne 8) then begin
     print, 'You must specify an orbit parameter structure.'
@@ -164,6 +173,8 @@ pro morbit, param, dt=dt, planet=planet, nmax=nmax, oerr=oerr, result=result, $
   if (size(wscale,/type) eq 0) then wscale = 1.
   if (xyflg) then wsize = round([535.,500.]*wscale) else wsize = round([326.,920.]*wscale)
   csize = 1.2*wscale
+  if (size(shcol,/type) eq 0) then scol = 3 else scol = shcol[0]
+  if (size(shsty,/type) eq 0) then ssty = 1 else ssty = shsty[0]
   
   nseg = n_elements(segments)
   if (n_elements(scolors) ne nseg) then begin
@@ -175,6 +186,7 @@ pro morbit, param, dt=dt, planet=planet, nmax=nmax, oerr=oerr, result=result, $
     tseg = segments*60D
     cseg = scolors
   endif else doseg = 0
+  if (n_elements(sthick) eq 0) then sthick = 1. else sthick = float(sthick[0])
 
   if (size(orient,/type) eq 8) then begin
     str_element, orient, 'lon', lon, success=ok
@@ -207,6 +219,8 @@ pro morbit, param, dt=dt, planet=planet, nmax=nmax, oerr=oerr, result=result, $
   lon = lon # replicate(1.,nlat)
   lat = replicate(1.,nlon) # lat  
   swfrac = replicate(0.,nlon,nlat)
+  if (n_elements(swfrac) eq 1) then swfrac = swfrac[0]
+  shfrac = swfrac
 
   if (size(planet,/type) eq 8) then begin
     str_element, planet, 'mass', M, success=ok
@@ -242,22 +256,23 @@ pro morbit, param, dt=dt, planet=planet, nmax=nmax, oerr=oerr, result=result, $
   if keyword_set(ps) then begin
     psflg = 1
     scol = 0
-  endif else begin
-    psflg = 0
-    scol = 3
-  endelse
+  endif else psflg = 0
+
+  blab = ~keyword_set(noplot)
 
   wsave = !d.window
 
   if (size(oplot,/type) ne 0) then begin
     oflg = 1
-    window,oplot,xsize=wsize[0],ysize=wsize[1],xpos=25,ypos=25
+    if (blab) then win,owin,/free,xsize=wsize[0],ysize=wsize[1],/secondary,dx=10,dy=-10
   endif else oflg = 0
 
   if (size(tplot,/type) ne 0) then begin
     tflg = 1
-    if (oflg) then if (tplot eq oplot) then tplot = oplot + 1
-    window,tplot,xsize=720,ysize=500
+    if (blab) then begin
+      if (oflg) then win,twin,/free,xsize=720,ysize=500,relative=owin,dx=10,/bottom $
+                else win,twin,/free,xsize=720,ysize=500,/secondary,dx=10,dy=-10
+    endif
   endif else tflg = 0
 
 ; Define some constants and change units ([M] = g, [R] = km)
@@ -586,19 +601,18 @@ OSHAPE:
       imin = imin[0]
       rmax = ceil(aalt/R + 1D)
 
-      if keyword_set(xyrange) then begin
-        xrange = [-xyrange,xyrange]
-        yrange = xrange
-      endif else begin
-        xrange = [-rmax,rmax]
-        yrange = xrange
-      endelse
+      case n_elements(xyrange) of
+         0   : xrange = [-rmax, rmax]
+         1   : xrange = [-xyrange, xyrange]
+        else : xrange = minmax(xyrange)
+      endcase
+      yrange = xrange
 
       if (psflg) then begin
         popen,'morbit_oplot'
         if (xyflg) then !p.multi = 0 else !p.multi = [3,2,2]
       endif else begin
-        wset, oplot
+        if (blab) then wset, owin
         if (xyflg) then !p.multi = 0 else !p.multi = [3,1,3]
       endelse
 
@@ -606,6 +620,10 @@ OSHAPE:
       y = ss[*,1]/R
       z = ss[*,2]/R
       s = sqrt(x*x + y*y)
+
+      indx = where((s lt 0.) and (x lt 1.), count)
+      if (count gt 0L) then oplot, x[indx], y[indx], color=4, psym=3
+      swfrac[i,j] = float(npts - count)/float(npts)
 
 ; X-Y plane
 
@@ -627,26 +645,28 @@ OSHAPE:
           tstart = tseg
           tstop = shift(tseg,-1)
           tstop[nseg-1] = max(t)
-          for i=0,(nseg-1) do begin
-            sndx = where((t ge tstart[i]) and (t lt tstop[i]), count)
-            if (count gt 0) then oplot,x[sndx],y[sndx],color=cseg[i]
+          for k=0,(nseg-1) do begin
+            sndx = where((t ge tstart[k]) and (t lt tstop[k]), count)
+            if (count gt 0) then oplot,x[sndx],y[sndx],color=cseg[k],thick=sthick
           endfor
         endif else oplot,x,y
         if (dodot) then oplot,[x[imin]],[y[imin]],psym=4,color=4,thick=2
       endif else begin
-        plot,xm,ym,xrange=xrange,yrange=yrange,/xsty,/ysty, $
-             xtitle='X (Rp)',ytitle='Y (Rp)',charsize=2.0,title=planet
-        oplot,xm,ym,color=6
-        if (doseg) then begin
-          tstart = tseg
-          tstop = shift(tseg,-1)
-          tstop[nseg-1] = max(t)
-          for i=0,(nseg-1) do begin
-            sndx = where((t ge tstart[i]) and (t lt tstop[i]), count)
-            if (count gt 0) then oplot,x[sndx],y[sndx],color=cseg[i]
-          endfor
-        endif else oplot,x,y
-        if (dodot) then oplot,[x[imin]],[y[imin]],psym=4,color=4,thick=2
+        if (blab) then begin
+          plot,xm,ym,xrange=xrange,yrange=yrange,/xsty,/ysty, $
+               xtitle='X (Rp)',ytitle='Y (Rp)',charsize=2.0,title=planet
+          oplot,xm,ym,color=6
+          if (doseg) then begin
+            tstart = tseg
+            tstop = shift(tseg,-1)
+            tstop[nseg-1] = max(t)
+            for k=0,(nseg-1) do begin
+              sndx = where((t ge tstart[k]) and (t lt tstop[k]), count)
+              if (count gt 0) then oplot,x[sndx],y[sndx],color=cseg[k],thick=sthick
+            endfor
+          endif else oplot,x,y
+          if (dodot) then oplot,[x[imin]],[y[imin]],psym=4,color=4,thick=2
+        endif
       endelse
 
 ; Shock conic
@@ -659,15 +679,22 @@ OSHAPE:
 
         xs = x0 + rho*cos(phi)
         ys = rho*sin(phi)
-        oplot,xs,ys,color=scol,line=1
+        if (blab) then oplot,xs,ys,color=scol,line=ssty
 
         s = sqrt(yo*yo + z*z)
         phi = atan(s,(xo - x0))
         rho = sqrt((xo - x0)^2. + s*s)
         indx = where(rho lt L/(1. + psi*cos(phi < phm)), count)
-        if (count gt 0L) then oplot, x[indx], y[indx], color=4, psym=3
+        if (count gt 0L and blab) then oplot, x[indx], y[indx], color=4, psym=3
 
         swfrac[i,j] = float(npts - count)/float(npts)
+
+; Shadow
+
+        s = sqrt(y*y + z*z)
+        indx = where((s lt 1.) and (x lt 0.), count)
+        if (count gt 0L and blab) then oplot, x[indx], y[indx], color=2, psym=3
+        shfrac[i,j] = float(count)/float(npts)
 
       endif
 
@@ -705,7 +732,7 @@ OSHAPE:
         xpileup = [xpileup, x1[indx], x2[jndx]]
         ypileup = [ypileup, y1[indx], y2[jndx]]
 
-        oplot,xpileup,ypileup,color=scol,line=1
+        if (blab) then oplot,xpileup,ypileup,color=scol,line=ssty
       endif
 
 ; X-Z plane
@@ -731,26 +758,28 @@ OSHAPE:
             tstart = tseg
             tstop = shift(tseg,-1)
             tstop[nseg-1] = max(t)
-            for i=0,(nseg-1) do begin
-              sndx = where((t ge tstart[i]) and (t lt tstop[i]), count)
-              if (count gt 0) then oplot,x[sndx],z[sndx],color=cseg[i]
+            for k=0,(nseg-1) do begin
+              sndx = where((t ge tstart[k]) and (t lt tstop[k]), count)
+              if (count gt 0) then oplot,x[sndx],z[sndx],color=cseg[k],thick=sthick
             endfor
           endif else oplot,x,z
           if (dodot) then oplot,[x[imin]],[z[imin]],psym=4,color=4,thick=2
         endif else begin
-          plot,xm,ym,xrange=xrange,yrange=yrange,/xsty,/ysty, $
-               xtitle='X (Rp)',ytitle='Z (Rp)',charsize=2.0
-          oplot,xm,ym,color=6
-          if (doseg) then begin
-            tstart = tseg
-            tstop = shift(tseg,-1)
-            tstop[nseg-1] = max(t)
-            for i=0,(nseg-1) do begin
-              sndx = where((t ge tstart[i]) and (t lt tstop[i]), count)
-              if (count gt 0) then oplot,x[sndx],z[sndx],color=cseg[i]
-            endfor
-          endif else oplot,x,z
-          if (dodot) then oplot,[x[imin]],[z[imin]],psym=4,color=4,thick=2
+          if (blab) then begin
+            plot,xm,ym,xrange=xrange,yrange=yrange,/xsty,/ysty, $
+                 xtitle='X (Rp)',ytitle='Z (Rp)',charsize=2.0
+            oplot,xm,ym,color=6
+            if (doseg) then begin
+              tstart = tseg
+              tstop = shift(tseg,-1)
+              tstop[nseg-1] = max(t)
+              for k=0,(nseg-1) do begin
+                sndx = where((t ge tstart[k]) and (t lt tstop[k]), count)
+                if (count gt 0) then oplot,x[sndx],z[sndx],color=cseg[k],thick=sthick
+              endfor
+            endif else oplot,x,z
+            if (dodot) then oplot,[x[imin]],[z[imin]],psym=4,color=4,thick=2
+          endif
         endelse
 
 ; Shock conic
@@ -763,13 +792,18 @@ OSHAPE:
 
           xs = x0 + rho*cos(phi)
           zs = rho*sin(phi)
-          oplot,xs,zs,color=scol,line=1
+          if (blab) then oplot,xs,zs,color=scol,line=ssty
 
           s = sqrt(y*y + z*z)
           phi = atan(s,(x - x0))
           rho = sqrt((x - x0)^2. + s*s)
           indx = where(rho lt L/(1. + psi*cos(phi < phm)), count)
-          if (count gt 0L) then oplot, x[indx], z[indx], color=4, psym=3
+          if (count gt 0L and blab) then oplot, x[indx], z[indx], color=4, psym=3
+
+; Shadow
+
+          indx = where((s lt 1.) and (x lt 0.), count)
+          if (count gt 0L and blab) then oplot, x[indx], z[indx], color=2, psym=3
 
         endif
 
@@ -807,7 +841,7 @@ OSHAPE:
           xpileup = [xpileup, x1[indx], x2[jndx]]
           ypileup = [ypileup, y1[indx], y2[jndx]]
 
-          oplot,xpileup,ypileup,color=scol,line=1
+          if (blab) then oplot,xpileup,ypileup,color=scol,line=ssty
 
         endif
 
@@ -832,26 +866,28 @@ OSHAPE:
             tstart = tseg
             tstop = shift(tseg,-1)
             tstop[nseg-1] = max(t)
-            for i=0,(nseg-1) do begin
-              sndx = where((t ge tstart[i]) and (t lt tstop[i]), count)
-              if (count gt 0) then oplot,y[sndx],z[sndx],color=cseg[i]
+            for k=0,(nseg-1) do begin
+              sndx = where((t ge tstart[k]) and (t lt tstop[k]), count)
+              if (count gt 0) then oplot,y[sndx],z[sndx],color=cseg[k],thick=sthick
             endfor
           endif else oplot,y,z
           if (dodot) then oplot,[y[imin]],[z[imin]],psym=4,color=4,thick=2
         endif else begin
-          plot,xm,ym,xrange=xrange,yrange=yrange,/xsty,/ysty, $
-               xtitle='Y (Rp)',ytitle='Z (Rp)',charsize=2.0
-          oplot,xm,ym,color=6
-          if (doseg) then begin
-            tstart = tseg
-            tstop = shift(tseg,-1)
-            tstop[nseg-1] = max(t)
-            for i=0,(nseg-1) do begin
-              sndx = where((t ge tstart[i]) and (t lt tstop[i]), count)
-              if (count gt 0) then oplot,y[sndx],z[sndx],color=cseg[i]
-            endfor
-          endif else oplot,y,z
-          if (dodot) then oplot,[y[imin]],[z[imin]],psym=4,color=4,thick=2
+          if (blab) then begin
+            plot,xm,ym,xrange=xrange,yrange=yrange,/xsty,/ysty, $
+                 xtitle='Y (Rp)',ytitle='Z (Rp)',charsize=2.0
+            oplot,xm,ym,color=6
+            if (doseg) then begin
+              tstart = tseg
+              tstop = shift(tseg,-1)
+              tstop[nseg-1] = max(t)
+              for k=0,(nseg-1) do begin
+                sndx = where((t ge tstart[k]) and (t lt tstop[k]), count)
+                if (count gt 0) then oplot,y[sndx],z[sndx],color=cseg[k],thick=sthick
+              endfor
+            endif else oplot,y,z
+            if (dodot) then oplot,[y[imin]],[z[imin]],psym=4,color=4,thick=2
+          endif
         endelse
 
 ; Shock conic
@@ -860,13 +896,18 @@ OSHAPE:
 
           phm = 160.*!dtor
           L0 = sqrt((L + psi*x0)^2. - x0*x0)
-          oplot,L0*xm,L0*ym,color=scol,line=1
+          oplot,L0*xm,L0*ym,color=scol,line=ssty
 
           s = sqrt(y*y + z*z)
           phi = atan(s,(x - x0))
           rho = sqrt((x - x0)^2. + s*s)
           indx = where(rho lt L/(1. + psi*cos(phi < phm)), count)
-          if (count gt 0L) then oplot, y[indx], z[indx], color=4, psym=3
+          if (count gt 0L and blab) then oplot, y[indx], z[indx], color=4, psym=3
+
+; Shadow
+
+          indx = where((s lt 1.) and (x lt 0.), count)
+          if (count gt 0L and blab) then oplot, x[indx], z[indx], color=2, psym=3
 
         endif
 
@@ -875,7 +916,7 @@ OSHAPE:
         if (mflg) then begin
 
           L0 = sqrt((L_p1 + psi_p1*x0_p1)^2. - x0_p1*x0_p1)
-          oplot,L0*xm,L0*ym,color=scol,line=1
+          if (blab) then oplot,L0*xm,L0*ym,color=scol,line=1
           
         endif
 
@@ -909,9 +950,9 @@ OSHAPE:
       tplot_options,'charsize',1.2
       tplot_options,'title',planet
 
-      wset, tplot
+      wset, twin
       timespan,[min(t),max(t)],/sec
-      tplot,['alt','Velocity']
+      if (blab) then tplot,['alt','Velocity']
 
       tplot_options,'title',''
       tplot_options,'charsize',1.0
@@ -944,6 +985,7 @@ OSHAPE:
             ecc    : ecc       , $       ; orbital eccentricity
             incl   : incl      , $       ; orbital inclination (deg)
             swfrac : swfrac    , $       ; fraction of time in solar wind
+            shfrac : shfrac    , $       ; fraction of time in shadow
             planet : planet    , $       ; planet name
             radius : R         , $       ; planet radius (km)
             Vesc   : Vesc         }      ; escape velocity (km/s)

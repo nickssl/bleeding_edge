@@ -35,8 +35,8 @@
 ;and if you are using Solaris you need to be in 32-bit mode NOT 64-bit
 ;(ie, idl -32)
 ; $LastChangedBy: jimm $
-; $LastChangedDate: 2016-10-05 16:07:18 -0700 (Wed, 05 Oct 2016) $
-; $LastChangedRevision: 22049 $
+; $LastChangedDate: 2024-03-05 14:35:54 -0800 (Tue, 05 Mar 2024) $
+; $LastChangedRevision: 32477 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/l2gen/cdf_save_vars2.pro $
 ;-
 
@@ -104,9 +104,15 @@ function cdf_save_vars2, cdf_structure, new_cdf_name, set_compression=set_compre
 
      global_dummy = cdf_attcreate(id, ga_names_istp_compliant[i], /global_scope)
      n_atts = n_elements(cdf_structure.g_attributes.(i))
-     for j = 0, n_atts-1 do $
-        cdf_attput, id, ga_names_istp_compliant[i], j, $
-                    cdf_structure.g_attributes.(i)[j]
+     for j = 0, n_atts-1 do begin
+        if(keyword_set(cdf_structure.g_attributes.(i)[j])) then begin
+           cdf_attput, id, ga_names_istp_compliant[i], j, $
+                       cdf_structure.g_attributes.(i)[j]
+        endif else begin
+           dprint, 'missing attribute: '+ga_names_istp_compliant[i]
+           cdf_attput, id, ga_names_istp_compliant[i], j, 'None'
+        endelse
+     endfor
   endfor                        ; i
 
 

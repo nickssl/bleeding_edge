@@ -18,9 +18,9 @@
 ;       your working directory called 'mms_login_info_for_updating_abs.sav'
 ;       containing your login information. 
 ; 
-; $LastChangedBy: egrimes $
-; $LastChangedDate: 2018-05-11 11:17:19 -0700 (Fri, 11 May 2018) $
-; $LastChangedRevision: 25199 $
+; $LastChangedBy: jwl $
+; $LastChangedDate: 2025-05-30 12:46:17 -0700 (Fri, 30 May 2025) $
+; $LastChangedRevision: 33353 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/common/data_status_bar/mms_update_fast_intervals.pro $
 ;-
 
@@ -31,7 +31,7 @@ pro mms_update_fast_intervals
     end_date = time_string(systime(/seconds), tformat='YYYY-MM-DD')
     
     ; login first
-    status = mms_login_lasp(login_info = 'mms_login_info_for_updating_abs.sav')
+    status = mms_login_lasp(login_info = 'mms_auth_info.sav')
     
     filenames = mms_get_abs_file_names(start_date=start_date, end_date=end_date)
 

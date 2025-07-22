@@ -1,24 +1,34 @@
 ; buffer should contain bytes for a single ccsds packet, header is
 ; contained in first 3 words (6 bytes)
 ; $LastChangedBy: davin-mac $
-; $LastChangedDate: 2023-07-13 10:47:29 -0700 (Thu, 13 Jul 2023) $
-; $LastChangedRevision: 31952 $
+; $LastChangedDate: 2024-10-27 01:24:49 -0700 (Sun, 27 Oct 2024) $
+; $LastChangedRevision: 32908 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/swfo_ccsds_decom.pro $
 
 ;
 ;  This routine still needs to be modified to conform to the SWFO standard.
 
-function swfo_ccsds_decom_mettime,header,day=day,millisec=millisec,microsec=microsec
+function swfo_ccsds_decom_mettime,header,apid,day=day,millisec=millisec,microsec=microsec
   ; header assumed to be bytes at this point
   n = n_elements(header)
   if n lt 5 then return, !values.d_nan
 
-  if header[6] ne 0 then dprint,dwait=20.,'Time out of range'
-  header[6] = 0
-  
-  day = ((header[6]*256UL+header[7])*256)+header[8]
-  millisec = ((header[9]*256UL+header[10])*256+header[11])*256+header[12]
-  microsec = header[13] *256u + header[14]
+  if apid lt '350'x then begin ;spacecraft packets
+    day = ((header[6]*256UL+header[7]))
+    millisec = ((header[8]*256UL+header[9])*256+header[10])*256+header[11]
+    microsec = header[12] *256u + header[13]    
+  endif else begin ;instrument packets
+    if header[6] ne 0 then begin
+      dprint,'Time out of range, header[6]= ',header[6],dwait=2.
+      ;hexprint,header
+    endif
+    ;header[6] = 0
+    day = ((header[6]*256UL+header[7])*256)+header[8]
+    millisec = ((header[9]*256UL+header[10])*256+header[11])*256+header[12]
+    microsec = header[13] *256u + header[14]
+  endelse
+
+
   MET = day*24d*3600d + millisec/1000d + microsec/1d6
   ;MET = (header[3]*2UL^16 + header[4] + (header[5] and 'fffc'x)  / 2d^16) +   ( (header[5] ) mod 4) * 2d^15/150000              ; SPANS
   return,met
@@ -39,6 +49,8 @@ function swfo_ccsds_decom,buffer,source_dict=source_dict,wrap_ccsds=wrap_ccsds,o
   ccsds = { swfo_ccsds_format, $
     time:         d_nan,  $             ; unixtime
     MET:          d_nan,  $
+    GRtime:       d_nan,  $
+    delaytime:    d_nan,  $
     apid:         0u , $
     seqn:         0u , $
     seqn_delta:   0u,  $
@@ -51,7 +63,7 @@ function swfo_ccsds_decom,buffer,source_dict=source_dict,wrap_ccsds=wrap_ccsds,o
     source_hash:  0UL,  $               ; hashcode() of source_name
     compr_ratio:  0. , $
     aggregate:    0u,  $                ; number of data samples aggregated - determined from outer wrapper header
-    time_delta :  f_nan, $
+    time_delta :  d_nan, $
     ptp_time:     d_nan,  $             ; unixtime from ptp packet
     error :       0b, $
     version :     0b , $   ; this could be eliminated since it is useless
@@ -66,8 +78,8 @@ function swfo_ccsds_decom,buffer,source_dict=source_dict,wrap_ccsds=wrap_ccsds,o
 
   if buffer_length-offset lt 15 then begin
     if debug(2) then begin
-      dprint,'CCSDS Buffer length too short to include full header: ',buffer_length-offset,dlevel=2,offset,dwait=20
-      hexprint,buffer
+      dprint,'CCSDS Buffer length too short to include full header: ',buffer_length-offset,dlevel=2,offset;,dwait=20
+      ;hexprint,buffer
     endif
     error = 1b
     return, !null
@@ -81,12 +93,20 @@ function swfo_ccsds_decom,buffer,source_dict=source_dict,wrap_ccsds=wrap_ccsds,o
 
   apid = ccsds.apid
 
-  MET = swfo_ccsds_decom_mettime(buffer[offset+0:offset+15],day=day,millisec=millisec,microsec=microsec)
+  MET = swfo_ccsds_decom_mettime(buffer[offset+0:offset+15],apid,day=day,millisec=millisec,microsec=microsec)
   ccsds.met = met
   ccsds.day = day
   ccsds.millisec = millisec
   ccsds.microsec = microsec
   ccsds.time = swfo_spc_met_to_unixtime(ccsds.MET)
+
+  if isa(source_dict) && source_dict.haskey('parent_dict') then begin
+    grtime = source_dict.parent_dict.headerstr.time
+    ;printdat,time_string(grtime)
+    ;printdat,ccsds
+    ccsds.grtime = GRtime
+    ccsds.delaytime = grtime- ccsds.time
+  endif
 
   ccsds.pkt_size = header[2] + 7
 
@@ -131,15 +151,18 @@ function swfo_ccsds_decom,buffer,source_dict=source_dict,wrap_ccsds=wrap_ccsds,o
   endif
   if isa(source_dict) then begin
     if source_dict.haskey('source_info') then ccsds.source_hash = source_dict.source_info.input_sourcehash
-    if source_dict.haskey('ptp_header') && isa(source_dict.ptp_header) then begin
-      ptp_header = source_dict.ptp_header
-      if isa(ptp_header) && ptp_header.ptp_size ne ccsds.pkt_size + 17 then begin
-        dprint,dlevel=2,format='("APID: ",Z03," ccsds PKT size: ",i5," does not match ptp size:",i5,a)',ccsds.apid,ccsds.pkt_size+17, ptp_header.ptp_size,' '+time_string(ccsds.time)
-      endif
-      if isa(source_dict.ptp_header) then ccsds.ptp_time = ptp_header.ptp_time
-    endif else begin
-      source_dict.ptp_header2 ={ ptp_time:systime(1), ptp_scid: 0, ptp_source:0, ptp_spare:0, ptp_path:0, ptp_size: 17 + ccsds.pkt_size }
-    endelse
+    if 0 then begin
+      if source_dict.haskey('ptp_header') && isa(source_dict.ptp_header) then begin
+        ptp_header = source_dict.ptp_header
+        if isa(ptp_header) && ptp_header.ptp_size ne ccsds.pkt_size + 17 then begin
+          dprint,dlevel=2,format='("APID: ",Z03," ccsds PKT size: ",i5," does not match ptp size:",i5,a)',ccsds.apid,ccsds.pkt_size+17, ptp_header.ptp_size,' '+time_string(ccsds.time)
+        endif
+        if isa(source_dict.ptp_header) then ccsds.ptp_time = ptp_header.ptp_time
+      endif else begin
+        source_dict.ptp_header2 ={ ptp_time:systime(1), ptp_scid: 0, ptp_source:0, ptp_spare:0, ptp_path:0, ptp_size: 17 + ccsds.pkt_size }
+      endelse
+      
+    endif
 
   endif
 

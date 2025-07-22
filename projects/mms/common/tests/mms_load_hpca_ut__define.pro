@@ -5,9 +5,9 @@
 ; To run:
 ;     IDL> mgunit, 'mms_load_hpca_ut'
 ;
-; $LastChangedBy: egrimes $
-; $LastChangedDate: 2021-03-02 09:47:39 -0800 (Tue, 02 Mar 2021) $
-; $LastChangedRevision: 29724 $
+; $LastChangedBy: jwl $
+; $LastChangedDate: 2023-10-26 15:20:30 -0700 (Thu, 26 Oct 2023) $
+; $LastChangedRevision: 32208 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/common/tests/mms_load_hpca_ut__define.pro $
 ;-
 
@@ -20,7 +20,7 @@ function mms_load_hpca_ut::test_hpca_spin_sum_suffix
 end
 
 function mms_load_hpca_ut::test_hpca_angle_angle_hplus
-  mms_hpca_ang_ang, '2015-10-16/13:06:43', species='hplus', data_rate='brst'
+  mms_hpca_ang_ang, '2015-10-16/13:06:43', species='hplus', data_rate='brst',/png
   return, 1
 end
 

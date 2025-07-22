@@ -5,6 +5,8 @@
 ;	MVN_SWE_READCDF_SPEC, INFILE, STRUCTURE
 ; PURPOSE:
 ;	Routine to read CDF file from mvn_swe_makecdf_spec.pro
+;   Reads both Version 4 and 5 CDF files.
+;
 ; INPUTS:
 ;   INFILE: CDF file name to read
 ;           (nominally created by mvn_swe_makecdf_spec.pro)
@@ -14,10 +16,11 @@
 ;   OUTFILE: Output file name
 ; HISTORY:
 ;   Created by Matt Fillingim
+;   Code for data version 5; DLM: 2023-08
 ; VERSION:
 ;   $LastChangedBy: dmitchell $
-;   $LastChangedDate: 2021-02-18 15:21:40 -0800 (Thu, 18 Feb 2021) $
-;   $LastChangedRevision: 29677 $
+;   $LastChangedDate: 2024-01-14 17:10:01 -0800 (Sun, 14 Jan 2024) $
+;   $LastChangedRevision: 32362 $
 ;   $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_readcdf_spec.pro $
 ;
 ;-
@@ -239,32 +242,70 @@ pro mvn_swe_readcdf_spec, infile, structure
 
   structure.bkg = 0.
 
-; *** data
-; data -- data in units of differential energy flux
+; *** data in units of differential energy flux
 
   CDF_VARGET, id, 'diff_en_fluxes', data, /ZVAR, rec_count = nrec
   structure.data = data
 
-; *** variance
-; recompress the raw counts to 8-bit value, use this to index devar (swe_com)
+; The following depends on data version
 
-  x = alog(counts > 1.)/alog(2.)
-  i = floor(x)
-  j = floor((2.^(x - i) - 1.)*16.)
-  k = (i - 3)*16 + j
-  indx = where(counts lt 32., cnt)
-  if (cnt gt 0L) then k[indx] = round(counts[indx])
-  var = devar[k]
+  CDF_ATTGET, id, 'Data_version', 0, value
+  version = fix(value)
 
-; in units of counts - want in units of energy flux (data)
-; from mvn_swe_convert_units
-; input: 'COUNTS' : scale = 1D
-; output: 'EFLUX' : scale = scale * 1D/(dtc * dt * dt_arr * gf)
-;                   where dt = integ_t ; gf = gf*eff ; eff = 1
+  if (version lt 5) then begin
 
-  scale = 1D/(structure.dtc*integ_t*dt_arr*structure.gf)
-  var = var*(scale*scale)
-  structure.var = var
+;   *** variance (reverse engineered)
+;   recompress the raw counts to 8-bit value, use this to index devar (swe_com)
+
+    x = alog(counts > 1.)/alog(2.)
+    i = floor(x)
+    j = floor((2.^(x - i) - 1.)*16.)
+    k = (i - 3)*16 + j
+    indx = where(counts lt 32., cnt)
+    if (cnt gt 0L) then k[indx] = round(counts[indx])
+    var = devar[k]
+
+;   in units of counts - want in units of energy flux (data)
+;   from mvn_swe_convert_units
+;   input: 'COUNTS' : scale = 1D
+;   output: 'EFLUX' : scale = scale * 1D/(dtc * dt * dt_arr * gf)
+;                     where dt = integ_t ; gf = gf*eff ; eff = 1
+
+    scale = 1D/(structure.dtc*integ_t*dt_arr*structure.gf)
+    var = var*(scale*scale)  ; (eV/cm2-sec-ster-eV)^2
+    structure.var = var
+
+;   *** secondary electrons in units of differential energy flux
+;   Version 4 has no secondary electron estimate, so structure.bkg
+;   remains zero (as initialized above).
+
+;   *** quality flag -- three possible values:
+;   0 = low-energy anomaly ; 1 = unknown ; 2 = good data
+;   before version 5, quality is undefined
+
+    structure.quality = 1B
+
+  endif else begin
+
+;   *** variance in units of (eV/cm2-sec-ster-eV)^2
+
+    CDF_VARGET, id, 'variance', var, /ZVAR, rec_count = nrec
+    structure.var = var
+
+;   *** secondary electrons in units of differential energy flux
+;   This does not include penetrating particle background or beta decay of potassium 40
+;   in the MCP glass, which are only appreciable at the highest energies.
+
+    CDF_VARGET, id, 'secondary', sec, /ZVAR, rec_count = nrec
+    structure.bkg = sec
+
+;   *** quality flag -- three possible values:
+;   0 = low-energy anomaly ; 1 = unknown ; 2 = good data
+
+    CDF_VARGET, id, 'quality', quality, /ZVAR, rec_count = nrec
+    structure.quality = reform(quality)
+
+  endelse
 
 ; *** chksum and valid (chksum is determined by mvn_swe_calib, above)
 

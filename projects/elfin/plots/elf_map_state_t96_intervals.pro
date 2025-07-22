@@ -229,6 +229,7 @@ r[index[3]]=90 & g[index[3]]=188 & b[index[3]]=102
   ; COLLECT DATA FOR PLOTS
   ;--------------------------
   ; Get science collection times
+  trange=[time_double(tstart), time_double(tend)]
   epda_sci_zones=get_elf_science_zone_start_end(trange=trange, probe='a', instrument='epd') ;alternate pef_spinper/pef_nflux
   epdb_sci_zones=get_elf_science_zone_start_end(trange=trange, probe='b', instrument='epd')
   epdia_sci_zones=get_elf_science_zone_start_end(trange=trange, probe='a', instrument='epdi') ;alternate pef_spinper/pef_nflux

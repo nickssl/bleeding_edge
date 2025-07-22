@@ -1,4 +1,4 @@
-This plugin retrieves data from GOES 16, 17 satellites 
+This plugin retrieves data from GOES 16, 17, 18 and newer satellites 
 and also reprocessed data from GOES 8-15. 
 
 Documentation for GOES-R data can be found at:

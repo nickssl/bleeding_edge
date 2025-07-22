@@ -10,8 +10,8 @@
 ;
 ;  Author:  Davin Larson
 ; $LastChangedBy: ali $
-; $LastChangedDate: 2021-04-06 18:36:00 -0700 (Tue, 06 Apr 2021) $
-; $LastChangedRevision: 29856 $
+; $LastChangedDate: 2023-12-29 18:52:02 -0800 (Fri, 29 Dec 2023) $
+; $LastChangedRevision: 32325 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/general/spice/mvn_spice_load.pro $
 ;-
 
@@ -19,11 +19,12 @@ pro mvn_spice_load,trange=trange,kernels=kernels,download_only=download_only,ver
   quaternion=quaternion,orbit_data=orbit_data,no_download=no_download,load=load,clear=clear,resolution=res
 
   orbdata = mvn_orbit_num(verbose=verbose)
-  store_data,'orb_num',orbdata.peri_time,orbdata.num,dlimit={ytitle:'Orbit'}
+  store_data,'mvn_orb_num',orbdata.peri_time,orbdata.num,dlimit={ytitle:'Orbit'}
+  store_data,'mvn_peri_alt',orbdata.peri_time,orbdata.sc_alt
   if keyword_set(orbit_data) then    store_data,'mvn_ORB_',data=orbdata,tagnames='SOL_* SC_*',time_tag='PERI_TIME'
   ;   tplot,var_label='orbnum'
-  tplot_options,'timebar','orb_num'
-  tplot_options,'var_label','orb_num'
+  tplot_options,'timebar','mvn_orb_num'
+  tplot_options,'var_label','mvn_orb_num'
 
   dprint,dlevel=2,'Current Orbit Number is: ',mvn_orbit_num(time=systime(1))
 
@@ -55,7 +56,7 @@ pro mvn_spice_load,trange=trange,kernels=kernels,download_only=download_only,ver
   store_data,'mvn_lat',times,pdlat*180./!dpi,dlimit={ytitle:'Maven!cLattitude',yrange:[-90,90],ystyle:1}
   store_data,'mvn_lon',times,pdlon*180./!dpi,dlimit={ytitle:'Maven!cLongitude',yrange:[-180,180],ystyle:1}
   store_data,'mvn_alt',times,pdalt,dlimit={ylog:1,ytitle:'Altitude'}
-  tplot_options,'var_label','orb_num mvn_alt'
+  tplot_options,'var_label','mvn_orb_num mvn_alt'
 
   frame = 'MAVEN_SPACECRAFT'
   ;frame = 'MAVEN_SCALT'

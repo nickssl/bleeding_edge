@@ -16,7 +16,7 @@
 ;         datatype:     valid datatypes are:
 ;                         Quicklook: ['des', 'dis'] 
 ;                         SITL: '' (none; loads both electron and ion data from single CDF)
-;                         L1b/L2: ['des-dist', 'dis-dist', 'dis-moms', 'des-moms']
+;                         L1b/L2: ['des-dist', 'dis-dist', 'dis-moms', 'des-moms', 'dis-auxmoms', 'des-auxmoms', 'dis-partmoms', 'des-partmoms']
 ;         data_rate:    instrument data rates for MMS FPI include 'fast', 'brst'. 
 ;         local_data_dir: local directory to store the CDF files; should be set if
 ;                       you're on *nix or OSX, the default currently assumes Windows (c:\data\mms\)
@@ -73,9 +73,9 @@
 ;     Have questions regarding this load routine, or its usage?
 ;          https://groups.google.com/forum/#!forum/spedas
 ;
-;$LastChangedBy: egrimes $
-;$LastChangedDate: 2019-09-03 12:34:11 -0700 (Tue, 03 Sep 2019) $
-;$LastChangedRevision: 27716 $
+;$LastChangedBy: jwl $
+;$LastChangedDate: 2025-05-30 12:47:35 -0700 (Fri, 30 May 2025) $
+;$LastChangedRevision: 33354 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/fpi/mms_load_fpi.pro $
 ;-
 
@@ -126,7 +126,7 @@ pro mms_load_fpi, trange = trange_in, probes = probes, datatype = datatype, $
     ; different datatypes for burst mode files
     if data_rate eq 'brst' && (datatype[0] eq '*' || datatype[0] eq '') && level ne 'ql' then datatype=['des-dist', 'dis-dist', 'dis-moms', 'des-moms']
     if (datatype[0] eq '*' || datatype[0] eq '') && level eq 'ql' then datatype=['des', 'dis']
-    if (datatype[0] eq '*' || datatype[0] eq '') && level ne 'ql' then datatype=['des-dist', 'dis-dist', 'dis-moms', 'des-moms']
+    if (datatype[0] eq '*' || datatype[0] eq '') && level ne 'ql' then datatype=['des-dist', 'dis-dist', 'dis-moms', 'des-moms', 'dis-momsaux', 'des-momsaux', 'dis-partmoms', 'des-partmoms']
 
     ; kludge for level = 'sitl' -> datatype shouldn't be defined for sitl data.
     if level eq 'sitl' || level eq 'trig' then datatype = '*'

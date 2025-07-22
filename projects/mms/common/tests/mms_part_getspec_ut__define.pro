@@ -6,9 +6,9 @@
 ;     IDL> mgunit, 'mms_part_getspec_ut'
 ;
 ;
-; $LastChangedBy: egrimes $
-; $LastChangedDate: 2019-04-10 09:35:35 -0700 (Wed, 10 Apr 2019) $
-; $LastChangedRevision: 26987 $
+; $LastChangedBy: jwl $
+; $LastChangedDate: 2023-11-09 10:31:32 -0800 (Thu, 09 Nov 2023) $
+; $LastChangedRevision: 32226 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/common/tests/mms_part_getspec_ut__define.pro $
 ;-
 
@@ -25,30 +25,32 @@ end
 
 ; the following produce validation plots that compare DIS and HPCA spectra
 function mms_part_getspec_ut::test_dis_hpca_cold
+  assert,(!d.name ne "Z"),"Graphics not available",/skip
   mms_part_getspec, energy=[0, 300], suffix='_cold', instrument='hpca', trange=['2017-08-12/23', '2017-08-12/24'], output=['energy', 'pa', 'gyro', 'phi', 'theta'], probe=3
   mms_part_getspec, energy=[0, 300], suffix='_cold', species='i', instrument='fpi', trange=['2017-08-12/23', '2017-08-12/24'], output=['energy','phi','theta','pa','gyro'], probe=3
   tplot, ['mms3_dis_dist_fast_pa_cold', 'mms3_hpca_hplus_phase_space_density_pa_cold']
   makepng, 'dis-vs-hpca-pa-cold'
-  window, 1, retain=2
+  if (!d.name ne "Z") then window, 1, retain=2
   tplot, window=1, ['mms3_dis_dist_fast_gyro_cold', 'mms3_hpca_hplus_phase_space_density_gyro_cold']
   makepng, 'dis-vs-hpca-gyro-cold'
-  window, 2, retain=2
+  if (!d.name ne "Z") then window, 2, retain=2
   tplot, window=2, ['mms3_dis_dist_fast_energy_cold', 'mms3_hpca_hplus_phase_space_density_energy_cold']
   makepng, 'dis-vs-hpca-energy-cold'
   return, 1
 end
 
 function mms_part_getspec_ut::test_dis_hpca_full
+  assert,(!d.name ne "Z"),"Graphics not available",/skip
   mms_part_getspec, suffix='_full', instrument='hpca', trange=['2017-08-12/23', '2017-08-12/24'], output=['energy', 'pa', 'gyro', 'phi', 'theta'], probe=3
   mms_part_getspec, suffix='_full', species='i', instrument='fpi', trange=['2017-08-12/23', '2017-08-12/24'], output=['energy','phi','theta','pa','gyro'], probe=3
   tplot, ['mms3_dis_dist_fast_pa_full', 'mms3_hpca_hplus_phase_space_density_pa_full']
   makepng, 'dis-vs-hpca-pa-full'
   flatten_spectra, /ylog, time='2017-08-12/23:35:12', /png
-  window, 1, retain=2
+  if (!d.name ne "Z") then window, 1, retain=2
   tplot, window=1, ['mms3_dis_dist_fast_gyro_full', 'mms3_hpca_hplus_phase_space_density_gyro_full']
   makepng, 'dis-vs-hpca-gyro-full'
   flatten_spectra, /ylog, time='2017-08-12/23:35:12', /png
-  window, 2, retain=2
+  if (!d.name ne "Z") then window, 2, retain=2
   tplot, window=2, ['mms3_dis_dist_fast_energy_full', 'mms3_hpca_hplus_phase_space_density_energy_full']
   makepng, 'dis-vs-hpca-energy-full'
   flatten_spectra, /ylog, time='2017-08-12/23:35:12', /png

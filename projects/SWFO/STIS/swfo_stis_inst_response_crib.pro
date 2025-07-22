@@ -1,5 +1,5 @@
 ; $LastChangedBy: davin-mac $
-; $LastChangedDate: 2024-10-11 20:32:34 +0300 (Fri, 11 Oct 2024) $
+; $LastChangedDate: 2024-10-11 10:32:34 -0700 (Fri, 11 Oct 2024) $
 ; $LastChangedRevision: 32884 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/swfo_stis_inst_response_crib.pro $
 ; $ID: $

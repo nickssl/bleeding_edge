@@ -25,8 +25,8 @@
 ; :Author:
 ;   Yoshi Miyoshi (miyoshi at stelab.nagoya-u.ac.jp)
 ;
-; $LastChangedDate: 2019-03-17 21:51:57 -0700 (Sun, 17 Mar 2019) $
-; $LastChangedRevision: 26838 $
+; $LastChangedDate: 2025-07-05 16:33:37 -0700 (Sat, 05 Jul 2025) $
+; $LastChangedRevision: 33429 $
 ;-
 
 
@@ -59,8 +59,8 @@ PRO akb_load_rdm, $
   thm_init
 
   source = file_retrieve( /struct )
-  source.local_data_dir = root_data_dir()+'exosd/rdm/'
-  source.remote_data_dir = 'http://darts.isas.jaxa.jp/stp/data/exosd/rdm/'
+  source.local_data_dir = root_data_dir()+'akebono/rdm/'
+  source.remote_data_dir = 'https://data.darts.isas.jaxa.jp/pub/akebono/rdm/'
   if keyword_set(no_download) then source.no_download = 1
   if keyword_set(downloadonly) then source.downloadonly = 1
   if keyword_set(verbose) then source.verbose=verbose
@@ -77,7 +77,7 @@ PRO akb_load_rdm, $
   prefix_descriptor = 'rdm_'
   prefix = prefix_project + prefix_descriptor
 
-  files = file_retrieve(relpathnames, _extra=source, /last_version)
+  files = spd_download(remote_file=relpathnames, _extra=source, /last_version)
   if keyword_set(downloadonly) then return
 
   ;Exit unless data files are downloaded or found locally.

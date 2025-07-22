@@ -125,9 +125,12 @@ pro mvn_sep_fov_plot,tms,edge=edge,fraction=fraction,pos=pos,cr=cr,sym=sym,overp
   endfor
   p=text(0.01,0.01,'SEP1_TIME='+time_string(time)+', SEP1_ATT='+strtrim(fix(att[0]),2)+', SEP2_ATT='+strtrim(fix(att[1]),2))
   p.refresh
-  dir='Desktop/sep/fov/'+name+time_string(time,tformat='_YYYYMMDD/')
-  file_mkdir2,dir
-  if keyword_set(save) then p.save,resolution=96,dir+name+'_'+time_string(time,format=2)+'.png'
+  if keyword_set(save) then begin
+    if strtrim(save,2) eq '1' then save2='/' else save2=save+'/'
+    dir='Desktop/sep/fov/'+name+time_string(time,tformat='_YYYYMMDD')+save2
+    file_mkdir2,dir
+    p.save,resolution=96,dir+name+'_'+time_string(time,format=2)+'.png'
+  endif
 
   ;if keyword_set(pui) then mvn_sep_fov_pui_plot ;to plot mag and pickup ion velocity distributions
 

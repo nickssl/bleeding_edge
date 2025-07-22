@@ -29,8 +29,8 @@
 ;HISTORY:
 ; Hacked from mvn_sta_gen_ql, 2013-06-14, jmm, jimm@ssl.berkeley.edu
 ; $LastChangedBy: jimm $
-; $LastChangedDate: 2015-03-19 13:42:44 -0700 (Thu, 19 Mar 2015) $
-; $LastChangedRevision: 17150 $
+; $LastChangedDate: 2025-05-14 16:15:46 -0700 (Wed, 14 May 2025) $
+; $LastChangedRevision: 33309 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/quicklook/mvn_sta_overplot.pro $
 Pro mvn_sta_overplot, date = date, time_range = time_range, $
                       makepng=makepng, device = device, directory = directory, $
@@ -55,11 +55,19 @@ If(~keyword_set(noload_data)) Then Begin
     orbdata = mvn_orbit_num()
     store_data, 'mvn_orbnum', orbdata.peri_time, orbdata.num, $
                 dlimit={ytitle:'Orbit'}
-Endif
+Endif Else Begin
+;Add D1 bar
+   If(~keyword_set(date)) Then Begin
+      p1  = strsplit(file_basename(filex), '_',/extract)
+      date = time_double(time_string(p1[4]))
+      d0 = date
+   Endif Else d0 = time_double(date)
+Endelse
+d1p = mvn_qlook_static_d1_bar(d0, 1, /outline)
 varlist = ['mvn_sta_mode','mvn_sta_C0_att'$
            ,'mvn_sta_density'$
-           ,'mvn_sta_C0_P1A_tot','mvn_sta_C0_P1A_E','mvn_sta_C6_P1D_M','mvn_sta_A','mvn_sta_D'$ ; eventually have this replace the next line
-           ,'mvn_sta_D8_R1_diag'$
+           ,'mvn_sta_C0_P1A_tot','mvn_sta_C0_P1A_E','mvn_sta_C6_P1D_M','mvn_sta_A','mvn_sta_D'$
+           ,'mvn_sta_D8_R1_diag','mvn_d1_arcflag'$
           ]
 
 ;You need a time range for the data, Assuming that everything comes

@@ -5,9 +5,9 @@
 ;     https://github.com/spedas/bleeding_edge/issues
 ;     
 ;
-; $LastChangedBy: egrimes $
-; $LastChangedDate: 2023-08-14 12:44:51 -0700 (Mon, 14 Aug 2023) $
-; $LastChangedRevision: 31998 $
+; $LastChangedBy: nikos $
+; $LastChangedDate: 2023-11-27 09:29:13 -0800 (Mon, 27 Nov 2023) $
+; $LastChangedRevision: 32257 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/examples/basic/mms_version_numbers_crib.pro $
 ;-
 
@@ -25,7 +25,7 @@ tplot, ['mms1_fgm_b_gsm_srvy_l2_bvec', $
         'mms1_des_energyspectr_perp_fast', $
         'mms1_des_energyspectr_anti_fast', $
         'mms1_epd_feeps_srvy_l2_electron_intensity_omni_spin', $
-        'mms1_epd_eis_extof_proton_flux_omni']
+        'mms1_epd_eis_srvy_l2_extof_proton_flux_omni']
 
 ; add the version #s to the plot
 mms_add_cdf_versions, 'eis', eis_versions

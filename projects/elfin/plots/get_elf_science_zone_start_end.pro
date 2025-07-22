@@ -29,8 +29,12 @@ function get_elf_science_zone_start_end, trange=trange, probe=probe, instrument=
     dprint, dlevel = 0, 'Error, endtime is before starttime; trange should be: [starttime, endtime]'
     return, -1
    endif
-   if ~undefined(trange) && n_elements(trange) eq 2 $
-     then tr = timerange(trange) else tr = timerange()
+;   if ~undefined(trange) && n_elements(trange) eq 2 $
+;     then tr = timerange(trange) else tr = timerange()
+   dt=time_double(trange[1])-time_double(trange[0])
+   timespan,time_double(trange[0]), dt, /sec
+;   print, time_string(timerange())
+;   stop
    if not keyword_set(probe) then probe = 'a'
    if not keyword_set(instrument) then begin
     instrument='epde'
@@ -63,52 +67,73 @@ function get_elf_science_zone_start_end, trange=trange, probe=probe, instrument=
     dprint, devel=1, 'Unable to download ' + remote_file
   ;making sure the file exists. if not, it will just create one
   existing = FILE_TEST(local_path+filename)
-
+print,local_path+filename
+print, existing 
+;stop
   ; Read CSV file
   if existing eq 1 then begin 
     data=read_csv(local_path+filename, n_table_header=1)
+
     ; select times in trange
-    idx=where(time_double(data.field1) GE time_double(tr[0]) AND time_double(data.field1) LE time_double(tr[1]),ncnt) 
-    if ncnt GT 0 then sci_zones={starts:time_double(data.field1[idx]), ends:time_double(data.field2[idx]), completeness:data.field3[idx]}
+    ;idx=where(time_double(data.field1) GE time_double(tr[0]) AND time_double(data.field1) LE time_double(tr[1]),ncnt) 
+    ;if ncnt GT 0 then sci_zones={starts:time_double(data.field1[idx]), ends:time_double(data.field2[idx]), completeness:data.field3[idx]}
+    data_starts=time_double(data.field1)
+    data_ends=time_double(data.field2)
+    data_completeness=data.field3
   endif 
-
-;elf_load_epd, probe=probe, trange=trange, datatype='pef', type='nflux'
-;get_data, 'el'+probe+'_pef_nflux', data=pef_nflux
-;if (size(pef_nflux, /type)) EQ 8 then begin
-;  tdiff = pef_nflux.x[1:n_elements(pef_nflux.x)-1] - pef_nflux.x[0:n_elements(pef_nflux.x)-2]
-;  idx = where(tdiff GT 270., ncnt)
-;  append_array, idx, n_elements(pef_nflux.x)-1 ;add on last element (end time of last sci zone) to pick up last sci zone
-;  if ncnt EQ 0 then begin
-;   ; if ncnt is zero then there is only one science zone for this time frame
-;    sz_starttimes=[pef_nflux.x[0]]
-;    sz_endtimes=pef_nflux.x[n_elements(pef_nflux.x)-1]
-;    ts=time_struct(sz_starttimes[0])
-;    te=time_struct(sz_endtimes[0])
-;  endif else begin
-;    for sz=0,ncnt do begin ;changed from ncnt-1
-;      if sz EQ 0 then begin
-;        this_s = pef_nflux.x[0]
-;        sidx = 0
-;        this_e = pef_nflux.x[idx[sz]]
-;        eidx = idx[sz]
-;      endif else begin
-;        this_s = pef_nflux.x[idx[sz-1]+1]
-;        sidx = idx[sz-1]+1
-;        this_e = pef_nflux.x[idx[sz]]
-;        eidx = idx[sz]
-;      endelse
-;      if (this_e-this_s) lt 15. then continue
-;      append_array, sz_starttimes, this_s
-;      append_array, sz_endtimes, this_e
-;    endfor
-;  endelse
-;endif
-
-;if ~undefined(sz_zones) then begin
-  ;completeness=make_array(n_elements(sz_starttimes), /string)
-  ;completeness=completeness+'None'
-;  sci_zones={starts:time_double(sz_starttimes), ends:time_double(sz_endtimes), completeness:completeness}
-;endif
+help, data_starts
+help, data_ends
+help, data_completeness
+;print, time_string(trange)
+;stop
+if instrument eq 'epde' then datatype='pef'
+if instrument eq 'epdi' then datatype='pif'
+elf_load_epd, probe=probe, trange=trange, datatype=datatype, type='nflux'
+;stop
+get_data, 'el'+probe+'_'+datatype+'_nflux', data=pxf_nflux
+if (size(pxf_nflux, /type)) EQ 8 then begin
+  tdiff = pxf_nflux.x[1:n_elements(pxf_nflux.x)-1] - pxf_nflux.x[0:n_elements(pxf_nflux.x)-2]
+  idx = where(tdiff GT 270., ncnt)
+  append_array, idx, n_elements(pxf_nflux.x)-1 ;add on last element (end time of last sci zone) to pick up last sci zone
+  if ncnt EQ 0 then begin
+   ; if ncnt is zero then there is only one science zone for this time frame
+    sz_starttimes=[pxf_nflux.x[0]]
+    sz_endtimes=pxf_nflux.x[n_elements(pxf_nflux.x)-1]
+    ts=time_struct(sz_starttimes[0])
+    te=time_struct(sz_endtimes[0])
+  endif else begin
+    for sz=0,ncnt do begin ;changed from ncnt-1
+      if sz EQ 0 then begin
+        this_s = pxf_nflux.x[0]
+        sidx = 0
+        this_e = pxf_nflux.x[idx[sz]]
+        eidx = idx[sz]
+      endif else begin
+        this_s = pxf_nflux.x[idx[sz-1]+1]
+        sidx = idx[sz-1]+1
+        this_e = pxf_nflux.x[idx[sz]]
+        eidx = idx[sz]
+      endelse
+      if (this_e-this_s) lt 15. then continue
+      append_array, sz_starttimes, this_s
+      append_array, sz_endtimes, this_e
+    endfor
+  endelse
+endif
+if ~undefined(sz_starttimes) then begin
+  completeness=make_array(n_elements(sz_starttimes), /string)
+  completeness=completeness+'None'
+  ; FIND completeness
+  for i=0,n_elements(sz_starttimes)-1 do begin
+    this_start=sz_starttimes[i]
+    idx = where(this_start-30. GE sz_starttimes AND this_start+30. LT sz_starttimes, ncnt)
+    if ncnt GT 0 then completeness=data_completeness[idx[0]]
+;stop
+  endfor
+  sci_zones={starts:time_double(sz_starttimes), ends:time_double(sz_endtimes), completeness:completeness}
+endif
+help, sci_zones
+;stop
 if ~undefined(sci_zones) then return, sci_zones else return, -1
    
 end

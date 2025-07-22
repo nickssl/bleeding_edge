@@ -40,12 +40,12 @@ pro epde_plot_overviews, trange=trange, probe=probe, no_download=no_download, $
   endif
   if ~undefined(trange) && n_elements(trange) eq 2 $
     then tr = timerange(trange) $
-    else tr = timerange()
+  else tr = timerange()
   if undefined(probe) then probe = 'a'
   if ~undefined(no_download) then no_download=1 else no_download=0
   t0=systime(/sec)
   if ~keyword_set(one_zone_only) then one_zone_only=0 else one_zone_only=1
-  
+
   timeduration=(time_double(trange[1])-time_double(trange[0]))
   timespan,tr[0],timeduration,/seconds
   tr=timerange()
@@ -88,10 +88,12 @@ pro epde_plot_overviews, trange=trange, probe=probe, no_download=no_download, $
   endif
 
   del_data, '*_fgs*'
-  elf_load_fgm, probes=probe, trange=tr, datatype='fgs', no_download=no_download
+  ;elf_load_fgm, probes=probe, trange=tr, datatype='fgs', no_download=no_download
+  elf_load_fgm, probes=probe, trange=tr, datatype='fgs', /no_download, /no_time_clip
+
   get_data, 'el'+probe+'_fgs', data=elx_fgs
-  copy_data, 'el'+probe+'_fgs_fsp_res_obw', 'el'+probe+'_fgs_fsp_res_obw_orig'
- 
+  copy_data, 'el'+probe+'_fgs_fsp_res_nec', 'el'+probe+'_fgs_fsp_res_nec_orig'
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ; GET KP and DST values
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -211,14 +213,14 @@ pro epde_plot_overviews, trange=trange, probe=probe, no_download=no_download, $
   r_ift_dip = (1.+100./Rem)
   calc," 'MLAT' = (180./pival)*arccos(sqrt(Rem*r_ift_dip/'elx_pos_sm_mins_foot_mag')*sin('elx_pos_sm_mins_foot_th'*pival/180.))*hemisphere " ; at footpoint
   ; interpolate the minute-by-minute data back to the full array
-  get_data,'MLAT',data=MLAT_mins  
+  get_data,'MLAT',data=MLAT_mins
   store_data,'el'+probe+'_MLAT_igrf',data={x: datgsm.x, y: interp(MLAT_mins.y, MLAT_mins.x, datgsm.x)}
 
   ;;trace to equator to get L, MLAT, and MLT in IGRF
   get_data,'elx_pos_gsm_mins_foot',data=elx_pos_eq
   L1=sqrt(total(elx_pos_eq.y^2.0,2,/nan))/Re
   store_data,'el'+probe+'_L_igrf',data={x: datgsm.x, y: interp(L1, elx_pos_eq.x, datgsm.x)}
-  
+
   elf_mlt_l_lat,'elx_pos_sm_mins_foot',MLT0=MLT0,L0=L0,lat0=lat0
   get_data, 'elx_pos_sm_mins_foot', data=sm_mins
   store_data,'el'+probe+'_MLT_igrf',data={x: datgsm.x, y: interp(MLT0, sm_mins.x, datgsm.x)}
@@ -375,14 +377,14 @@ pro epde_plot_overviews, trange=trange, probe=probe, no_download=no_download, $
     endelse
   endif
 
-    epd_sci_zones=get_elf_science_zone_start_end(trange=trange, probe=probe, instrument='epd')
-    fgm_sci_zones=get_elf_science_zone_start_end(trange=trange, probe=probe, instrument='fgm')
+  epd_sci_zones=get_elf_science_zone_start_end(trange=trange, probe=probe, instrument='epd')
+  fgm_sci_zones=get_elf_science_zone_start_end(trange=trange, probe=probe, instrument='fgm')
 
   ;  if size(epd_times, /type) EQ 8 then begin
   ;     sz_starttimes=epd_times.starts
   ;     sz_endtimes=epd_times.ends
   ;  endif
-  
+
   num_szs=n_elements(sz_starttimes)
 
   ; set up science zone plot options
@@ -528,19 +530,27 @@ pro epde_plot_overviews, trange=trange, probe=probe, no_download=no_download, $
       varstring=['ela_GLON','ela_MLAT_igrf[ela_MLAT_dip]', 'ela_MLT_igrf[ela_MLT_dip]', 'ela_L_igrf[ela_L_dip]'] else $
       varstring=['elb_GLON','elb_MLAT_igrf[elb_MLAT_dip]', 'elb_MLT_igrf[elb_MLT_dip]', 'elb_L_igrf[elb_L_dip]']
 
-    if spd_data_exists('el'+probe+'_fgs_fsp_res_obw_orig',sz_tr[0],sz_tr[1]) then begin
-      copy_data, 'el'+probe+'_fgs_fsp_res_obw_orig', 'el'+probe+'_fgs_fsp_res_obw'
-      get_data, 'el'+probe+'_fgs_fsp_res_obw', data=fsp_obw
-      idx=where(fsp_obw.x GE sz_tr[0] and fsp_obw.x LE sz_tr[1], ncnt)
+    if spd_data_exists('el'+probe+'_fgs_fsp_res_nec_orig',sz_tr[0],sz_tr[1]) then begin
+      elf_load_fgm, trange=[sz_tr[0], sz_tr[1]], probe=probe, no_download=no_download
+      ;copy_data, 'el'+probe+'_fgs_fsp_res_nec_orig', 'el'+probe+'_fgs_fsp_res_nec'
+      get_data, 'el'+probe+'_fgs_fsp_res_nec', data=fsp_nec, dlim=dlim, lim=lim
+      options, 'el'+probe+'_fgs_fsp_res_nec', 'colors', ['b', 'r', 'g']
+      idx=where(fsp_nec.x GE sz_tr[0] and fsp_nec.x LE sz_tr[1], ncnt)
+
+      ;;JWu add start
+      ;; this code is to avoid spikes at the end of sz, example: 2022-01-11 11:14 ela
+      ;; not sure where this spike comes from. read cdf with python, no spike is seen
+      ;; if read one sci zone instead of entire day, no spike is seen
+
       if ncnt GT 0 then begin
-        yrng=minmax(fsp_obw.y[idx,*])
+        yrng=minmax(fsp_nec.y[idx,*])
         if abs(yrng[0]) LT 100. AND abs(yrng[1]) LT 100. then begin
-          ;idx=where(abs(fsp_obw.y[idx,*]) LT 100, tcnt)
+          ;idx=where(abs(fsp_nec.y[idx,*]) LT 100, tcnt)
           ;if tcnt GT 0 then begin
-          ylim, 'el'+probe+'_fgs_fsp_res_obw', -100,100.
+          ylim, 'el'+probe+'_fgs_fsp_res_nec', -100,100.
         endif
       endif
-      options,  'el'+probe+'_fgs_fsp_res_obw', ysubtitle='[nT]'
+      options,  'el'+probe+'_fgs_fsp_res_nec', ysubtitle='[nT]'
       tplot,['proxy_ae', $
         'fgm_survey_bar', $
         'epdi_fast_bar', $
@@ -552,11 +562,11 @@ pro epde_plot_overviews, trange=trange, probe=probe, no_download=no_download, $
         'el'+probe+'_pef_en_spec2plot_para', $
         'el'+probe+'_pef_pa_spec2plot_ch[0,1]LC', $
         'el'+probe+'_pef_pa_spec2plot_ch[2,3]LC', $
-        'el'+probe+'_fgs_fsp_res_obw'], $
+        'el'+probe+'_fgs_fsp_res_nec'], $
         var_label=varstring     ;'el'+probe+'_'+['LAT','MLT','L_dip','MLT_igrf','L_igrf']
     endif else begin
       tplot,['proxy_ae', $
-       'fgm_survey_bar', $
+        'fgm_survey_bar', $
         'epdi_fast_bar', $
         'epde_fast_bar', $
         'sunlight_bar', $
@@ -754,7 +764,7 @@ pro epde_plot_overviews, trange=trange, probe=probe, no_download=no_download, $
     copy_data,'el'+probe+'_pef_pa_spec2plot_ch1LC_all','el'+probe+'_pef_pa_spec2plot_ch1LC'
     copy_data,'el'+probe+'_pef_pa_spec2plot_ch2LC_all','el'+probe+'_pef_pa_spec2plot_ch2LC'
     copy_data,'el'+probe+'_pef_pa_spec2plot_ch3LC_all','el'+probe+'_pef_pa_spec2plot_ch3LC'
- 
+
     options, 'el'+probe+'_pef_en_spec2plot_omni', 'ysubtitle', '[keV]'
     options, 'el'+probe+'_pef_en_spec2plot_anti', 'ysubtitle', '[keV]'
     options, 'el'+probe+'_pef_en_spec2plot_perp', 'ysubtitle', '[keV]'

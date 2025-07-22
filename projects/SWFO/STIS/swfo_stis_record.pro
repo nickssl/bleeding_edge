@@ -1,7 +1,7 @@
-;$LastChangedBy: $
-;$LastChangedDate:  $
-;$LastChangedRevision:  $
-;$URL:  $
+;$LastChangedBy: davin-mac $
+;$LastChangedDate: 2023-11-13 07:46:41 -0800 (Mon, 13 Nov 2023) $
+;$LastChangedRevision: 32242 $
+;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/swfo_stis_record.pro $
 
 pro swfo_stis_record, debug=debug
 

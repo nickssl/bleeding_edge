@@ -8,9 +8,9 @@
 ; HISTORY:
 ;   2015-05-22 - af - don't reset window if /noerase set, updating (some) documentation
 ; VERSION:
-;   $LastChangedBy: aaflores $
-;   $LastChangedDate: 2015-05-22 16:54:25 -0700 (Fri, 22 May 2015) $
-;   $LastChangedRevision: 17683 $
+;   $LastChangedBy: nikos $
+;   $LastChangedDate: 2024-12-13 08:57:41 -0800 (Fri, 13 Dec 2024) $
+;   $LastChangedRevision: 32989 $
 ;   $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/ground/asi_mosaic/thm_map_set.pro $
 ;-
 
@@ -58,7 +58,7 @@ pro thm_map_set,scale=scale,$                         ;scale for map set
 
 	; Harald addition
    if not keyword_set(no_color) then begin
-     loadct,0
+     loadct,0,/silent
      tvlct,r,g,b,/get
      g[255]=0 & b[255]=0
      tvlct,r,g,b

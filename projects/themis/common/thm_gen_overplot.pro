@@ -44,8 +44,8 @@
 ;  This has replaced the older spd_ui_overplot.pro which was written specifically for GUI overview plots.
 ;
 ;$LastChangedBy: jimm $
-;$LastChangedDate: 2023-09-25 13:55:05 -0700 (Mon, 25 Sep 2023) $
-;$LastChangedRevision: 32123 $
+;$LastChangedDate: 2025-05-19 11:45:05 -0700 (Mon, 19 May 2025) $
+;$LastChangedRevision: 33318 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/common/thm_gen_overplot.pro $
 ;-----------------------------------------------------------------------------------
 
@@ -263,6 +263,17 @@ if (index_fit[0] eq -1 or index_state[0] eq -1) then begin
   ylim,thx+'_fgs_gse',-100,100,0
 endif else begin
   thm_cotrans,thx+'_fgs',out_suf='_gse', in_c='dsl', out_c='gse'
+;for recent FGS data, if there is an estimated Bz, put the Bz curve
+;behind Bx and By. jmm, 2024-12-12
+  If(sc[0] Eq 'e' And time_double(date) Ge time_double('2024-05-25')) Then Begin
+     options, thx+'_fgs_gse', 'indices', [2,0,1]
+;check for l1b data, if there is none yet, set Bz to NaN 
+     If(~is_string(thm_l1b_check(date, sc[0]))) Then Begin
+        get_data, thx+'_fgs_gse', data = btmp
+        btmp.y[*, 2] = !values.f_nan
+        store_data, thx+'_fgs_gse', data = btmp
+     Endif
+  Endif
 endelse
 
 ;clip data
@@ -274,24 +285,33 @@ options, name, 'labflag', 1
 options, name, 'colors', [2, 4, 6]
 
 
-;load FBK data
+;load FBK and FFT data, skip this if probe = 'a' and date past
+;26-feb-2025, jmm, 19-May-2025, as EFI and SCM are turned off
 ;--------------
 
 load_position='fbk'
-
-thm_load_fbk,lev=1,probe=sc
+If(sc Eq 'a') Then Begin
+   If(time_double(date) Lt time_double('2025-02-26')) Then Begin
+      thm_load_fbk,lev=1,probe=sc
+      thm_load_fft,lev=1,probe=sc
+   Endif
+Endif Else Begin
+   thm_load_fbk,lev=1,probe=sc
+   thm_load_fft,lev=1,probe=sc
+Endelse   
 
 SKIP_FBK_LOAD:
 
 del_data,thx+'_fb_h*'  ; del thx_fb_hff as it is not used and gets in the way later
 fbk_tvars=tnames(thx+'_fb_*') ; this should give us two tplot variables (but sometimes more)
+fft_tvars=tnames(thx+'_fff_*')
 
-if n_elements(fbk_tvars) eq 1 then fbk_tvars=[fbk_tvars,'filler']
+If(n_elements(fbk_tvars) Eq 1) Then fbk_tvars=[fbk_tvars,'filler']
 
-for i=0,n_elements(fbk_tvars)-1 do begin
+For i=0,n_elements(fbk_tvars)-1 Do Begin
   ;kluge to prevent missing data from crashing things
   get_data,fbk_tvars[i],data=dd
-  if size(dd,/type) ne 8 then begin
+  If(size(dd,/type) Ne 8) Then Begin
     filler = fltarr(2, 6)
     filler[*, *] = float('NaN')
     name = thx+'_fb_'+strcompress(string(i+1), /remove_all)
@@ -299,8 +319,10 @@ for i=0,n_elements(fbk_tvars)-1 do begin
     options, name, 'spec', 1
     ylim, name, 1, 1000, 1
     zlim, name, 0, 0, 1
-  endif else begin
-;    store_data,fbk_tvars(i),data={x:dd.x,y:dd.y,v:[2.,8.,32.,128.,512.,2048.]}
+  Endif Else Begin
+    fbk_tmp = strsplit(fbk_tvars[i], '_', /extract)
+    fbk_tmp = fbk_tmp[2] ;'edc12' or 'scm2' for example
+    fbk_inst = strmid(fbk_tmp, 0, 3) ;'edc' or 'scm'
     store_data, fbk_tvars[i], data = {x:dd.x, y:dd.y, v:[2048., 512., 128., 32., 8., 2.]}
     options, fbk_tvars[i], 'spec', 1
     options, fbk_tvars[i], 'zlog', 1
@@ -319,7 +341,9 @@ for i=0,n_elements(fbk_tvars)-1 do begin
       If(is_struct(d)) Then zlim,  fbk_tvars[i], min(d.y), 2.0, 1
     Endif
     xv = strpos(fbk_tvars[i], 'v')
-    If(xv[0] Ne -1) Then options, fbk_tvars[i], 'ztitle', '<|V|>'
+    If(xv[0] Ne -1) Then Begin
+       options, fbk_tvars[i], 'ztitle', '<|V|>'
+    Endif
     xe = strpos(fbk_tvars[i], 'e')
     If(xe[0] Ne -1) Then Begin
       options, fbk_tvars[i], 'ztitle', '<|mV/m|>'
@@ -327,10 +351,52 @@ for i=0,n_elements(fbk_tvars)-1 do begin
       get_data, fbk_tvars[i], data = d
       If(is_struct(d)) Then zlim,  fbk_tvars[i], min(d.y), 2.0, 1
     Endif
-  endelse
+  Endelse
 ;degap, jmm, 2017-02-13
   tdegap, fbk_tvars[i], /overwrite, dt = 600.0
-endfor
+;Replace FBK with FFF data, if possible, for THD since 1-jan-2023
+;only for edc or scm data
+  If(sc[0] Eq 'd' And time_double(date) Ge time_double('2023-01-01')) Then Begin
+     fft_use = ''
+     If(is_string(fft_tvars)) Then Begin
+        match0 = where(strmatch(fft_tvars, '*'+fbk_tmp))
+        If(match0[0] Ne -1) Then fft_use = fft_tvars[match0[0]] Else Begin
+;try for a match for a different axis, e.g., 'scm2' rather than 'scm1'
+           match1 = where(strmatch(fft_tvars, '*'+fbk_inst+'*'))
+           If(match1[0] Ne -1) Then Begin
+              If(fbk_inst Eq 'edc') Then Begin
+                 fft_use = fft_tvars[match1[0]]
+              Endif Else If(fbk_inst Eq 'scm') Then Begin ;use scm3 preferentially
+                 match2 = where(strmatch(fft_tvars, '*scm3'))
+                 If(match2[0] Ne -1) Then fft_use = fft_tvars[match2[0]] $
+                 Else fft_use = fft_tvars[match1[0]]
+              Endif
+           Endif ;if no match to 'edc' or 'scm', then do nothing
+        Endelse
+     Endif
+     If(is_string(fft_use)) Then Begin
+        If(fbk_inst Eq 'edc') Then scale = 100 Else scale = 0
+        fbk_tvars[i] = thm_ffffbk_composite(fft_use, fbk_tvars[i], scale = scale)
+;replace zero values with NaN
+        get_data, fbk_tvars[i], data = dd
+        zv = where(dd.y Eq 0, nzv)
+        If(nzv Gt 0) Then dd.y[zv] = !values.f_nan
+        store_data, fbk_tvars[i], data = temporary(dd)
+;Set limits after setting zero values to NaN
+        thm_spec_lim4overplot, fbk_tvars[i], ylog = 1, zlog = 1, /overwrite
+        zlim,  fbk_tvars[i], 2.0e-4, 2.0, 1
+        get_data, fbk_tvars[i], data = d
+        options, fbk_tvars[i], 'spec', 1
+        options, fbk_tvars[i], 'zlog', 1
+        options, fbk_tvars[i], 'ytitle', 'FBK-FFF!C[Hz]'
+        x1 = strpos(fbk_tvars[i], 'scm')
+        If(x1[0] Ne -1) Then options, fbk_tvars[i], 'ztitle', 'FBK-|nT|!C!CFFF-|nT|'
+        xe = strpos(fbk_tvars[i], 'e')
+        If(xe[0] Ne -1) Then options, fbk_tvars[i], 'ztitle', 'FBK-|mV/m|!C!CFFF-100|mV/m|'
+     Endif
+     ylim, fbk_tvars[i], 9.0, 4096.0, 1
+  Endif
+Endfor
 
 ;load SST spectrograms
 ;----------------------
@@ -586,7 +652,6 @@ no_npot:
 ;data, and EESa data
     IF(sc Eq 'e' AND time_double(date) Gt time_double('2022-09-22')) THEN BEGIN
        thm_scpot2dens_opt_n, probe = sc, datatype_esa = 'peem'
-       stop
     ENDIF ELSE BEGIN
 ;Npot calculation, 2009-10-12, jmm
        thm_scpot2dens_opt_n, probe = sc, /no_data_load, datatype_esa = 'pee'+mtyp[j]
@@ -928,7 +993,7 @@ spd_gen_overplot_ae_panel
 vars_full = ['kyoto_thm_combined_ae', roi_bar, 'Keogram', thx+'_fgs_gse', $
              esaf_n_name, esaif_v_name, esaf_t_name, sample_rate_var, $
              ssti_name, esaif_flux_name, sste_name,  $
-             esaef_flux_name, thx+'_fb_*', thx+'_pos_gse_z']
+             esaef_flux_name, fbk_tvars[0], fbk_tvars[1], thx+'_pos_gse_z']
 
 if (gui_plot eq 1) then begin ; for GUI plots we have some differences 
     title = probes_title[pindex[0]] + ' (TH-'+strupcase(sc)+')'
@@ -974,8 +1039,9 @@ if (gui_plot eq 1) then begin ; for GUI plots we have some differences
 
 endif else begin
   ;for server plots
-  timespan,date,dur
-  tplot, vars_full,trange=[t0,t1], title = probes_title[pindex[0]]+' (TH-'+strupcase(sc)+')', $
+   timespan,date,dur
+   tplot_options, 'xmargin', [14,16]
+   tplot, vars_full,trange=[t0,t1], title = probes_title[pindex[0]]+' (TH-'+strupcase(sc)+')', $
     var_label = [thx+'_state_pos_gse_z', thx+'_state_pos_gse_y', thx+'_state_pos_gse_x']
 endelse
 
@@ -1012,11 +1078,11 @@ if keyword_set(makepng) then begin
   vars06 = ['kyoto_thm_combined_ae', roi_bar, 'Keogram', thx+'_fgs_gse', $
              esar_n_name, esair_v_name, esar_t_name, 'sample_rate_'+sc, $
              ssti_name, esair_flux_name, sste_name,  $
-             esaer_flux_name, thx+'_fb_*', thx+'_pos_gse_z']
+             esaer_flux_name, fbk_tvars[0], fbk_tvars[1], thx+'_pos_gse_z']
   vars02 = ['kyoto_thm_combined_ae', roi_bar, 'Keogram', thx+'_fgs_gse', $
              esar_n_name, esair_v_name, esar_t_name, 'sample_rate_'+sc, $
              ssti_name, esair_flux_name, sste_name,  $
-             esaer_flux_name, thx+'_fb_*', thx+'_pos_gse_z']
+             esaer_flux_name, fbk_tvars[0], fbk_tvars[1], thx+'_pos_gse_z']
   dprint, '24: ',vars_full
   options,vars_full,ysubtitle=''
   options,vars_full,ysubtitle='',/def

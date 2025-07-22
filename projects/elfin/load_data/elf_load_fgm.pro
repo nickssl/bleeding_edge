@@ -9,6 +9,7 @@
 ;         trange:       time range of interest [starttime, endtime] with the format
 ;                       ['YYYY-MM-DD','YYYY-MM-DD'] or to specify more or less than a day
 ;                       ['YYYY-MM-DD/hh:mm:ss','YYYY-MM-DD/hh:mm:ss']
+;                       Default: ['2022-08-19', '2022-08-20']
 ;         probes:       list of probes, valid values for elf probes are ['a','b'].
 ;                       if no probe is specified the default is probe 'a'
 ;         datatype:     valid datatypes include level 1 - ['fgf', 'fgs'] and 
@@ -75,7 +76,7 @@ pro elf_load_fgm, trange = trange, probes = probes, datatype = datatype, $
   get_support_data = get_support_data, no_cal=no_cal, units=units, $
   tplotnames = tplotnames, no_color_setup = no_color_setup, $
   no_time_clip = no_time_clip, no_update = no_update, suffix = suffix, $
-  varformat = varformat, cdf_filenames = cdf_filenames, $
+  varformat = varformat, cdf_filenames = cdf_filenames, no_conversion=no_conversion, $
   cdf_version = cdf_version, latest_version = latest_version, $
   min_version = min_version, cdf_records = cdf_records, $
   spdf = spdf, available = available, versions = versions, $
@@ -126,7 +127,9 @@ pro elf_load_fgm, trange = trange, probes = probes, datatype = datatype, $
   if ~undefined(trange) then begin
     dur=time_double(trange[1])-time_double(trange[0])
     timespan, trange[0],dur,/sec
-  endif
+  endif else begin
+    trange=time_double(['2022-08-19', '2022-08-20'])
+  endelse
 
   elf_load_data, trange = trange, probes = probes, level = level, instrument = 'fgm', $
     data_rate = data_rate, local_data_dir = local_data_dir, source = source, $
@@ -185,6 +188,8 @@ pro elf_load_fgm, trange = trange, probes = probes, datatype = datatype, $
   endif
 
   ; perform coordinate conversions from gei to NDW and OBW
+  if ~keyword_set(no_conversion) then begin
+
   if  ~undefined(tplotnames) && tplotnames[0] ne '' then begin
     if size(fsp_res_dmxl, /type) EQ 8 then begin
       tr=timerange()
@@ -196,7 +201,7 @@ pro elf_load_fgm, trange = trange, probes = probes, datatype = datatype, $
       if ~spd_data_exists('el'+probes+'_pos_gei_fsp',tr[0],tr[1]) then begin
         dprint, 'There is no data for el'+probes+'_pos_gei for '+ $
           time_string(tr[0])+ ' to ' + time_string(tr[1])
-        drpint, 'Unable to perform fgs_fsp_res_gei coordinate transforms to ndw and obw'
+        dprint, 'Unable to perform fgs_fsp_res_gei coordinate transforms to ndw and obw'
       endif else begin
         ; Transform data to ndw coordinates
         tr=time_double(trange)
@@ -205,6 +210,7 @@ pro elf_load_fgm, trange = trange, probes = probes, datatype = datatype, $
         elf_fgm_fsp_gei2obw, trange=tr, probe=probes, sz_starttimes=sz_starttimes, sz_endtimes=sz_endtimes
       endelse
     endif
+  endif
   endif
   
   ; check whether user wants support data tplot vars

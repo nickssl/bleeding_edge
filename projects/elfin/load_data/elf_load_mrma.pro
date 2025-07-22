@@ -9,6 +9,7 @@
 ;         trange:       time range of interest [starttime, endtime] with the format
 ;                       ['YYYY-MM-DD','YYYY-MM-DD'] or to specify more or less than a day
 ;                       ['YYYY-MM-DD/hh:mm:ss','YYYY-MM-DD/hh:mm:ss']
+;                       Default: ['2022-08-19', '2022-08-20']
 ;         probes:       list of probes, valid values for elf probes are ['a','b'].
 ;                       if no probe is specified the default is probe 'a'
 ;         datatypes:    only one valid datatype -'mrma' 
@@ -108,6 +109,13 @@ pro elf_load_mrma, trange = trange, probes = probes, datatype = datatype, $
   endif
   if undefined(suffix) then suffix = ''
   if undefined(data_rate) then data_rate = ''
+
+  if ~undefined(trange) then begin
+    dur=time_double(trange[1])-time_double(trange[0])
+    timespan, trange[0],dur,/sec
+  endif else begin
+    trange=time_double(['2022-08-19', '2022-08-20'])
+  endelse
 
   ; For now delete existing data types - TO DO: Query user to delete
   ; may want to add this check in elf_load_data

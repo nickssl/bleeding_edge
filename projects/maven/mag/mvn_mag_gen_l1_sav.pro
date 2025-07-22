@@ -1,12 +1,13 @@
 ;+
 ; $LastChangedBy: ali $
-; $LastChangedDate: 2023-01-19 12:36:42 -0800 (Thu, 19 Jan 2023) $
-; $LastChangedRevision: 31416 $
+; $LastChangedDate: 2023-10-21 18:50:42 -0700 (Sat, 21 Oct 2023) $
+; $LastChangedRevision: 32205 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/mag/mvn_mag_gen_l1_sav.pro $
 ;This procedure will create IDL save files from STS files.  It is only intended to be run from a batch job
 ;-
 
 pro mvn_mag_gen_l1_sav,trange=trange0,init=init,verbose=verbose
+  message,'obsolete, replaced by mvn_mag_sts_to_sav'
 
   if keyword_set(init) then begin
     trange0 = [time_double('2014-10-6'), systime(1) ]

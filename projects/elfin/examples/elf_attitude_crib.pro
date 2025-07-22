@@ -30,14 +30,7 @@ pro elf_attitude_crib
   elf_get_att, probe=probe, trange=tr
   tplot_names
   print, ''
-  print, 'Note there are 6 variables. Position, Velocity, and Attitude '
-  print, 'along with the angle between the spin vector and the sun and '
-  print, 'the angle between the spin vector and orbit normal.'
-  print, ''
-  print, 'It is important to know that the attitude solution '
-  print, 'retrieved may be stale. If the attitude solution is not '
-  print, 'available for the given time frame the routine will search '
-  print, 'back in time to find the most recent attitude. '
+  print, 'Note there are 6 attitude variables and 4 spin variables.
   print, ''
   stop
 

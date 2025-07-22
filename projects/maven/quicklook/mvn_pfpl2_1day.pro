@@ -15,6 +15,7 @@
 ;PLots, so far pfpl2 1 -day and orbit plots
 ;HISTORY:
 ; 2015-04-24, jmm, jimm@ssl.berkeley.edu
+; 2023-10-11, jmm, Calls mvn_call_pfpl2plot instead of mvn_over_shell
 ;-
 this_file = 'mvn_pfpl2_1day'
 spawn, 'touch '+this_file+'_lock'
@@ -35,7 +36,9 @@ free_lun, unit
 tend = time_double(en_time[0])
 If(tstart Ge tend) Then exit
 ;do the process one day at a time, in the local working directory
-mvn_over_shell, date = time_string(tstart), instr='pfpl2', /multipngplot
+;mvn_over_shell, date = time_string(tstart), instr='pfpl2',
+;/multipngplot
+mvn_call_pfpl2plot, days_in = time_string(tstart, precision = -3), instr = 'pfpl2', /no_proc_mail
 ;Add a day and reset start time file
 tstart_new = tstart+86400.0d0
 openw, unit, this_file+'_start_time.txt', /get_lun

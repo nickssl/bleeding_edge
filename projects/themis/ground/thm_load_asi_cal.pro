@@ -36,9 +36,9 @@
 ; No further action will be taken.
 ;
 ;Written by: Harald Frey,   Jan 26 2007
-;   $LastChangedBy: jimm $
-;   $LastChangedDate: 2020-07-20 10:58:45 -0700 (Mon, 20 Jul 2020) $
-;   $LastChangedRevision: 28913 $
+;   $LastChangedBy: jwl $
+;   $LastChangedDate: 2023-12-30 17:48:10 -0800 (Sat, 30 Dec 2023) $
+;   $LastChangedRevision: 32328 $
 ;   $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/ground/thm_load_asi_cal.pro $
 ;-
 ;

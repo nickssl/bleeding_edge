@@ -7,6 +7,16 @@
 ; 
 ; 
 
+;; Kludge to get ctime, /exact to work
+pro esc_ctime_kludge
+  all_tnames = tnames()
+  size_tnames = size(all_tnames)
+  n_tnames = size_tnames[1]
+  for i = 0, n_tnames-1 do begin
+    get_data, all_tnames[i], data = foo
+    store_data, all_tnames[i], data = foo
+  endfor
+end
 
 stop
 
@@ -78,5 +88,3 @@ tplot_names, "*frates_*_HZ *dhkp_*_HZ"
 
 tplot, /add, [ind1[5],ind2[5]]
 
-
-end

@@ -8,12 +8,12 @@
 ;group: sequence group: 0:middle of multipacket (very rare, huge packets? usually sign of error) 1:start of multi-packet 2:end of multi-packet 3:single packet
 ;+
 ; $LastChangedBy: ali $
-; $LastChangedDate: 2022-07-06 12:44:46 -0700 (Wed, 06 Jul 2022) $
-; $LastChangedRevision: 30906 $
+; $LastChangedDate: 2024-02-27 18:50:02 -0800 (Tue, 27 Feb 2024) $
+; $LastChangedRevision: 32464 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SPP/sweap/spp_swp_wrp_stat.pro $
 ;-
 
-pro spp_swp_wrp_stat,load=load,cdf=cdf,apid,capid=capid0,noheader=noheader,stats=stats,all=all,comp=comp,group=group,trange=trange,tplot_comp_ratio=tplot_comp_ratio,original_time=original_time
+pro spp_swp_wrp_stat,load=load,cdf=cdf,ptp=ptp,apid,capid=capid0,noheader=noheader,stats=stats,all=all,comp=comp,group=group,trange=trange,tplot_comp_ratio=tplot_comp_ratio,original_time=original_time
 
   spp_swp_apdat_init
   apr=[0,'7ff'x] ;range of all apids: to check for possible bad packets
@@ -29,7 +29,7 @@ pro spp_swp_wrp_stat,load=load,cdf=cdf,apid,capid=capid0,noheader=noheader,stats
     stats2=replicate(stat,[apr[1]-apr[0]+1,wapr[1]-wapr[0]+1])
     names=replicate('',wapr[1]-wapr[0]+1)
     for wapid=wapr[0],wapr[1] do begin
-      spp_swp_wrp_stat,wapid,load=load,cdf=cdf,stats=stats,all=all,comp=comp,group=group,trange=trange,tplot_comp_ratio=tplot_comp_ratio,original_time=original_time
+      spp_swp_wrp_stat,wapid,load=load,cdf=cdf,ptp=ptp,stats=stats,all=all,comp=comp,group=group,trange=trange,tplot_comp_ratio=tplot_comp_ratio,original_time=original_time
       for istat=0,3 do stats2[*,wapid-wapr[0]].(istat)=stats.(istat)
       names[wapid-wapr[0]]=(spp_apdat(wapid)).name
     endfor
@@ -76,7 +76,7 @@ pro spp_swp_wrp_stat,load=load,cdf=cdf,apid,capid=capid0,noheader=noheader,stats
   type=apdat.name
   if (apid lt wapr[0]) || (apid gt wapr[1]) then begin ;apid is not a wrapper apid
     print,apdat.name,apid,apid,format='(a-20,i4,7(" "),"0x",Z03)'
-    for wapid=wapr[0],wapr[1] do spp_swp_wrp_stat,wapid,load=load,cdf=cdf,capid=apid,comp=comp,group=group,trange=trange,tplot_comp_ratio=tplot_comp_ratio,original_time=original_time,noheader=wapid ne wapr[0]
+    for wapid=wapr[0],wapr[1] do spp_swp_wrp_stat,wapid,load=load,cdf=cdf,ptp=ptp,capid=apid,comp=comp,group=group,trange=trange,tplot_comp_ratio=tplot_comp_ratio,original_time=original_time,noheader=wapid ne wapr[0]
     return
   endif
 
@@ -85,13 +85,14 @@ pro spp_swp_wrp_stat,load=load,cdf=cdf,apid,capid=capid0,noheader=noheader,stats
 
   if keyword_set(cdf) then begin
     if ~keyword_set(type) then message,'unknown apid!'
-    if keyword_set(load) then spp_swp_load,type=type,spx='swem',trange=trange
-    get_data,'psp_swp_swem_'+type+'_L1_SEQN_GROUP',tt,sg
-    get_data,'psp_swp_swem_'+type+'_L1_PKT_SIZE',tt,ps
-    get_data,'psp_swp_swem_'+type+'_L1_CONTENT_TIME_DIFF',tt,td
-    get_data,'psp_swp_swem_'+type+'_L1_CONTENT_APID',tt,ca
-    get_data,'psp_swp_swem_'+type+'_L1_CONTENT_DECOMP_SIZE',tt,ds
-    get_data,'psp_swp_swem_'+type+'_L1_CONTENT_COMPRESSED',tt,cc
+    if keyword_set(load) then spp_swp_load,type=type,spx='swem',trange=trange,ptp=ptp
+    if keyword_set(ptp) then level='PTP' else level='L1'
+    get_data,'psp_swp_swem_'+type+'_'+level+'_SEQN_GROUP',tt,sg
+    get_data,'psp_swp_swem_'+type+'_'+level+'_PKT_SIZE',tt,ps
+    get_data,'psp_swp_swem_'+type+'_'+level+'_CONTENT_TIME_DIFF',tt,td
+    get_data,'psp_swp_swem_'+type+'_'+level+'_CONTENT_APID',tt,ca
+    get_data,'psp_swp_swem_'+type+'_'+level+'_CONTENT_DECOMP_SIZE',tt,ds
+    get_data,'psp_swp_swem_'+type+'_'+level+'_CONTENT_COMPRESSED',tt,cc
     if ~keyword_set(ca) then return
   endif else begin
     array=apdat.array

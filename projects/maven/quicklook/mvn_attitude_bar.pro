@@ -22,8 +22,8 @@
 ;       KEY:      Print out the color key and return.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-08-15 10:43:47 -0700 (Tue, 15 Aug 2023) $
-; $LastChangedRevision: 32001 $
+; $LastChangedDate: 2024-01-08 16:12:18 -0800 (Mon, 08 Jan 2024) $
+; $LastChangedRevision: 32344 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/quicklook/mvn_attitude_bar.pro $
 ;
 ;CREATED BY:    David L. Mitchell
@@ -114,5 +114,4 @@ printkey:
   print,'  purple = Fly+Z (including up and down variants)'
   print,''
 
-  return
 end

@@ -1,9 +1,9 @@
 ;+
 ; Written by Davin Larson
 ;
-; $LastChangedBy: ali $
-; $LastChangedDate: 2022-12-10 23:01:16 -0800 (Sat, 10 Dec 2022) $
-; $LastChangedRevision: 31348 $
+; $LastChangedBy: rjolitz $
+; $LastChangedDate: 2025-03-04 10:57:07 -0800 (Tue, 04 Mar 2025) $
+; $LastChangedRevision: 33161 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/swfo_file_retrieve.pro $
 ;
 ; Function:  files = spp_file_retrieve(PATHNAME)
@@ -65,7 +65,7 @@ function swfo_file_retrieve,pathname,trange=trange,ndays=ndays,nhours=nhours,ver
   endif
 
   if keyword_set(ptp) then begin
-    pathname = 'psp/data/sci/sweap/raw/PTP/YYYY/DOY/sweap_spp_YYYYDOY_??.ptp.gz
+    pathname = 'psp/data/sci/sweap/raw/PTP/YYYY/DOY/sweap_spp_YYYYDOY_??.ptp.gz'
     daily_names=1
   endif
 

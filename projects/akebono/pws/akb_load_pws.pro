@@ -24,9 +24,9 @@
 ; :Author:
 ;   Tomo Hori (horit at stelab.nagoya-u.ac.jp)
 ;
-; $LastChangedBy: nikos $
-; $LastChangedDate: 2019-03-17 21:51:57 -0700 (Sun, 17 Mar 2019) $
-; $LastChangedRevision: 26838 $
+; $LastChangedBy: jwl $
+; $LastChangedDate: 2025-07-05 16:33:37 -0700 (Sat, 05 Jul 2025) $
+; $LastChangedRevision: 33429 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/akebono/pws/akb_load_pws.pro $
 ;-
 PRO akb_load_pws, $
@@ -40,8 +40,8 @@ PRO akb_load_pws, $
   
   ;Set up the structure including the local/remote data directories.
   source = file_retrieve( /struct )
-  source.local_data_dir = root_data_dir()+'exosd/pws/'
-  source.remote_data_dir = 'http://darts.isas.jaxa.jp/stp/data/exosd/pws/'
+  source.local_data_dir = root_data_dir()+'akebono/pws/NPW-DS/'
+  source.remote_data_dir = 'https://data.darts.isas.jaxa.jp/pub/akebono/pws//NPW-DS/'
   
   if keyword_set(downloadonly) then source.downloadonly=1
   if keyword_set(no_download) then source.no_download=1
@@ -56,7 +56,7 @@ PRO akb_load_pws, $
   relpathnames = file_dailynames(file_format=pathformat)
   
   ;Check the time stamps of data files and download  if they are newer
-  files = file_retrieve(relpathnames, _extra=source, /last_version)
+  files = spd_download(remote_file=relpathnames, _extra=source, /last_version)
   if keyword_set(downloadonly) then return
   
   ;Exit unless data files are downloaded or found locally.

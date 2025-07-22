@@ -1,13 +1,11 @@
 ;+
-; $LastChangedBy: ali $
-; $LastChangedDate: 2023-07-22 18:26:45 -0700 (Sat, 22 Jul 2023) $
-; $LastChangedRevision: 31965 $
+; $LastChangedBy: davin-mac $
+; $LastChangedDate: 2024-10-11 14:12:48 -0700 (Fri, 11 Oct 2024) $
+; $LastChangedRevision: 32885 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SWFO/STIS/swfo_stis_apdat_init.pro $
 ;-
 
-pro swfo_stis_apdat_init,reset=reset, save_flag = save_flag, swem=swem, $
-  rt_flag= rt_Flag, $
-  clear = clear, no_products =no_products
+pro swfo_stis_apdat_init,reset=reset, save_flag=save_flag,swem=swem,rt_flag=rt_flag,clear=clear,no_products=no_products
 
   common swfo_stis_apdat_init, initialized
   if keyword_set(reset) then initialized = 0
@@ -15,8 +13,26 @@ pro swfo_stis_apdat_init,reset=reset, save_flag = save_flag, swem=swem, $
   initialized =1
   ;   dprint,dlevel=3,/phelp ,rt_flag,save_flag
 
+
+  pb = 0x400   ; playback flag
+
   ;; special case to accumulate statistics
   swfo_apdat_info, 0 ,name='Stats',apid_obj='swfo_gen_apdat_stats',tname='APIDS', ttags=ttags,save_flag=save_flag,rt_flag=rt_flag
+
+  swfo_apdat_info,100,name='sc_100',apid_obj ='swfo_sc_100_apdat',tname='swfo_sc_100',save_flag=save_flag,ttags='*',rt_flag=rt_flag
+  swfo_apdat_info,110,name='sc_110',apid_obj ='swfo_sc_110_apdat',tname='swfo_sc_110',save_flag=save_flag,ttags='*',rt_flag=rt_flag
+  swfo_apdat_info,120,name='sc_120',apid_obj ='swfo_sc_120_apdat',tname='swfo_sc_120',save_flag=save_flag,ttags='*',rt_flag=rt_flag
+  swfo_apdat_info,130,name='sc_130',apid_obj ='swfo_sc_130_apdat',tname='swfo_sc_130',save_flag=save_flag,ttags='*',rt_flag=rt_flag
+  swfo_apdat_info,160,name='sc_160',apid_obj ='swfo_sc_160_apdat',tname='swfo_sc_160',save_flag=save_flag,ttags='*',rt_flag=rt_flag
+  swfo_apdat_info,170,name='sc_170',apid_obj ='swfo_sc_170_apdat',tname='swfo_sc_170',save_flag=save_flag,ttags='*',rt_flag=rt_flag
+
+  swfo_apdat_info,100 or pb,name='pb_sc_100',apid_obj ='swfo_sc_100_apdat',tname='pb_swfo_sc_100',save_flag=save_flag,ttags='*',rt_flag=rt_flag
+  swfo_apdat_info,110 or pb,name='pb_sc_110',apid_obj ='swfo_sc_110_apdat',tname='pb_swfo_sc_110',save_flag=save_flag,ttags='*',rt_flag=rt_flag
+  swfo_apdat_info,120 or pb,name='pb_sc_120',apid_obj ='swfo_sc_120_apdat',tname='pb_swfo_sc_120',save_flag=save_flag,ttags='*',rt_flag=rt_flag
+  swfo_apdat_info,130 or pb,name='pb_sc_130',apid_obj ='swfo_sc_130_apdat',tname='pb_swfo_sc_130',save_flag=save_flag,ttags='*',rt_flag=rt_flag
+  swfo_apdat_info,160 or pb,name='pb_sc_160',apid_obj ='swfo_sc_160_apdat',tname='pb_swfo_sc_160',save_flag=save_flag,ttags='*',rt_flag=rt_flag
+  swfo_apdat_info,170 or pb,name='pb_sc_170',apid_obj ='swfo_sc_170_apdat',tname='pb_swfo_sc_170',save_flag=save_flag,ttags='*',rt_flag=rt_flag
+
 
   ;;#################
   ;; SETUP SWEM APIDs
@@ -24,23 +40,23 @@ pro swfo_stis_apdat_init,reset=reset, save_flag = save_flag, swem=swem, $
 
   ; These APIDs are used by the SWEM
   if keyword_set(swem) then begin
-    swfo_apdat_info,'340'x,name='swem_crit_hkp',                                      tname='swfo_swem_crit_hkp', save_flag=save_flag,ttags='*',rt_flag=rt_flag
-    swfo_apdat_info,'341'x,name='swem_dig_hkp',  apid_obj='swfo_swp_swem_dhkp_apdat',  tname='swfo_swem_dig_hkp',  save_flag=save_flag,ttags='*',rt_flag=rt_flag
-    swfo_apdat_info,'342'x,name='swem_memdump',  apid_obj='swfo_swp_memdump_apdat',    tname='swfo_swem_memdump',  save_flag=save_flag,ttags='*',rt_flag=rt_flag
-    swfo_apdat_info,'343'x,name='swem_ana_hkp',  apid_obj='swfo_swp_swem_hkp_apdat',   tname='swfo_swem_ana_hkp',  save_flag=save_flag,ttags='*',rt_flag=rt_flag
-    swfo_apdat_info,'344'x,name='swem_event_log',apid_obj='swfo_swp_swem_events_apdat',tname='swfo_swem_event_log',save_flag=save_flag,ttags='*',rt_flag=rt_flag
-    swfo_apdat_info,'345'x,name='swem_cmd_echo',                                      tname='swfo_swem_cmd_echo', save_flag=save_flag,ttags='*',rt_flag=rt_flag
-    swfo_apdat_info,'346'x,name='swem_timing',   apid_obj='swfo_swp_swem_timing_apdat',tname='swfo_swem_timing',   save_flag=save_flag,ttags='*',rt_flag=rt_flag
-    swfo_apdat_info,'347'x,name='swem_memdwell',                                      tname='swfo_swem_memdwell', save_flag=save_flag,ttags='*',rt_flag=rt_flag
+    swfo_apdat_info,'340'x,name='swem_crit_hkp',                                      tname='swx_swem_crit_hkp', save_flag=save_flag,ttags='*',rt_flag=rt_flag
+    swfo_apdat_info,'341'x,name='swem_dig_hkp',  apid_obj='spp_swp_swem_dhkp_apdat',  tname='swx_swem_dig_hkp',  save_flag=save_flag,ttags='*',rt_flag=rt_flag
+    swfo_apdat_info,'342'x,name='swem_memdump',  apid_obj='spp_swp_memdump_apdat',    tname='swx_swem_memdump',  save_flag=save_flag,ttags='*',rt_flag=rt_flag
+    swfo_apdat_info,'343'x,name='swem_ana_hkp',  apid_obj='spp_swp_swem_hkp_apdat',   tname='swx_swem_ana_hkp',  save_flag=save_flag,ttags='*',rt_flag=rt_flag
+    swfo_apdat_info,'344'x,name='swem_event_log',apid_obj='spp_swp_swem_events_apdat',tname='swx_swem_event_log',save_flag=save_flag,ttags='*',rt_flag=rt_flag
+    swfo_apdat_info,'345'x,name='swem_cmd_echo',                                      tname='swx_swem_cmd_echo', save_flag=save_flag,ttags='*',rt_flag=rt_flag
+    swfo_apdat_info,'346'x,name='swem_timing',   apid_obj='spp_swp_swem_timing_apdat',tname='swx_swem_timing',   save_flag=save_flag,ttags='*',rt_flag=rt_flag
+    swfo_apdat_info,'347'x,name='swem_memdwell',                                      tname='swx_swem_memdwell', save_flag=save_flag,ttags='*',rt_flag=rt_flag
 
-    swfo_apdat_info,'348'x,name='wrp_P2rt',apid_obj='swfo_swp_wrapper_apdat',tname='swfo_wrp_348_P2rt',ttags='*',save_flag=save_flag,rt_flag=rt_flag
-    swfo_apdat_info,'349'x,name='wrp_P2',  apid_obj='swfo_swp_wrapper_apdat',tname='swfo_wrp_349_P2',  ttags='*',save_flag=save_flag,rt_flag=rt_flag
-    swfo_apdat_info,'34A'x,name='wrp_P3rt',apid_obj='swfo_swp_wrapper_apdat',tname='swfo_wrp_34A_P3rt',ttags='*',save_flag=save_flag,rt_flag=rt_flag
-    swfo_apdat_info,'34b'x,name='wrp_P3',  apid_obj='swfo_swp_wrapper_apdat',tname='swfo_wrp_34B_P3',  ttags='*',save_flag=save_flag,rt_flag=rt_flag
-    swfo_apdat_info,'34c'x,name='wrp_P4rt',apid_obj='swfo_swp_wrapper_apdat',tname='swfo_wrp_34C_P4rt',ttags='*',save_flag=save_flag,rt_flag=rt_flag
-    swfo_apdat_info,'34d'x,name='wrp_P4',  apid_obj='swfo_swp_wrapper_apdat',tname='swfo_wrp_34D_P4',  ttags='*',save_flag=save_flag,rt_flag=rt_flag
-    swfo_apdat_info,'34e'x,name='wrp_P5P7',apid_obj='swfo_swp_wrapper_apdat',tname='swfo_wrp_34E_P5P7',ttags='*',save_flag=save_flag,rt_flag=rt_flag
-    swfo_apdat_info,'34f'x,name='wrp_P8',  apid_obj='swfo_swp_wrapper_apdat',tname='swfo_wrp_34F_P8',  ttags='*',save_flag=save_flag,rt_flag=rt_flag
+    swfo_apdat_info,'348'x,name='wrp_P2rt',apid_obj='spp_swp_wrapper_apdat',tname='swx_wrp_348_P2rt',ttags='*',save_flag=save_flag,rt_flag=rt_flag
+    swfo_apdat_info,'349'x,name='wrp_P2',  apid_obj='spp_swp_wrapper_apdat',tname='swx_wrp_349_P2',  ttags='*',save_flag=save_flag,rt_flag=rt_flag
+    swfo_apdat_info,'34A'x,name='wrp_P3rt',apid_obj='spp_swp_wrapper_apdat',tname='swx_wrp_34A_P3rt',ttags='*',save_flag=save_flag,rt_flag=rt_flag
+    swfo_apdat_info,'34b'x,name='wrp_P3',  apid_obj='spp_swp_wrapper_apdat',tname='swx_wrp_34B_P3',  ttags='*',save_flag=save_flag,rt_flag=rt_flag
+    swfo_apdat_info,'34c'x,name='wrp_P4rt',apid_obj='spp_swp_wrapper_apdat',tname='swx_wrp_34C_P4rt',ttags='*',save_flag=save_flag,rt_flag=rt_flag
+    swfo_apdat_info,'34d'x,name='wrp_P4',  apid_obj='spp_swp_wrapper_apdat',tname='swx_wrp_34D_P4',  ttags='*',save_flag=save_flag,rt_flag=rt_flag
+    swfo_apdat_info,'34e'x,name='wrp_P5P7',apid_obj='spp_swp_wrapper_apdat',tname='swx_wrp_34E_P5P7',ttags='*',save_flag=save_flag,rt_flag=rt_flag
+    swfo_apdat_info,'34f'x,name='wrp_P8',  apid_obj='spp_swp_wrapper_apdat',tname='swx_wrp_34F_P8',  ttags='*',save_flag=save_flag,rt_flag=rt_flag
 
   endif
 
@@ -48,11 +64,17 @@ pro swfo_stis_apdat_init,reset=reset, save_flag = save_flag, swem=swem, $
   ;;################
   ;;#   STIS APIDs  #
   ;;################
-  swfo_apdat_info,'350'x,name='stis_sci', apid_obj='swfo_stis_sci_apdat',         tname='swfo_stis_sci',ttags='*',save_flag=save_flag,rt_flag=rt_flag
-  swfo_apdat_info,'351'x,name='stis_nse', apid_obj='swfo_stis_nse_apdat',    tname='swfo_stis_nse',ttags='*',save_flag=save_flag,rt_flag=rt_flag
-  swfo_apdat_info,'35d'x,name='stis_mem', apid_obj='swfo_stis_memdump_apdat', tname='swfo_stis_memdump',ttags='*',save_flag=save_flag,rt_flag=rt_flag
-  swfo_apdat_info,'35E'x,name='stis_hkp1', apid_obj='swfo_stis_hkp_apdat', tname='swfo_stis_hkp1',ttags='*',save_flag=save_flag,rt_flag=rt_flag
-  swfo_apdat_info,'35F'x,name='stis_hkp2', apid_obj='swfo_stis_hkp_apdat', tname='swfo_stis_hkp2',ttags='*',    save_flag=save_flag,rt_flag=rt_flag
+  swfo_apdat_info,'350'x,name='stis_sci', apid_obj='swfo_stis_sci_apdat',    tname='swfo_stis_sci',    ttags='*',save_flag=save_flag,rt_flag=rt_flag
+  swfo_apdat_info,'351'x,name='stis_nse', apid_obj='swfo_stis_nse_apdat',    tname='swfo_stis_nse',    ttags='*',save_flag=save_flag,rt_flag=rt_flag
+  swfo_apdat_info,'35d'x,name='stis_mem', apid_obj='swfo_stis_memdump_apdat',tname='swfo_stis_memdump',ttags='*',save_flag=save_flag,rt_flag=rt_flag
+  swfo_apdat_info,'35E'x,name='stis_hkp1',apid_obj='swfo_stis_hkp_apdat',    tname='swfo_stis_hkp1',   ttags='*',save_flag=save_flag,rt_flag=rt_flag
+  swfo_apdat_info,'35F'x,name='stis_hkp2',apid_obj='swfo_stis_hkp_apdat',    tname='swfo_stis_hkp2',   ttags='*',save_flag=save_flag,rt_flag=rt_flag
+
+  swfo_apdat_info,'350'x or pb,name='pb_stis_sci', apid_obj='swfo_stis_sci_apdat',    tname='pb_swfo_stis_sci',    ttags='*',save_flag=save_flag,rt_flag=rt_flag
+  swfo_apdat_info,'351'x or pb,name='pb_stis_nse', apid_obj='swfo_stis_nse_apdat',    tname='pb_swfo_stis_nse',    ttags='*',save_flag=save_flag,rt_flag=rt_flag
+  swfo_apdat_info,'35d'x or pb,name='pb_stis_mem', apid_obj='swfo_stis_memdump_apdat',tname='pb_swfo_stis_memdump',ttags='*',save_flag=save_flag,rt_flag=rt_flag
+  swfo_apdat_info,'35E'x or pb,name='pb_stis_hkp1',apid_obj='swfo_stis_hkp_apdat',    tname='pb_swfo_stis_hkp1',   ttags='*',save_flag=save_flag,rt_flag=rt_flag
+  swfo_apdat_info,'35F'x or pb,name='pb_stis_hkp2',apid_obj='swfo_stis_hkp_apdat',    tname='pb_swfo_stis_hkp2',   ttags='*',save_flag=save_flag,rt_flag=rt_flag
 
 
 

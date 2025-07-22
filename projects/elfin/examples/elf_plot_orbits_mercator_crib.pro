@@ -24,7 +24,7 @@ pro elf_plot_orbits_mercator_crib
   elf_init
   ;
   ; Set up the day to create plots for
-  tdate='2019-09-28'
+  tdate='2021-01-01'
   dir_products=!elf.local_data_dir + 'gtrackplots'  ; set up directory for plots
   ;
   ;

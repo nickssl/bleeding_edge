@@ -1,19 +1,11 @@
 ; $LastChangedBy: ali $
-; $LastChangedDate: 2023-01-15 12:00:25 -0800 (Sun, 15 Jan 2023) $
-; $LastChangedRevision: 31409 $
+; $LastChangedDate: 2023-10-21 18:50:42 -0700 (Sat, 21 Oct 2023) $
+; $LastChangedRevision: 32205 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/sep/mvn_save_reduce_timeres.pro $
 
-pro mvn_save_reduce_timeres,pathformat,trange=trange0,init=init,timestamp=timestamp,verbose=verbose,mag_cluge=mag_cluge,resstr=resstr,resolution=res,description=description
+pro mvn_save_reduce_timeres,pathformat,trange=trange0,init=init,timestamp=timestamp,verbose=verbose,resstr=resstr,resolution=res,description=description
 
-  if keyword_set(init) then begin
-    trange0 = [time_double('2014-9-22'), systime(1) ]
-    if init lt 0 then trange0 = [time_double('2013-12-5'), systime(1) ]
-  endif else trange0 = timerange(trange0)
-
-  if keyword_set(mag_cluge) then begin
-    pathformat =  'maven/data/sci/mag/l1/sav/$RES/YYYY/MM/mvn_mag_l1_pl_$RES_YYYYMMDD.sav'
-    description = 'Preliminary MAG Data  - NOT to be used for science purposes. Read info for more info'
-  endif
+  if keyword_set(init) then trange0 = [time_double('2013-12'), systime(1) ] else trange0 = timerange(trange0)
 
   if ~keyword_set(resstr) then resstr = '30sec'
   if ~keyword_set(res) then begin
@@ -68,7 +60,7 @@ pro mvn_save_reduce_timeres,pathformat,trange=trange0,init=init,timestamp=timest
       f = fullres_files[j]
       if file_test(/regular,f) eq 0 then continue
       dprint,dlevel=2,'Loading '+file_info_string(f)
-      restore,f    ;,/verbose   ; it is presumed that the variables: 'data' and 'dependents' are defined here.
+      restore,f,description=description    ;,/verbose   ; it is presumed that the variables: 'data' and 'dependents' are defined here.
       append_array,alldata,data
       append_array,all_dependents,dependents
       if j eq 1 then info = header
@@ -87,5 +79,4 @@ pro mvn_save_reduce_timeres,pathformat,trange=trange0,init=init,timestamp=timest
   endfor
 
 end
-
 

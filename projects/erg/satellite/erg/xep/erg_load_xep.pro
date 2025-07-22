@@ -45,8 +45,8 @@
 ;   M. Teramoto, ERG Science Center, ISEE, Nagoya Univ.
 ;   S. Imajo, ERG Science Center, ISEE, Nagoya Univ.
 ;
-; $LastChangedDate: 2021-03-25 13:25:21 -0700 (Thu, 25 Mar 2021) $
-; $LastChangedRevision: 29822 $
+; $LastChangedDate: 2024-05-28 12:15:53 -0700 (Tue, 28 May 2024) $
+; $LastChangedRevision: 32652 $
 ;-
 pro erg_load_xep, $
   debug=debug, $
@@ -129,7 +129,7 @@ pro erg_load_xep, $
 
     if datatype eq 'omniflux' then begin
       if tnames(prefix+'FEDO_SSD') eq '' then begin
-        dprintf, prefix+'Failed loading FEDO_SSD data! Exit.'
+        dprint, prefix+'Failed loading FEDO_SSD data! Exit.'
         return
       endif
       get_data,prefix+'FEDO_'+suf,data=fedo,dl=dl,lim=lim

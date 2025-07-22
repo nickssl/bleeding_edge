@@ -35,6 +35,7 @@ elf_init
 ; download data for 8/2/2015
 date = '2022-01-01/00:00:00'
 timespan,date,1,/day
+tr=timerange()
 
 ;;    ===================================
 ;; 2) Select probe, datatype
@@ -57,7 +58,7 @@ stop
 ;; 4) Use get_support_data keyword 
 ;;    ===================================
 probe = 'a'
-elf_load_fgm, probes=probe, /get_support_data
+elf_load_fgm, trange=tr, probes=probe, /get_support_data
 tplot, ['ela_fgs_fsp_res_dmxl','ela_fgs_fsp_res_gei','ela_fgs_fsp_igrf_dmxl','ela_fgs_fsp_igrf_gei']
 stop
 tplot, ['ela_fgs_fsp_pos_gei','ela_fgs_fsp_vel_gei','ela_fgs_fsp_att_gei']
@@ -68,7 +69,7 @@ stop
 ;; 5) Set no download flag
 ;;    ===================================
 probe = ['a']         
-elf_load_fgm, probes=probe, /no_download
+elf_load_fgm, trange=tr, probes=probe, /no_download
 tplot, ['ela_fgs_fsp_res_dmxl','ela_fgs_fsp_res_gei','ela_fgs_fsp_res_ndw','ela_fgs_fsp_res_obw']
 ;  NOTE - Use tlimit to zoom into science zones
 stop
@@ -77,7 +78,7 @@ stop
 ;; 6) Add suffix to tplot name
 ;;    ===================================
 probe = ['b']
-elf_load_fgm, probes=probe, suffix='_test', /no_download
+elf_load_fgm, trange=tr, probes=probe, suffix='_test', /no_download
 tplot_names
 stop
 

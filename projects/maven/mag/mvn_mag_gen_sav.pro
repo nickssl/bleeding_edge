@@ -9,7 +9,8 @@ pro mvn_mag_gen_sav,trange=trange0,$
                     timestamp=timestamp,$
                     verbose=verbose,$
                     coord=coord
-  
+  message,'obsolete, replaced by mvn_mag_sts_to_sav'
+
 
   if keyword_set(init) then begin
      trange0 = [time_double('2013-12-5'), systime(1) ]

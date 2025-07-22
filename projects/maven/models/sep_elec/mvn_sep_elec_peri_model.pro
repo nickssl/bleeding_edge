@@ -96,7 +96,7 @@ pro mvn_sep_elec_peri_model,orbit=orbit,lowalt=lowalt,savetraj=savetraj,mhd=mhd
             rpara+=abs(drpara)
             rperp+=abs(drperp)
           endwhile
-          if iteration eq itermax then od=fnan ;in order to show as while in spectrograms
+          if iteration eq itermax then od=fnan ;in order to show up as white in the spectrograms
           bw[it,ie,isep,ifov].al=alt ;final altitude (km)
           bw[it,ie,isep,ifov].it=iteration ;iterations
           bw[it,ie,isep,ifov].od=od ;optical depth

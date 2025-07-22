@@ -1,6 +1,6 @@
 ; $LastChangedBy: moka $
-; $LastChangedDate: 2023-08-28 12:08:19 -0700 (Mon, 28 Aug 2023) $
-; $LastChangedRevision: 32071 $
+; $LastChangedDate: 2023-12-30 22:32:28 -0800 (Sat, 30 Dec 2023) $
+; $LastChangedRevision: 32329 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/sitl/eva/source/cw_sitl/eva_sitl_submit_fomstr.pro $
 PRO eva_sitl_submit_FOMStr, tlb, TESTING, vcase, user_flag=user_flag
 
@@ -113,7 +113,7 @@ PRO eva_sitl_submit_FOMStr, tlb, TESTING, vcase, user_flag=user_flag
       0: begin
         msgsfx = 'for DRAFT.'
         tn = tag_names(tai_FOMstr_mod)
-        idx = where(tn eq strupcase('UPLINK_FLAG'), nmatch)
+        idx = where(tn eq strupcase('UPLINKFLAG'), nmatch)
         if nmatch gt 0 then begin
           if tai_FOMstr_mod.UPLINKFLAG eq 1 then msgsfx='for UPLINK.'
         endif else begin

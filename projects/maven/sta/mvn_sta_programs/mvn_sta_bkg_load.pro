@@ -26,7 +26,7 @@
 ;
 ;CREATED BY:	J. McFadden
 ;VERSION:	1
-;LAST MODIFICATION:  20/08/18		
+;LAST MODIFICATION:  2025/03/26   minor change to prevent NANs from a divide by zero; see lines with  >1.))  added 	
 ;MOD HISTORY:
 ;
 ;NOTES:	  
@@ -370,7 +370,7 @@ endif
 ; main loop starts here
 
 print,'Starting main loop'
-
+no_valid_count_events=0		; added to prevent NANs in background caused by divide by a zero.
 
 for jj=0l,npts-1 do begin
      ii = ind_jj[jj]
@@ -507,7 +507,7 @@ for jj=0l,npts-1 do begin
 	st_to_rate_diff[jj]=tmp71-st_to_rst
 	rate0_arr[jj]=rate0
 	n_iter_arr[jj] = n_iter
-;	print,n_iter,(tmp71-st_to_rst),st_to_rst,rate0,max(rate),minmax(start_to_rate)
+; 	print,n_iter,(tmp71-st_to_rst),st_to_rst,rate0,max(rate),minmax(start_to_rate)
 
 ; anode_sq is needed for coincident events
 	anode_sq = total(anode^2,2)#replicate(1.,16)	
@@ -639,7 +639,7 @@ if d1_loaded then begin
 			print,'mas8to64 ',abs(total(cnts_d1)-total(mas8to64*d1_tmp/4.))
 		endif
 
-		d1_full = d1_full*(total(cnts_c6)/total(cnts_d1))
+		d1_full = d1_full*(total(cnts_c6)/(total(cnts_d1)>1.))			; modified 20250326 to prevent divide by zero
 		n_d1_4s = n_d1_4s + 1
 
 	endif else if (delta_t_d1 gt 5. and delta_t_d1 lt 17.) and (abs(time_d1-time_c6) lt 8.) and (abs(total(cnts_d1)/4.-total(cnts_c6)) lt 2.*total(cnts_c6)^.5) then begin
@@ -663,7 +663,7 @@ if d1_loaded then begin
 			print,'mas8to64 ',abs(total(cnts_d1)-total(mas8to64*d1_tmp/4.))
 		endif
 
-		d1_full = d1_full*(total(cnts_c6)/total(cnts_d1))		; 32Ex16Dx16Ax64M
+		d1_full = d1_full*(total(cnts_c6)/(total(cnts_d1)>1.))		; 32Ex16Dx16Ax64M ; modified 20250326 to prevent divide by zero
 		n_d1_16s = n_d1_16s + 1
 
 	endif else if abs(time_ca - time_c6) lt 6. then begin		; use ca to construct d1_full 
@@ -715,7 +715,7 @@ tfe32=1
 			print,n_ca
 		endif
 
-		d1_full = ca_full*(total(cnts_c6)/total(cnts_ca))
+		d1_full = ca_full*(total(cnts_c6)/(total(cnts_ca)>1.))			; modified 20250326 to prevent divide by zero
 		n_ca_4s = n_ca_4s + 1
 
 	endif else begin
@@ -799,7 +799,7 @@ tfe32=1
 			print,n_ca
 		endif
 
-		d1_full = ca_full*(total(cnts_c6)/total(cnts_ca))
+		d1_full = ca_full*(total(cnts_c6)/(total(cnts_ca)>1.))			; modified 20250326 to prevent divide by zero
 		n_ca_4s = n_ca_4s + 1
 
 	endif else begin
@@ -1653,7 +1653,7 @@ endif
 
 
 endfor
-; this is the end of the ii for loop
+; this is the end of the jj for loop, (and ii loop)
 
 ;*************************************************************************************************
 

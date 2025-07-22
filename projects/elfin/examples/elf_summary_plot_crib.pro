@@ -54,16 +54,6 @@ pro elf_summary_plot_crib
   print,'*****************************************************************************'
   stop
 
-  ; PLOT ELFIN a using the regularize keyword
-  tdate='2020-11-01'
-  elf_plot_multispec_overviews, tdate,  probe='a', /quick_run, /regularize
-  print,'*****************************************************************************'
-  print,'Plots will have the name '
-  print,'!elf.local_data_dir/elfin/elb/overplots/2020/09/28/elb_l2_overview_20190928_hh.gif;
-  print,'where HH = hour (00, 01, ...22, 23)
-  print,'*****************************************************************************'
-  stop
-
   ; PLOT ELFIN a single science zone
   trange = ['2022-03-22/05:19','2022-03-22/05:27']
   epde_plot_overviews_solo, trange=trange,  probe='a', /quick_run

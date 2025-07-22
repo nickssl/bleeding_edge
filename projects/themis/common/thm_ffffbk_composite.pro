@@ -20,8 +20,8 @@
 ; 11-Aug-2010, jmm, jimm@ssl.berkeley.edu
 ;Version:
 ; $LastChangedBy: jimm $
-; $LastChangedDate: 2010-08-12 15:04:38 -0700 (Thu, 12 Aug 2010) $
-; $LastChangedRevision: 7757 $
+; $LastChangedDate: 2025-04-03 12:41:12 -0700 (Thu, 03 Apr 2025) $
+; $LastChangedRevision: 33222 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/common/thm_ffffbk_composite.pro $
 ;-
 Function thm_ffffbk_composite, fffvar, fbkvar, scale = scale, $
@@ -34,6 +34,8 @@ Function thm_ffffbk_composite, fffvar, fbkvar, scale = scale, $
     store_data, otp, data = dfbk, dlimits = dl
     Return, otp
   Endif
+;Is this an efield or Bfield?
+  fbk_inst = strmid(fbkvar, 0, 3) ;'edc' or 'scm'
   If(keyword_set(scale)) Then scx = scale[0] Else scale = 1.0
   If(keyword_set(min_gap)) Then mngp = min_gap Else mngp = 300.0
 ;first get the data, in principle this can be done for any variable
@@ -61,7 +63,14 @@ Function thm_ffffbk_composite, fffvar, fbkvar, scale = scale, $
   df = dfx[1:*,*]-dfx[0:nf-1,*]
   df = transpose(df)
   f = transpose(f)              ;back to ntimes, nf
-  yfff = scale*sqrt(dfff.y)*temporary(df)
+;????? should df be in the sqrt?
+  If(fbk_inst Eq 'edc' Or fbk_inst Eq 'eac') Then Begin
+;changes units of output from (V/m)^2/Hz to mV/m
+     yfff = scale*sqrt(1000.0*df*dfff.y)
+  Endif Else Begin
+;changes units of output from (nT)^2/Hz to nT
+     yfff = scale*sqrt(df*dfff.y)
+  Endelse
 ;yfff is now the normalized FFF data
 ;The next step is to work with the FBK data the new variable will have
 ;FFF data where FFF data exists, and FBK data in the other parts
@@ -83,8 +92,8 @@ Function thm_ffffbk_composite, fffvar, fbkvar, scale = scale, $
   vfbk = transpose(vfbk)
 ;embed into an array with the same number of frequencies as the fff
 ;data
-  yfbk1 = fltarr(ntfbk, nf) & yfbk1[*, 0:nvfbk-1] = temporary(yfbk)
-  vfbk1 = fltarr(ntfbk, nf) & vfbk1[*, 0:nvfbk-1] = temporary(vfbk)
+  yfbk1 = fltarr(ntfbk, nf) & yfbk1[*, 0:nvfbk-1] = yfbk
+  vfbk1 = fltarr(ntfbk, nf) & vfbk1[*, 0:nvfbk-1] = vfbk
 ;use fbk data where there is not FFF data
   k0 = where(tfbk Lt trfff[0] Or tfbk Gt trfff[1]) ;before or after
 ;Are there gaps? Get gap subscripts
@@ -98,17 +107,17 @@ Function thm_ffffbk_composite, fffvar, fbkvar, scale = scale, $
     Endfor
   Endif
   If(k0[0] Eq -1) Then Begin
-    t = temporary(tfff)
-    y = temporary(yfff)
-    v = temporary(f)
+    t = tfff
+    y = yfff
+    v = f
   Endif Else Begin
     tfbk = tfbk[k0]
     vfbk1 = vfbk1[k0, *]
     yfbk1 = yfbk1[k0, *]
 ;now, concatenate and sort
-    t = [temporary(tfff), temporary(tfbk)]
-    y = [temporary(yfff), temporary(yfbk1)]
-    v = [temporary(f), temporary(vfbk1)]
+    t = [tfff, tfbk]
+    y = [yfff, yfbk1]
+    v = [f, vfbk1]
     sst = bsort(t)
     t = t[sst]
     y = y[sst, *]
@@ -119,6 +128,8 @@ Function thm_ffffbk_composite, fffvar, fbkvar, scale = scale, $
   vm = minmax(v[where(v Gt 0)])
   ylim, otp, vm[0], vm[1], 1
   zlim, otp, 0, 0, 1
+  options, otp, 'spec', 1
+  options, otp, 'zlog', 1
   Return, otp
 End
 

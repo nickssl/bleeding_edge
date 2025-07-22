@@ -50,8 +50,6 @@
 ;  cal_get_dac_dat = Returns the raw data from directly after the DAC(non-linearity offset) calibration is applied.  For verification.
 ;  cal_get_spin_dat = Returns the raw data from directly after the spin harmonic(solar array current) calibration is applied.  For verification.
 ;  interpolate_cal = if it is set, then thm_cal values are interpolated to 10 min time intervals
-;
-;
 ; use_eclipse_corrections:  Only applies when loading and calibrating
 ;   Level 1 data. Defaults to 0 (no eclipse spin model corrections 
 ;   applied).  use_eclipse_corrections=1 applies partial eclipse 
@@ -64,6 +62,9 @@
 ;    tone removal. Use this for short time intervals.
 ; cal_file_in: A full path to the calibration file, for testing. This
 ;              will only work for single probe proecessing
+; check_l1b: if set, then look for L1B data files that include
+;            estimates for Bz. This is the deafult for THEMIS E 
+;            after 2024-06-01 (date subject to change....)
 ;optional parameters:
 ;
 ;         name_thx_fgx_in   --> input data (t-plot variable name)
@@ -71,16 +72,15 @@
 ;         name_thx_fgx_out  --> name for output (t-plot variable name)
 ;         pathfile          --> path and filename of the calibration file
 ;
-;keywords:
 ;Example:
 ;      tha_cal_fgm, probe = 'a', datatype= 'fgl'
 ;
 ;Notes: under construction!!
 ;
 ;Written by Hannes Schwarzl.
-; $LastChangedBy: jwl $
-; $LastChangedDate: 2023-03-21 14:19:02 -0700 (Tue, 21 Mar 2023) $
-; $LastChangedRevision: 31646 $
+; $LastChangedBy: jimm $
+; $LastChangedDate: 2025-01-27 11:54:29 -0800 (Mon, 27 Jan 2025) $
+; $LastChangedRevision: 33093 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/themis/spacecraft/fields/thm_cal_fgm.pro $
 ;Changes by Edita Georgescu
 ;eg 6/3/2007     - matrix multiplication
@@ -94,7 +94,7 @@
 ;            Search this string to see changes: Hannes 05/21/2007
 ;-
 
-pro thm_interpolate_cal_apply, thx_fgx, utcStr=utcStr, offi=offi, cali=cali, ncal=ncal
+pro thm_interpolate_cal_apply, thx_fgx, utcStr=utcStr, offi=offi, cali=cali, ncal=ncal, bz_slope_intercept=bz_slope_intercept
   ; interpolate the cal file parameter to 10-min intervals
   ; we use +- a week for a fit
   compile_opt idl2, hidden
@@ -128,17 +128,24 @@ pro thm_interpolate_cal_apply, thx_fgx, utcStr=utcStr, offi=offi, cali=cali, nca
   new_offi_0 = INTERPOL(offi[idx,0], utcd[idx], fit_times)
   new_offi_1 = INTERPOL(offi[idx,1], utcd[idx], fit_times)
   new_offi_2 = INTERPOL(offi[idx,2], utcd[idx], fit_times)
-  
+
+  new_bz_intercept = INTERPOL(bz_slope_intercept[idx,0], utcd[idx], fit_times)
+  new_bz_slope = INTERPOL(bz_slope_intercept[idx,1], utcd[idx], fit_times)
+
   ncal = fit_count
   offi=dblarr(ncal,3)
   cali_new=dblarr(ncal,9)
   utcStr=strarr(ncal)  
-  
+  bz_slope_intercept = dblarr(ncal,2)
+
+  ;input variables are replaced
   utcStr = time_string(fit_times)
   offi[*,0] = new_offi_0
   offi[*,1] = new_offi_1
   offi[*,2] = new_offi_2  
-          
+  bz_slope_intercept[*,0] = new_bz_intercept
+  bz_slope_intercept[*,1] = new_bz_slope  
+  
   m = MAKE_ARRAY(ct, 3, 3, /double)
   for k=0, ct-1 do begin
     for i=0,2 do begin
@@ -169,7 +176,7 @@ pro thm_interpolate_cal_apply, thx_fgx, utcStr=utcStr, offi=offi, cali=cali, nca
   cali = dblarr(ncal,9) 
   cali = cali_new
 
-  DPRINT, dlevel=4, 'Interpollation was applied for cal parameters.'
+  DPRINT, dlevel=4, 'Interpolation was applied for cal parameters.'
 
 end
 
@@ -193,6 +200,7 @@ pro thm_cal_fgm,$
          cal_get_spin_dat=cal_get_spin_dat,$
          use_eclipse_corrections=use_eclipse_corrections,$
          cal_file_in=cal_file_in, no_spin_tone_batch=no_spin_tone_batch, $
+         check_l1b=check_l1b, $
          _extra=_extra      
          ;eg 30/3/2007;Hannes 30/3/2007 ;kb
 
@@ -278,6 +286,7 @@ if n_params() eq 0 then begin
                         cal_get_spin_dat=spin_dat,$
                         use_eclipse_corrections=use_eclipse_corrections,$
                         cal_file_in=cal_file_in, no_spin_tone_batch=no_spin_tone_batch,$
+                        check_l1b=check_l1b, $
                         _extra=_extra      
      
            if arg_present(cal_get_fulloffset) && keyword_set(fulloffset) then begin  
@@ -433,27 +442,44 @@ utci='2006-01-01T00:00:00.000Z'
 utc=dblarr(ncal)
 utcStr=strarr(ncal)
 
-for i=0,ncal-1 DO BEGIN
-    split_result = strsplit(calstr[i], COUNT=lct, /EXTRACT) 
-    if lct ne 14 then begin
-      msg = 'Error in FGM cal file. Line: ' + string(i) + ", File: " + pathfile
-      dprint, dlevel=1, msg
-      continue
+;THEMIS E has two extra columns as of 2024-04-24
+bz_slope_intercept = dblarr(ncal, 2)
+
+for i=0,ncal-1 do begin
+    split_result = strsplit(calstr[i], COUNT=lct, /EXTRACT)
+    if lct lt 14 then begin
+       msg = 'Error in FGM cal file. Line: ' + string(i) + ", File: " + pathfile
+       dprint, dlevel=1, msg
+       continue
+    endif else if lct gt 16 then begin
+       msg = 'Unexpected elements in FGM cal file. Consider updating software, Line: ' $
+             + string(i) + ", File: " + pathfile
+       dprint, dlevel=1, msg
     endif
     utci=split_result[0]
     offi[i,*]=split_result[1:3]
     cali[i,*]=split_result[4:12]
     spinperi[i]=split_result[13]
     utcStr[i]=utci
-    ;translate time information
+;translate time information
     STRPUT, utci, '/', 10
     utc[i]=time_double(utci)
-ENDFOR
+    if probe_letter eq 'e' and lct ge 16 then begin
+       bz_slope_intercept[i,*] = split_result[14:15]
+    endif
+endfor
+
+;for probe e, use the last value for intercept with zero slope if needed, jmm, 2024-05-25
+if probe_letter eq 'e' then begin
+   bz_last_time = utc[ncal-1]   ;last time for nonzero slope
+   bz_ext_intercept = bz_slope_intercept[ncal-1,0]
+endif
+
 DPRINT, dlevel=4, 'done reading calibration file'
 
 
 if (interpolate_cal eq 1) then begin
-  thm_interpolate_cal_apply, thx_fgx, utcStr=utcStr, offi=offi, cali=cali, ncal=ncal
+  thm_interpolate_cal_apply, thx_fgx, utcStr=utcStr, offi=offi, cali=cali, ncal=ncal, bz_slope_intercept=bz_slope_intercept
   utc=dblarr(ncal)
   utc=time_double(utcStr)
 endif  
@@ -596,48 +622,96 @@ ENDELSE
 
 ydata=thx_fgx.Y
 
+;check for L1B data, and reset ydata
+thx = 'th'+probe_letter[0]
+If(keyword_set(check_l1b)) Then use_l1b_bz = 1b Else Begin
+   If(probe_letter[0] Eq 'e') Then Begin
+      If(thx_fgx.x[0] Gt time_double('2024-05-25/00:00:00')) Then use_l1b_bz = 1b Else use_l1b_bz = 0b
+   Endif Else use_l1b_bz = 0b
+Endelse
+If(use_l1b_bz) Then Begin
+   get_data, thx+'_fgl_l1b_bz', data = temp_bz
+   If(is_struct(temp_bz)) Then Begin
+;if the data overlaps the input, then keep the variable, set start and
+;end times to nearest day boundary
+      thbz = minmax(temp_bz.x)
+      thbz[0] = time_double(time_string(thbz[0], precision=-3))
+      thbz[1] = time_double(time_String(thbz[1]+86400.0d0, precision=-3))
+      If(min(thx_fgx.x) Ge thbz[0] And max(thx_fgx.x) Le thbz[1]) Then Begin
+         read_alt_bz = 0b
+      Endif Else read_alt_bz = 1b
+   Endif Else read_alt_bz = 1b
+   If(read_alt_bz) Then Begin
+      If(is_struct(temp_bz)) Then del_data, thx+'_fgl_l1b_bz'
+      l1b_relpath = thx+'/l1b/fgm/'
+      l1b_filenames = file_dailynames(thx+'/l1b/fgm/', thx+'_l1b_fgm_', '_v01.cdf', $
+                                      /yeardir, trange = minmax(thx_fgx.x))
+      l1b_files = spd_download(remote_file = l1b_filenames, _extra = !themis)
+      cdf2tplot, files = l1b_files, varformat = '*'
+      get_data, 'the_fgl_l1b_bz', data = temp_bz
+   Endif
+   If(is_struct(temp_bz)) Then Begin
+      dprint, 'WARNING: Using L1B level Bz estimated from spin-plane components'
+      ydata[*, 0] = kr*interpol(temp_bz.y, temp_bz.x, thx_fgx.x)
+      ydata_bz = ydata[*, 0] ;will use this value later
+   Endif Else Begin
+      ydata_bz = ydata[*, 0] & ydata_bz[*] = 0
+   Endelse
+Endif
+
 for j=0L,count-1L do begin
     ;Hannes 30/3/2007
-	;apply the right calibration at the right time
-	IF (thx_fgx.X[j] ge nextCalChangeTime) THEN BEGIN
-		iact=iact+1
-		IF (iact eq istop) THEN BEGIN
-			nextCalChangeTime=thx_fgx.X[count-1L]+10.d0 ;something greater than the last point in time
-		ENDIF ELSE BEGIN
-			nextCalChangeTime=utc[iact+1L]
-			DPRINT, dlevel=4,  'nextCalChangeTime:'
-			DPRINT, dlevel=4,  utcStr[iact+1L]
-		ENDELSE
-		offs=offi[iact,*]
-		calim=TRANSPOSE(cali[iact,*])
-		calm=[[calim[0:2]],[calim[3:5]],[calim[6:8]]]
-		;spinper=spinperi(iact)
-	ENDIF
-	;end Hannes 30/3/2007
+    ;apply the right calibration at the right time
+   IF (thx_fgx.X[j] ge nextCalChangeTime) THEN BEGIN
+      iact=iact+1
+      IF (iact eq istop) THEN BEGIN
+         nextCalChangeTime=thx_fgx.X[count-1L]+10.d0 ;something greater than the last point in time
+      ENDIF ELSE BEGIN
+         nextCalChangeTime=utc[iact+1L]
+         DPRINT, dlevel=4,  'nextCalChangeTime:'
+         DPRINT, dlevel=4,  utcStr[iact+1L]
+      ENDELSE
+      offs=offi[iact,*]
+      calim=TRANSPOSE(cali[iact,*])
+      calm=[[calim[0:2]],[calim[3:5]],[calim[6:8]]]
+    ;spinper=spinperi(iact)
+   ENDIF                         ;end Hannes 30/3/2007
 
     ; update header information if necessary (WHILE loop should work for all possible cases)
-    while ((thx_fgx.X[j] gt timei) && (i lt countHed-1)) do begin
-       i=i+1
-       ffi=ff[i]
-       fsi=fs[i]
-       modi=mode[i]
-       timei=thx_fgx_HED.X[i]
-    endwhile
+   while ((thx_fgx.X[j] gt timei) && (i lt countHed-1)) do begin
+      i=i+1
+      ffi=ff[i]
+      fsi=fs[i]
+      modi=mode[i]
+      timei=thx_fgx_HED.X[i]
+   endwhile
 
-
- if modi eq 0 then begin ;eg 30/3/2007
-
- ;   thx_fgx.Y[j,*]=MATRIX_MULTIPLY(calm, thx_fgx.Y[j,*], /BTRANSPOSE)-offs     ;eg 6/3/2007
- ydata[j,*]=calm ## ydata[j,*] - offs       ;eg 6/3/2007
-
-    ;correct for filter
-    if ffi eq 2 then begin
-    	spinper=thx_spinper_interp.Y[j];Hannes 30/3/2007
-        arg=-!dpi/fsi/spinper
-        dfilt=128./fsi*sin(!dpi/128.d0/spinper)/sin(-arg)
-        dfm=identity(3,/double)
-        dfm[1,1]=dfilt
-        dfm[0,0]=dfilt
+;Here is where we make more exceptions for THEMIS E
+   if probe_letter eq 'e' then begin
+;if the time is more than 1 orbit since the last value in the cal
+;file, then use bz_ext_intercept for the offset with zero slope
+      if thx_fgx.x[j] gt bz_last_time then begin
+         offs[0, 2] = offi[iact, 2]-bz_ext_intercept ;subtract, jmm, 2024-05-04
+      endif else begin
+;time difference in hours?, Yes, jmm, 2024-05-02
+         offs[0, 2] = offi[iact, 2]-(bz_slope_intercept[iact, 0]+$
+                      bz_slope_intercept[iact, 1]*(thx_fgx.x[j]-utc[iact])/3600.0d0)
+      endelse
+   endif
+   if(use_l1b_bz) then offs[0, 2] = 0 ;jmm, 2024-11-06
+   if modi eq 0 then begin      ;eg 30/3/2007
+      
+;   thx_fgx.Y[j,*]=MATRIX_MULTIPLY(calm, thx_fgx.Y[j,*], /BTRANSPOSE)-offs     ;eg 6/3/2007
+      ydata[j,*]=calm ## ydata[j,*] - offs ;eg 6/3/2007
+      if(use_l1b_bz) then ydata[j, 2] = -ydata_bz[j] ;jmm, 2024-11-06, the matrix multiplication adds a spin dependence
+;correct for filter
+      if ffi eq 2 then begin
+         spinper=thx_spinper_interp.Y[j] ;Hannes 30/3/2007
+         arg=-!dpi/fsi/spinper
+         dfilt=128./fsi*sin(!dpi/128.d0/spinper)/sin(-arg)
+         dfm=identity(3,/double)
+         dfm[1,1]=dfilt
+         dfm[0,0]=dfilt
         ;sarg=sin(arg)                    /delay removed Hannes 05/21/2007
         ;carg=cos(arg) ;& print,arg,dfilt /delay removed Hannes 05/21/2007
         ;delaym=identity(3,/double)       /delay removed Hannes 05/21/2007
@@ -646,12 +720,11 @@ for j=0L,count-1L do begin
         ;delaym[0,0]=carg                 /delay removed Hannes 05/21/2007
         ;delaym[1,1]=carg                 /delay removed Hannes 05/21/2007
         ;mfilt=dfm#delaym                 /delay removed Hannes 05/21/2007
-        mfilt=dfm                        ;/apply only amplitude correction Hannes 05/21/2007
+         mfilt=dfm              ;/apply only amplitude correction Hannes 05/21/2007
        ; thx_fgx.Y[j,*]=MATRIX_MULTIPLY(mfilt, thx_fgx.Y[j,*],/BTRANSPOSE)      ;eg 6/3/2007
-       ydata[j,*]=mfilt ## ydata[j,*]        ;eg 6/3/2007
-    endif  ;correct for filter
-endif else ydata[j,*]=fillvalue ;eg 30/3/2007 set vectors to fillvalue ???
-
+         ydata[j,*]=mfilt ## ydata[j,*] ;eg 6/3/2007
+      endif                             ;correct for filter
+   endif else ydata[j,*]=fillvalue      ;eg 30/3/2007 set vectors to fillvalue ???
 endfor
 
 DPRINT, dlevel=4, 'calibration applied'
@@ -734,10 +807,9 @@ If(n_elements(cal_tone_removal) Eq 0 || cal_tone_removal[0] Gt 0) Then Begin;jmm
   dprint, dlevel=4,'Spintone Removal Complete'
 
 endif
-  
+
 ; Restore tplot data structure (workaround for IDL 8.2.2 slowdown)
 thx_fgx.Y=ydata
-
 DPRINT, dlevel=2, 'done'
 ;store data, where mode = 0
 

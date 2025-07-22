@@ -23,24 +23,27 @@
 ;
 ;       PAN:      Returns the name of the tplot variable.
 ;
-;       NOLUT:    Do not recalculate the LUT.
+;       LUT:      Do not recalculate the LUT.  Instead, use these values.  Must
+;                 have the same number of elements as SPEC.  This allows the user
+;                 to use custom settings in mvn_swe_getlut to handle the presence
+;                 of hires data.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2022-05-05 13:01:49 -0700 (Thu, 05 May 2022) $
-; $LastChangedRevision: 30803 $
+; $LastChangedDate: 2025-06-19 14:46:22 -0700 (Thu, 19 Jun 2025) $
+; $LastChangedRevision: 33394 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_makespec.pro $
 ;
 ;CREATED BY:    David L. Mitchell  03-29-14
 ;FILE: mvn_swe_makespec.pro
 ;-
-pro mvn_swe_makespec, sum=sum, units=units, tplot=tplot, sflg=sflg, pan=ename, nolut=nolut
+pro mvn_swe_makespec, sum=sum, units=units, tplot=tplot, sflg=sflg, pan=ename, lut=lut
 
   @mvn_swe_com
-  
+
   if not keyword_set(sum) then smode = 0 else smode = 1
   if (size(units,/type) ne 7) then units = 'eflux'
   if (size(sflg,/type) eq 0) then sflg = 1 else sflg = keyword_set(sflg)
-  dolut = ~keyword_set(nolut)
+  gotlut = n_elements(lut) eq (n_elements(a4)*16L)
   ename = ''
 
 ; Initialize the deflection scale factors, geometric factor, and MCP efficiency
@@ -61,7 +64,7 @@ pro mvn_swe_makespec, sum=sum, units=units, tplot=tplot, sflg=sflg, pan=ename, n
     mvn_swe_engy = replicate(swe_engy_struct, npts)
     mvn_swe_engy.apid = 'A4'XB
 
-    if (dolut) then mvn_swe_getlut
+    if (gotlut) then mvn_swe_engy.lut = lut else mvn_swe_getlut
 
     for i=0L,(npkt-1L) do begin
       delta_t = swe_dt[a4[i].period]*dindgen(16) + (1.95D/2D)  ; center time offset (sample mode)
@@ -103,7 +106,7 @@ pro mvn_swe_makespec, sum=sum, units=units, tplot=tplot, sflg=sflg, pan=ename, n
         mvn_swe_engy[j0+j].var = a4[i].var[*,j]                     ; variance
       endfor
     endfor
-    
+
     mvn_swe_engy.units_name = 'counts'                              ; initial units = raw counts
 
 ; The measurement cadence can change while a 16-sample packet is being assembled.
@@ -127,6 +130,9 @@ pro mvn_swe_makespec, sum=sum, units=units, tplot=tplot, sflg=sflg, pan=ename, n
         if ((n gt 0) and (n lt 16)) then begin
           dt_fix = (dt2 - dt1)*(dindgen(16-n) + 1D)
           mvn_swe_engy[(m+n):(m+15L)].time += dt_fix
+          mvn_swe_engy[(m+n):(m+15L)].met += dt_fix
+          mvn_swe_engy[(m+n):(m+15L)].delta_t = dt2
+          mvn_swe_engy[(m+n):(m+15L)].end_time = mvn_swe_engy[(m+n):(m+15L)].time + dt2/2D
         endif
       endif
     endfor
@@ -146,6 +152,10 @@ pro mvn_swe_makespec, sum=sum, units=units, tplot=tplot, sflg=sflg, pan=ename, n
 
     mvn_swe_engy.gf /= scale
 
+; Insert the secondary electron estimate
+
+    if (max(mvn_swe_engy.bkg) lt 1e-30) then mvn_swe_secondary, mvn_swe_engy
+
 ; Electron rest mass [eV/(km/s)^2]
 
     mvn_swe_engy.mass = mass_e
@@ -163,6 +173,7 @@ pro mvn_swe_makespec, sum=sum, units=units, tplot=tplot, sflg=sflg, pan=ename, n
     if keyword_set(tplot) then begin
       x = mvn_swe_engy.time
       y = transpose(mvn_swe_engy.data)
+      dy = transpose(sqrt(mvn_swe_engy.var))
       i = where(mvn_swe_engy.lut eq 5B, n)
       if (n gt 0L) then v = mvn_swe_engy[i[0]].energy else v = swe_swp[*,0]
       Emin = min(v, max=Emax)
@@ -171,7 +182,7 @@ pro mvn_swe_makespec, sum=sum, units=units, tplot=tplot, sflg=sflg, pan=ename, n
 
       ename = 'swe_a4'
       eunits = strupcase(mvn_swe_engy[0].units_name)
-      store_data,ename,data={x:x, y:y, v:v}
+      store_data,ename,data={x:x, y:y, dy:dy, v:v}
       if (sflg) then begin
         options,ename,'spec',1
         ylim,ename,Emin,Emax,1
@@ -270,6 +281,9 @@ pro mvn_swe_makespec, sum=sum, units=units, tplot=tplot, sflg=sflg, pan=ename, n
         if ((n gt 0) and (n lt 16)) then begin
           dt_fix = (dt2 - dt1)*(dindgen(16-n) + 1D)
           mvn_swe_engy_arc[(m+n):(m+15L)].time += dt_fix
+          mvn_swe_engy_arc[(m+n):(m+15L)].met += dt_fix
+          mvn_swe_engy_arc[(m+n):(m+15L)].delta_t = dt2
+          mvn_swe_engy_arc[(m+n):(m+15L)].end_time = mvn_swe_engy_arc[(m+n):(m+15L)].time + dt2/2D
         endif
       endif
     endfor
@@ -292,6 +306,10 @@ pro mvn_swe_makespec, sum=sum, units=units, tplot=tplot, sflg=sflg, pan=ename, n
 
   indx = where(mvn_swe_engy_arc.lut gt 6B, count)
   if (count gt 0L) then mvn_swe_engy_arc[indx].data = !values.f_nan
+
+; Insert the secondary electron estimate
+
+    mvn_swe_secondary, mvn_swe_engy_arc
 
 ; Electron rest mass [eV/(km/s)^2]
 

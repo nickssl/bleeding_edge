@@ -1,9 +1,9 @@
 ;+
 ;  spp_data_product
 ;  This basic object is the entry point for defining and obtaining all data for all data products
-; $LastChangedBy: orlando $
-; $LastChangedDate: 2023-04-27 12:25:47 -0700 (Thu, 27 Apr 2023) $
-; $LastChangedRevision: 31805 $
+; $LastChangedBy: davin-mac $
+; $LastChangedDate: 2025-06-12 05:06:32 -0700 (Thu, 12 Jun 2025) $
+; $LastChangedRevision: 33382 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SPP/COMMON/spp_data_product__define.pro $
 ;-
 ;COMPILE_OPT IDL2
@@ -55,7 +55,7 @@ pro spp_data_product::make_tplot_var,tagnames,prefix=prefix
       print,(tag_names(*self.data_ptr))
       return
     endif
-    if ~isa(prefix,/string) then prefix = self.name+'_'
+    if ~isa(prefix,/string) then prefix = self.name;+'_'
     store_data,prefix,data= *self.data_ptr,tagnames=strupcase(tagnames)
   endif
 end
@@ -120,7 +120,7 @@ function spp_data_product::getdat,trange=trange,index=index,nsamples=nsamples,va
     ;  dprint,dlevel=2,verbose=verbose,"out of range: index="+strtrim(index,2)+", ns="+strtrim(ns,2)+' for '+self.name
     ;  if keyword_set(extrapolate) then index = 0 > index < (ns-1)    else return, !null
     ;endif
-    dats = (*self.data_ptr)[index]
+    dats = (*self.data_ptr)[0 > index < (ns-1)]
     wbad = where((index lt 0) or (index ge ns),/null,nbad)
     if nbad gt 0 then begin
       fill = fill_nan(dats[wbad])
@@ -134,7 +134,7 @@ function spp_data_product::getdat,trange=trange,index=index,nsamples=nsamples,va
     endif else begin
       if n_elements(index) gt 1 && keyword_set(sum) then begin
         dprint,n_elements(index),verbose=verbose,dlevel=2
-        dats = psp_swp_spx_sumdata(dats,trange=tr) ;bug! please fix before committing...
+        dats = spp_swp_spx_sumdata(dats,trange=tr)
       endif else begin
         if isa(trange) then dprint,dlevel=3,verbose=verbose,'returning all values within range'
       endelse

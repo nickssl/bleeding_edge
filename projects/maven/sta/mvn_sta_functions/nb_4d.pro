@@ -130,8 +130,18 @@ endif else mass = dat.mass
 if keyword_set(mincnt) then if total(data-bkg) lt mincnt then return, def_den
 if total(data-bkg) lt 1 then return, def_den
 
-
-if en_peak lt 1.5*en_min or en_peak gt en_max/1.5 then return,def_den
+; the following was changed 20201225
+if 0 then begin
+	if en_peak lt 1.5*en_min or en_peak gt en_max/1.5 then return,def_den
+endif else begin
+	minval = min(abs(energy-en_min),min_ind)
+	minval = min(abs(energy-en_max),max_ind)
+	minval = min(abs(energy-en_peak),pk_ind)
+	cnt_min = total(dat.data[min_ind,*])
+	cnt_max = total(dat.data[max_ind,*])
+	cnt_pk = total(dat.data[pk_ind,*])
+	if (en_peak lt 1.5*en_min and cnt_min gt .1*cnt_pk) or (en_peak gt en_max/1.5 and cnt_max gt .1*cnt_pk) then return,def_den
+endelse
 
 dat.cnts=data
 dat.bkg=bkg

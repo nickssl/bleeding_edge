@@ -1,6 +1,6 @@
-;$LastChangedBy: ali $
-;$LastChangedDate: 2021-06-14 10:41:21 -0700 (Mon, 14 Jun 2021) $
-;$LastChangedRevision: 30043 $
+;$LastChangedBy: davin-mac $
+;$LastChangedDate: 2025-06-12 05:00:47 -0700 (Thu, 12 Jun 2025) $
+;$LastChangedRevision: 33381 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/SPP/sweap/SPAN/electron/spp_swp_spe_hkp_apdat__define.pro $
 
 ;;---------------------------------------
@@ -56,7 +56,8 @@ function spp_swp_spe_hkp_apdat::decom,ccsds ,source_dict=source_dict   ;, ptp_he
   ;  endif
 
 
-  ccsds_data = spp_swp_ccsds_data(ccsds)
+  ;ccsds_data = spp_swp_ccsds_data(ccsds)
+  ccsds_data = self.ccsds_data(ccsds)
 
   b = ccsds_data
 

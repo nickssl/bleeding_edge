@@ -25,10 +25,11 @@
 ;   Added directory keyword, jmm, 2104-11-14
 ;   Read version number from common block; MOF: 2015-01-30
 ;   ISTP compliance scrub; DLM: 2016-04-08
+;   Development code for data version 5; DLM: 2023-08
 ; VERSION:
 ;   $LastChangedBy: dmitchell $
-;   $LastChangedDate: 2023-09-20 16:27:14 -0700 (Wed, 20 Sep 2023) $
-;   $LastChangedRevision: 32112 $
+;   $LastChangedDate: 2023-11-28 07:30:31 -0800 (Tue, 28 Nov 2023) $
+;   $LastChangedRevision: 32258 $
 ;   $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/Test/mvn_swe_makecdf_pad5.pro $
 ;
 ;-
@@ -173,12 +174,15 @@ pro mvn_swe_makecdf_pad5, data, file = file, version = version, directory = dire
   cdf_leap_second_init
 
 ; get date ranges (for CDF files)
+;    Launch       2013-11-18 UT
+;    Nominal EOM  2032-01-01 UT
 
-  date_range = time_double(['2013-11-18/00:00', '2030-12-31/23:59'])
+  date_range = time_double(['2013-11-18','2033-01-01'])
 
-;met_range = date_range - time_double('2000-01-01/12:00') ; JH
+; nominal conversion from UT to MET (note that MET is not zero at launch)
 
-  met_range = date_range - date_range[0] ; RL -- start at 0
+  met_range = date_range - time_double('2000-01-01/12:00') ; JH
+
   epoch_range = time_epoch(date_range)
   tt2000_range = long64((add_tt2000_offset(date_range) $
                  - time_double('2000-01-01/12:00'))*1e9)

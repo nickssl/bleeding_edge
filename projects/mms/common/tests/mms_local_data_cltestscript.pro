@@ -10,9 +10,9 @@
 ;  -initial tests copied from mms crib sheets
 ;
 ;
-;$LastChangedBy: egrimes $
-;$LastChangedDate: 2015-12-10 14:24:15 -0800 (Thu, 10 Dec 2015) $
-;$LastChangedRevision: 19590 $
+;$LastChangedBy: jwl $
+;$LastChangedDate: 2023-11-09 10:31:32 -0800 (Thu, 09 Nov 2023) $
+;$LastChangedRevision: 32226 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/common/tests/mms_local_data_cltestscript.pro $
 ;-
 
@@ -32,7 +32,7 @@ spd_init_tests
 
 mms_init
 
-window, xs=1100, ys=950
+if (!d.name ne "Z") then window, xs=1100, ys=950
 
 p = 'mms-local-data-test '
 tests = ['remote','local']

@@ -54,8 +54,8 @@
 ;   Tplot variable "EFlux_ratio": store the flux ratio for two directions
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2017-11-30 21:19:45 -0800 (Thu, 30 Nov 2017) $
-; $LastChangedRevision: 24373 $
+; $LastChangedDate: 2025-06-23 10:14:21 -0700 (Mon, 23 Jun 2025) $
+; $LastChangedRevision: 33407 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_shape_par_pad_l2.pro $
 ;
 ;CREATED BY:    Shaosui Xu  12-08-16
@@ -73,8 +73,9 @@ Pro mvn_swe_shape_par_pad_l2, burst=burst, spec=spec, $
     
     aflg = keyword_set(burst)
     if (size(mvn_swe_pad,/type) ne 8) then begin ;if pad data not loaded
-        print,'Loading L2 PAD Survey data ...'
-        mvn_swe_load_l2,/pad,burst=aflg,/noerase
+        print,'Loading L2 PAD data ...'
+        prod = aflg ? ['arcpad'] : ['svypad']
+        mvn_swe_load_l2,prod=prod,/noerase
     endif
 
     old_units = mvn_swe_pad[0].units_name

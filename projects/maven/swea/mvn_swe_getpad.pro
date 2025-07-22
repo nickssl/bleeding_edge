@@ -29,8 +29,7 @@
 ;
 ;       SHIFTPOT:      Correct for spacecraft potential.
 ;
-;       HIRES:         Returns 0 for normal resolution (2-sec) data; returns 1 for
-;                      high resolution (0.03-sec) data.
+;       L0:            Force loading from L0.
 ;
 ;       QLEVEL:        Minimum quality level to load (0-2, default=0):
 ;                        2B = good
@@ -38,21 +37,20 @@
 ;                        0B = affected by low-energy anomaly
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-08-02 11:14:38 -0700 (Wed, 02 Aug 2023) $
-; $LastChangedRevision: 31975 $
+; $LastChangedDate: 2025-06-23 16:20:05 -0700 (Mon, 23 Jun 2025) $
+; $LastChangedRevision: 33413 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_getpad.pro $
 ;
 ;CREATED BY:    David L. Mitchell  03-29-14
 ;FILE: mvn_swe_getpad.pro
 ;-
 function mvn_swe_getpad, time, archive=archive, all=all, sum=sum, units=units, burst=burst, $
-                         shiftpot=shiftpot, hires=hires, qlevel=qlevel
+                         shiftpot=shiftpot, L0=L0, qlevel=qlevel
 
   @mvn_swe_com
 
   delta_t = 1.95D/2D  ; PAD start time to center time
   if keyword_set(burst) then archive = 1
-  hires = 0
   qlevel = (n_elements(qlevel) gt 0L) ? byte(qlevel[0]) : 0B
 
   if (size(time,/type) eq 0) then begin
@@ -61,10 +59,9 @@ function mvn_swe_getpad, time, archive=archive, all=all, sum=sum, units=units, b
       return, 0
     endif else begin
       ok = 0
-      time = time_double(time)
       if keyword_set(archive) then begin
-        if ((not ok) and size(swe_a3) eq 8) then begin
-          time = swe_a3.time + delta_t  ; center times
+        if ((not ok) and size(a3,/type) eq 8) then begin
+          time = a3.time + delta_t  ; center times
           ok = 1
         endif
         if ((not ok) and size(mvn_swe_pad_arc,/type) eq 8) then begin
@@ -72,8 +69,8 @@ function mvn_swe_getpad, time, archive=archive, all=all, sum=sum, units=units, b
           ok = 1
         endif
       endif else begin
-        if ((not ok) and size(swe_a2) eq 8) then begin
-          time = swe_a2.time + delta_t  ; center times
+        if ((not ok) and size(a2,/type) eq 8) then begin
+          time = a2.time + delta_t  ; center times
           ok = 1
         endif
         if ((not ok) and size(mvn_swe_pad,/type) eq 8) then begin
@@ -94,8 +91,12 @@ function mvn_swe_getpad, time, archive=archive, all=all, sum=sum, units=units, b
   if (size(swe_mag1,/type) eq 8) then addmag = 1 else addmag = 0
   if (size(swe_sc_pot,/type) eq 8) then addpot = 1 else addpot = 0
 
+  if keyword_set(L0) then goto, L0_EXTRACT
+
 ;---------------------------------------------------------------------------------
 ; First attempt to get extract PAD(s) from L2 data
+
+  L2_EXTRACT:
 
   if keyword_set(archive) then begin
     if (size(mvn_swe_pad_arc,/type) eq 8) then begin
@@ -175,12 +176,42 @@ function mvn_swe_getpad, time, archive=archive, all=all, sum=sum, units=units, b
       jel = swe_padlut[*,jBel[i]]
       k3d = jel*16 + iaz
 
+      Sx = Sx3d[*,k3d,*,pad[i].group]
+      Sy = Sy3d[*,k3d,*,pad[i].group]
+      Sz = Sz3d[*,k3d,*,pad[i].group]
+
       if (pad[i].maglev gt 0B) then magf = pad[i].magf else magf = 0
-      pam = mvn_swe_padmap(fake_pkt[i],magf=magf)
-      pad[i].pa     = transpose(pam.pa)
-      pad[i].dpa    = transpose(pam.dpa)
-      pad[i].pa_min = transpose(pam.pa_min)
-      pad[i].pa_max = transpose(pam.pa_max)
+
+      if (n_elements(magf) eq 3) then begin
+        B = sqrt(total(magf[0:2]*magf[0:2]))
+        Bx = magf[0]/B
+        By = magf[1]/B
+        Bz = magf[2]/B
+        Baz = atan(By, Bx)
+        if (Baz lt 0.) then Baz += (2.*!pi)
+        Bel = asin(Bz)
+      endif else begin
+        cosBel = cos(pad[i].Bel)
+        Bx = cos(pad[i].Baz)*cosBel
+        By = sin(pad[i].Baz)*cosBel
+        Bz = sin(pad[i].Bel)
+      endelse
+
+      SxBx = temporary(Sx)*Bx
+      SyBy = temporary(Sy)*By
+      SzBz = temporary(Sz)*Bz
+      SdotB = (SxBx + SyBy + SzBz)
+      pam = acos(SdotB < 1D > (-1D))        ; (n*n,16,64)
+
+      pa = mean(pam, dim=1)                 ; mean pitch angle
+      pa_min = min(pam, dim=1, max=pa_max)  ; min and max pitch angle
+      dpa = pa_max - pa_min                 ; pitch angle range
+
+      pad[i].pa = transpose(pa)
+      pad[i].dpa = transpose(dpa)
+      pad[i].pa_min = transpose(pa_min)
+      pad[i].pa_max = transpose(pa_max)
+
       pad[i].theta  = transpose(swe_el[jel,*,pad[i].group])
       pad[i].dtheta = transpose(swe_del[jel,*,pad[i].group])
       pad[i].phi    = replicate(1.,pad[i].nenergy) # swe_az[iaz]
@@ -209,6 +240,8 @@ function mvn_swe_getpad, time, archive=archive, all=all, sum=sum, units=units, b
 
 ;---------------------------------------------------------------------------------
 ; If necessary (npts = 0), extract PAD(s) from L0 data
+
+  L0_EXTRACT:
 
   delta_t = 1.95D/2D  ; start time to center time
   time -= delta_t
@@ -326,20 +359,54 @@ function mvn_swe_getpad, time, archive=archive, all=all, sum=sum, units=units, b
 ; Mapping between PAD bins and 3D bins uses the raw magnetic field direction
 ;   rBaz, rBel    --> magnetic field direction as determined onboard
 ;   iaz, jel, k3d --> mapping between PAD bins and 3D bins
+;   Sx, Sy, Sz    --> FOV unit vector (n*n,16,64); see mvn_swe_fovmap.pro
 
     mvn_swe_magdir, pkt.time, pkt.Baz, pkt.Bel, rBaz, rBel
     iaz = fix((indgen(16) + pkt.Baz/16) mod 16)
     jel = swe_padlut[*,pkt.Bel]
     k3d = jel*16 + iaz
 
+    Sx = Sx3d[*,k3d,*,pkt.group]
+    Sy = Sy3d[*,k3d,*,pkt.group]
+    Sz = Sz3d[*,k3d,*,pkt.group]
+
 ; Pitch angle map.  Use MAG L1 or L2 data, if available, via MAGF keyword.
 ; Otherwise, use the MAG angles contained in the A2/A3 packets.
 
-    pam = mvn_swe_padmap(pkt,magf=magf)
-    pad[n].pa = transpose(pam.pa)
-    pad[n].dpa = transpose(pam.dpa)
-    pad[n].pa_min = transpose(pam.pa_min)
-    pad[n].pa_max = transpose(pam.pa_max)
+    if (n_elements(magf) eq 3) then begin
+      B = sqrt(total(magf[0:2]*magf[0:2]))
+      Bx = magf[0]/B
+      By = magf[1]/B
+      Bz = magf[2]/B
+      Baz = atan(By, Bx)
+      if (Baz lt 0.) then Baz += (2.*!pi)
+      Bel = asin(Bz)
+    endif else begin
+      cosBel = cos(rBel)
+      Bx = cos(rBaz)*cosBel
+      By = sin(rBaz)*cosBel
+      Bz = sin(rBel)
+    endelse
+
+; Calculate the nominal (center) pitch angle for each bin
+;   This is a function of energy because the deflector high voltage supply
+;   tops out above ~2 keV, and it's function of time because the magnetic
+;   field varies: pam -> 16 angles X 64 energies.
+
+    SxBx = temporary(Sx)*Bx
+    SyBy = temporary(Sy)*By
+    SzBz = temporary(Sz)*Bz
+    SdotB = (SxBx + SyBy + SzBz)
+    pam = acos(SdotB < 1D > (-1D))        ; (n*n,16,64)
+
+    pa = mean(pam, dim=1)                 ; mean pitch angle
+    pa_min = min(pam, dim=1, max=pa_max)  ; min and max pitch angle
+    dpa = pa_max - pa_min                 ; pitch angle range
+
+    pad[n].pa = transpose(pa)
+    pad[n].dpa = transpose(dpa)
+    pad[n].pa_min = transpose(pa_min)
+    pad[n].pa_max = transpose(pa_max)
 
 ; Energy bins are summed according to the group parameter.
 ; Energy resolution in the standard PAD structure allows for the possibility of
@@ -471,6 +538,10 @@ function mvn_swe_getpad, time, archive=archive, all=all, sum=sum, units=units, b
   scale = reform((replicate(1., 64*16) # cc), 64, 16, npts)
 
   pad.gf /= scale
+
+; Insert an estimate for the secondary contamination
+
+  if (max(pad.bkg) lt 1.e-30) then mvn_swe_secondary, pad
 
 ; Sum the data.  This is done by summing raw counts corrected by deadtime
 ; and then setting dtc to unity.  Also, note that summed PAD's can be 

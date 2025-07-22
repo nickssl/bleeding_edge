@@ -30,7 +30,16 @@
 ;     12 : 2020-03-03 to 2020-05-07
 ;     13 : 2020-07-25 to 2020-10-14
 ;     14 : 2021-01-10 to 2021-03-06
-;     15 : 2021-06-05 to 2021-07-16 (predicted, TBD)
+;     15 : 2021-06-05 to 2021-07-18
+;     16 : 2021-10-06 to 2022-01-08
+;     17 : 2022-06-23 to 2022-09-30
+;     18 : 2022-11-25 to 2023-02-21
+;     19 : 2023-05-11 to 2023-06-29
+;     20 : 2023-09-16 to 2023-12-05
+;     21 : 2024-02-29 to 2024-05-17
+;     22 : 2024-08-08 to 2024-09-26
+;     23 : 2024-12-13 to 2025-02-26
+;     24 : 2025-05-02 to ???
 ;
 ;  Solar wind periods 1 and 3 yield calibrations that are very similar.
 ;  These are combined into a single FOV calibration.  Solar wind period
@@ -62,8 +71,8 @@
 ;       TEST:         Returns calibration used.  For testing.
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-06-30 14:37:17 -0700 (Fri, 30 Jun 2023) $
-; $LastChangedRevision: 31920 $
+; $LastChangedDate: 2025-05-15 11:28:54 -0700 (Thu, 15 May 2025) $
+; $LastChangedRevision: 33314 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_flatfield.pro $
 ;
 ;CREATED BY:    David L. Mitchell  2016-09-28
@@ -73,12 +82,12 @@ function mvn_swe_flatfield, time, nominal=nominal, off=off, set=set, silent=sile
                             calnum=calnum, init=init, test=test
 
   @mvn_swe_com
-  common swe_flatfield_com, cc_t, kmax, swe_ff
+  common swe_flatfield_com, cc_t, tt, kmax, swe_ff
 
 ; Initialize the common block, if necessary
 
   if ((size(cc_t,/type) eq 0) or (keyword_set(init))) then begin
-    kmax = 14
+    kmax = 16
     swe_ff = replicate(1.,96,kmax+1)
 
 ;   Solar wind calibration period 1  (2014-10-27 to 2015-03-14).
@@ -304,22 +313,64 @@ function mvn_swe_flatfield, time, nominal=nominal, off=off, set=set, silent=sile
                      0.977189 , 0.972475 , 0.904273 , 0.891102 , 0.896324 , 0.871563 , $
                      1.049923 , 1.021530 , 1.010078 , 1.037852 , 0.777153 , 0.840176 ]
 
-;   Centers of solar wind calibration periods 1-19
+;   Solar wind calibration period 21 (2023-09-30 to 2023-10-30)
 
-    tt = time_double(['2014-12-22', $    ; Solar Wind 1
-                      '2015-08-02', $    ; Solar Wind 2
-                      '2016-01-28', $    ; Solar Wind 3
-                      '2016-08-22', $    ; Solar Wind 4
-                      '2017-01-13', $    ; Solar Wind 5
-                      '2017-06-29', $    ; Solar Wind 6
-                      '2018-02-17', $    ; Solar Wind 7
-                      '2018-08-13', $    ; Solar Wind 8
-                      '2019-01-22', $    ; Solar Wind 9
-                      '2019-06-23', $    ; Solar Wind 10
-                      '2019-11-22', $    ; Solar Wind 11
-                      '2020-09-01', $    ; Solar Wind 13
-                      '2021-11-30', $    ; Solar Wind 16
-                      '2023-01-01'  $    ; Solar Wind 19
+    swe_ff[*, 15] = [1.000000 , 1.000000 , 1.000000 , 1.000000 , 0.896273 , 0.886541 , $
+                     1.081345 , 1.064313 , 0.895131 , 0.850151 , 1.040655 , 0.973815 , $
+                     1.077251 , 1.034949 , 1.000000 , 1.000000 , 1.000000 , 1.000000 , $
+                     1.000000 , 1.020625 , 0.938726 , 1.325265 , 1.346617 , 1.323238 , $
+                     1.225638 , 1.348874 , 1.440571 , 1.473647 , 1.557898 , 1.493899 , $
+                     1.189180 , 1.000000 , 0.780972 , 1.033496 , 1.265799 , 1.416662 , $
+                     1.394891 , 1.331487 , 1.283056 , 1.266376 , 1.206718 , 1.331746 , $
+                     1.428071 , 1.413332 , 1.506012 , 1.454307 , 1.385432 , 1.240536 , $
+                     0.705763 , 1.120554 , 1.184745 , 1.198814 , 1.170128 , 1.199803 , $
+                     1.187047 , 1.182468 , 1.092150 , 1.214096 , 1.290974 , 1.290581 , $
+                     1.361703 , 1.321161 , 1.226761 , 1.159629 , 0.620061 , 0.915397 , $
+                     0.969908 , 1.099432 , 1.058324 , 1.021515 , 1.008483 , 1.093832 , $
+                     0.968724 , 1.020124 , 1.117098 , 1.171770 , 1.174616 , 1.088552 , $
+                     1.029517 , 1.037867 , 0.725988 , 0.734716 , 1.067887 , 1.066734 , $
+                     0.907256 , 0.924691 , 0.882955 , 0.889861 , 0.840278 , 0.816307 , $
+                     0.946400 , 0.922229 , 0.965200 , 0.956521 , 0.828224 , 0.851105 ]
+
+;   Solar wind calibration periods 22-24 (2024-02-29 to 2025-02-28), averaged together
+
+    swe_ff[*, 16] = [1.000000 , 1.000000 , 1.000000 , 1.000000 , 0.965904 , 0.950738 , $
+                     1.076071 , 1.175934 , 0.895147 , 0.987717 , 1.115211 , 1.140802 , $
+                     1.144608 , 1.143917 , 1.000000 , 1.000000 , 1.000000 , 1.000000 , $
+                     1.000000 , 1.004717 , 0.952379 , 1.285871 , 1.284509 , 1.263156 , $
+                     1.139525 , 1.342309 , 1.452531 , 1.503671 , 1.534654 , 1.472809 , $
+                     1.213920 , 1.000000 , 0.603569 , 0.902148 , 1.182969 , 1.340292 , $
+                     1.305642 , 1.229493 , 1.175503 , 1.161240 , 1.032172 , 1.203404 , $
+                     1.336031 , 1.339429 , 1.372190 , 1.288802 , 1.253651 , 1.120688 , $
+                     0.538435 , 1.022809 , 1.147127 , 1.161464 , 1.130208 , 1.112621 , $
+                     1.092723 , 1.094090 , 0.943299 , 1.099376 , 1.203999 , 1.185398 , $
+                     1.213705 , 1.170964 , 1.104865 , 1.008440 , 0.500546 , 0.883752 , $
+                     1.013755 , 1.107989 , 1.043951 , 1.000453 , 0.971733 , 1.058915 , $
+                     0.868332 , 1.019958 , 1.103459 , 1.162836 , 1.134350 , 1.058643 , $
+                     0.990306 , 0.945787 , 0.768794 , 0.711637 , 1.192852 , 1.117951 , $
+                     1.002949 , 1.012578 , 0.929354 , 0.983107 , 0.880603 , 0.918427 , $
+                     1.031121 , 1.022609 , 1.007088 , 1.020813 , 0.857638 , 0.883399 ]
+
+;   Centers of solar wind calibration periods 1-24
+
+    tt = time_double(['2014-12-22', $    ; Solar Wind 1    (0)
+                      '2015-08-02', $    ; Solar Wind 2    (1)
+                      '2016-01-28', $    ; Solar Wind 3    (2)
+                      '2016-08-22', $    ; Solar Wind 4    (3)
+                      '2017-01-13', $    ; Solar Wind 5    (4)
+                      '2017-06-29', $    ; Solar Wind 6    (5)
+                      '2018-02-17', $    ; Solar Wind 7    (6)
+                      '2018-08-13', $    ; Solar Wind 8    (7)
+                      '2019-01-22', $    ; Solar Wind 9    (8)
+                      '2019-06-23', $    ; Solar Wind 10   (9)
+                      '2019-11-22', $    ; Solar Wind 11  (10)
+                      '2020-09-01', $    ; Solar Wind 13  (11)
+                      '2021-11-30', $    ; Solar Wind 16  (12)
+                      '2023-01-01', $    ; Solar Wind 19  (13)
+                      '2023-10-15', $    ; Solar Wind 21  (14)
+                      '2024-04-08', $    ; Solar Wind 22  (15)
+                      '2024-09-02', $    ; Solar Wind 23  (16)
+                      '2025-01-21'  $    ; Solar Wind 24  (17)
                       ])  
 
     cc_t = mvn_swe_crosscal(tt,/silent)
@@ -387,12 +438,23 @@ function mvn_swe_flatfield, time, nominal=nominal, off=off, set=set, silent=sile
       test = frac + 7.
     endif
 
-;   Solar Wind 9 through first month of Solar Wind 11.
+;   Solar Wind 9 through first month of Solar Wind 21.
 
-    if (t ge t_mcp[8]) then begin
+    if ((t ge t_mcp[8]) and (t lt t_mcp[9])) then begin
       frac = (((cc - cc_t[8])/(cc_t[13] - cc_t[8])) > 0.) < 1.
       swe_ogf = swe_ff[*,9]*(1. - frac) + swe_ff[*,14]*frac
-      test = frac + 9.
+      test = frac + 13.
+    endif
+
+;   The rest of Solar Wind 21 through Solar Wind 24 and beyond.
+;   For this period, we interpolate in time instead of cross calibration factor,
+;   because the cross calibration factor is nearly constant while the angular
+;   calibration changes.
+
+    if (t ge t_mcp[9]) then begin
+      frac = (((t - tt[14])/(tt[16] - tt[14])) > 0.) < 1.
+      swe_ogf = swe_ff[*,15]*(1. - frac) + swe_ff[*,16]*frac
+      test = frac + 16.
     endif
 
 ;   Override this with a specific calibration, if requested --> for testing

@@ -9,9 +9,9 @@
 ;CREATED BY:      Takuya Hara on 2019-11-19.
 ;
 ;LAST MODIFICATION:
-; $LastChangedBy: hara $
-; $LastChangedDate: 2019-11-20 11:03:40 -0800 (Wed, 20 Nov 2019) $
-; $LastChangedRevision: 28046 $
+; $LastChangedBy: jimm $
+; $LastChangedDate: 2023-10-09 15:39:51 -0700 (Mon, 09 Oct 2023) $
+; $LastChangedRevision: 32181 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/quicklook/mvn_ql_pfp_tplot_restore.pro $
 ;
 ;-
@@ -36,7 +36,10 @@ PRO mvn_ql_pfp_tplot_restore, trange, verbose=verbose, no_download=no_download, 
      dprint, dlevel=2, verbose=verbose, 'Restoring file: ', text
   ENDIF 
 
-  maven_orbit_tplot, /current, /load, timecrop=[-2.d0, 2.d0]*oneday + trange ; +/- 2 day is buffer.
+; Ephemeris, current and timecrop keywords are now obsolete, but
+; trange is needed for input, jmm, 2023-10-09
+  maven_orbit_tplot, trange = trange, /load
+;  maven_orbit_tplot, /current, /load, timecrop=[-2.d0, 2.d0]*oneday + trange ; +/- 2 day is buffer.
   options, 'alt2', panel_size=2./3., ytitle='ALT [km]'
   tplot_options, 'var_label'
   

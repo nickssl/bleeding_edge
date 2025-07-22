@@ -25,9 +25,9 @@
 ;
 ;
 ;
-; $LastChangedBy: egrimes $
-; $LastChangedDate: 2017-09-28 09:06:52 -0700 (Thu, 28 Sep 2017) $
-; $LastChangedRevision: 24047 $
+; $LastChangedBy: nikos $
+; $LastChangedDate: 2023-11-27 09:29:13 -0800 (Mon, 27 Nov 2023) $
+; $LastChangedRevision: 32257 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/common/gui/mms_overview_plot.pro $
 ;-
 
@@ -141,7 +141,7 @@ pro mms_overview_plot, date = date, probe = probe_in, directory = directory, dev
   !p.charsize=0.8
 
   full_mms_plot = 'mms'+probe+['_fgm_b_gsm_srvy_l2_bvec', $
-                              '_epd_eis_extof_proton_flux_omni', $
+                              '_epd_eis_srvy_l2_extof_proton_flux_omni', $
                               '_dis_energyspectr_omni_fast', $
                               '_epd_feeps_srvy_l2_electron_intensity_omni', $
                               '_des_energyspectr_omni_fast', $

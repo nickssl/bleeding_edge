@@ -20,9 +20,9 @@
 ;
 ;       saveflux:      If set to 1, will save eflux for 3 PA ranges to
 ;                      a provided directory. 
-; $LastChangedBy: xussui $
-; $LastChangedDate: 2018-05-23 13:49:27 -0700 (Wed, 23 May 2018) $
-; $LastChangedRevision: 25250 $
+; $LastChangedBy: dmitchell $
+; $LastChangedDate: 2025-06-23 10:14:21 -0700 (Mon, 23 Jun 2025) $
+; $LastChangedRevision: 33407 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_shape_dailysave.pro $
 ;
 ;CREATED BY:    Shaosui Xu, 08/01/2017
@@ -61,7 +61,7 @@ Pro mvn_swe_shape_dailysave,start_day=start_day,end_day=end_day,ndays=ndays,$
     print,start_day2,end_day2,nday
 
     En=[4627.50,4118.51,3665.50,3262.32,2903.48,2584.12,$
-	2299.88,2046.91,1821.77,1621.38,1443.04,$
+	    2299.88,2046.91,1821.77,1621.38,1443.04,$
         1284.32,1143.05,1017.32,905.424,805.833,717.197,$
         638.310,568.100,505.613,449.999,400.502,$
         356.449,317.242,282.348,251.291,223.651,199.051,$
@@ -89,21 +89,21 @@ Pro mvn_swe_shape_dailysave,start_day=start_day,end_day=end_day,ndays=ndays,$
         
         mvn_swe_spice_init,/force
         mvn_swe_load_l2
-        mvn_swe_load_l2,/pad,/burst,/noerase
+        ;mvn_swe_load_l2,prod=['arcpad'],/noerase
         
         if (size(mvn_swe_pad,/type) eq 8) then begin
             
             mvn_swe_addmag
             mvn_swe_sumplot,/eph,/orb,/burst,/loadonly
 
-            mvn_mag_load, spice='iau_mars'
-            options,'mvn_B_1sec_iau_mars','ytitle','B!dGEO!n (nT)'
-            options,'mvn_B_1sec_iau_mars','labels',['Bx','By','Bz']
-            options,'mvn_B_1sec_iau_mars','labflag',1
-            options,'mvn_B_1sec_iau_mars','constant',0.
+            mvn_mag_load;, spice='iau_mars'
+;            options,'mvn_B_1sec_iau_mars','ytitle','B!dGEO!n (nT)'
+;            options,'mvn_B_1sec_iau_mars','labels',['Bx','By','Bz']
+;            options,'mvn_B_1sec_iau_mars','labflag',1
+;            options,'mvn_B_1sec_iau_mars','constant',0.
             mvn_mag_geom            
-            get_data,'mvn_B_1sec_iau_mars',data=mage
-
+            get_data,'mvn_B_1sec_iau_mars',data=mage,index=ok
+            if ok eq 0 then continue
             mvn_scpot
             swe_shape_par_pad_l2_3pa,spec=30,mag_geo=mage,erange=[20,80],$
                                      pot=1,tsmo=16

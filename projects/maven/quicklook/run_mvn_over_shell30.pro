@@ -14,12 +14,12 @@
 ; none
 ;KEYWORDS:
 ; ndays_offset = days from now that is being processed, the default is
-;                [7,14,30].
+;                [3,7,14,30].
 ;HISTORY:
 ; 8-dec-2020, jmm, jimm@ssl.berkeley.edu
 ; $LastChangedBy: jimm $
-; $LastChangedDate: 2021-01-13 10:20:16 -0800 (Wed, 13 Jan 2021) $
-; $LastChangedRevision: 29596 $
+; $LastChangedDate: 2024-05-28 13:41:50 -0700 (Tue, 28 May 2024) $
+; $LastChangedRevision: 32654 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/quicklook/run_mvn_over_shell30.pro $
 ;-
 
@@ -32,7 +32,7 @@ Pro run_mvn_over_shell30, ndays_offset = ndays_offset
      test_file = '/mydisks/home/maven/muser/MVN_OVER_SHELL30lock.txt'
      spawn, 'touch '+test_file[0]
      If(keyword_set(ndays_offset)) Then ndays = ndays_offset $
-     Else ndays = [7, 14, 30]
+     Else ndays = [3, 7, 14, 30]
      ndays_str = string(ndays, format='(i2.2)')
      date = systime(/sec)
 ;Subtract the number of days, do for 7, 14 and 30 days

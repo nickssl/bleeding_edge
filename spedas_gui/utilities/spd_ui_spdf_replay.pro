@@ -8,8 +8,8 @@
 ;  as I'm forking a little bit here.
 ;  
 ;$LastChangedBy: nikos $
-;$LastChangedDate: 2018-02-27 16:20:33 -0800 (Tue, 27 Feb 2018) $
-;$LastChangedRevision: 24791 $
+;$LastChangedDate: 2024-05-30 15:22:29 -0700 (Thu, 30 May 2024) $
+;$LastChangedRevision: 32663 $
 ;$URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/spedas_gui/utilities/spd_ui_spdf_replay.pro $
 ;-----------------------------------------------------------------------------------
 
@@ -20,9 +20,9 @@ pro spd_ui_spdf_replay,tlb,statusbar,historywindow,$
   selectedDataview,loadedData,$
   windowStorage
 
-  RESOLVE_ROUTINE, 'spdf_virtual_funcs', /COMPILE_FULL_FILE
+  RESOLVE_ROUTINE, 'spd_cdawlib_virtual_funcs', /COMPILE_FULL_FILE
   RESOLVE_ROUTINE, 'spdfCdawebChooser', /COMPILE_FULL_FILE
-  RESOLVE_ROUTINE, 'spdf_virtual_funcs', /COMPILE_FULL_FILE
+  ; RESOLVE_ROUTINE, 'spdf_virtual_funcs', /COMPILE_FULL_FILE
   RESOLVE_ROUTINE, 'spd_ui_spdfcdawebchooser', /COMPILE_FULL_FILE
 
   localdir = !spedas.TEMP_CDF_DIR

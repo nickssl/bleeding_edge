@@ -6,6 +6,9 @@
 ;  If you sit on the spacecraft and look in this direction, you will see the
 ;  ground.
 ;
+;  For this routine, nadir is defined to be the direction to the center of
+;  Mars (i.e., the origins of the MSO, MSE, and IAU_MARS frames).
+;
 ;  This vector can be rotated into any coordinate frame recognized by
 ;  SPICE.  See mvn_frame_name for a list.  The default is MAVEN_SPACECRAFT.
 ;
@@ -56,8 +59,8 @@
 ;       SUCCESS:  Returns 1 on normal completion, 0 otherwise
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2023-04-11 20:26:40 -0700 (Tue, 11 Apr 2023) $
-; $LastChangedRevision: 31731 $
+; $LastChangedDate: 2025-02-16 14:42:30 -0800 (Sun, 16 Feb 2025) $
+; $LastChangedRevision: 33129 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/general/mvn_nadir.pro $
 ;
 ;CREATED BY:    David L. Mitchell

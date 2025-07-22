@@ -12,8 +12,8 @@
 ;       CAL:           Use calibrated data (mvn_swe_engy).
 ;
 ; $LastChangedBy: dmitchell $
-; $LastChangedDate: 2020-07-01 11:20:36 -0700 (Wed, 01 Jul 2020) $
-; $LastChangedRevision: 28835 $
+; $LastChangedDate: 2025-05-23 15:48:33 -0700 (Fri, 23 May 2025) $
+; $LastChangedRevision: 33331 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/swe_engy_timing.pro $
 ;
 ;CREATED BY:    David L. Mitchell  06-25-13
@@ -31,6 +31,7 @@ pro swe_engy_timing, cal=cal
 
     nspec = n_elements(mvn_swe_engy)
     edat = reform(mvn_swe_engy.data, 64L*nspec)
+    evar = reform(mvn_swe_engy.var, 64L*nspec)
     eswp = reform(mvn_swe_engy.energy, 64L*nspec)
     etime = dblarr(64L,nspec)
     units = strupcase(mvn_swe_engy[0].units_name)
@@ -44,7 +45,7 @@ pro swe_engy_timing, cal=cal
 
     etime = reform(etime, 64L*nspec) - delta_t
       
-    store_data,'edat_svy',data={x:etime, y:edat}
+    store_data,'edat_svy',data={x:etime, y:edat, dy:sqrt(evar)}
     options,'edat_svy','ytitle','SWE SPEC!c' + units
     options,'edat_svy','psym',1
     ylim,'edat_svy',0,0,1
@@ -61,6 +62,7 @@ pro swe_engy_timing, cal=cal
 
     nspec = 16L*n_elements(a4)
     edat = reform(a4.data,64L*nspec)
+    evar = reform(a4.var,64L*nspec)
     eswp = reform(swe_swp[*,0] # replicate(1.,nspec), 64L*nspec)
     etime = dblarr(64L,nspec)
 
@@ -78,7 +80,7 @@ pro swe_engy_timing, cal=cal
 
     etime = reform(etime,64L*nspec)
       
-    store_data,'edat_svy',data={x:etime, y:edat}
+    store_data,'edat_svy',data={x:etime, y:edat, dy:sqrt(evar)}
     options,'edat_svy','ytitle','Engy Svy Timing'
     options,'edat_svy','psym',1
     ylim,'edat_svy',-10,300,0
@@ -94,6 +96,7 @@ pro swe_engy_timing, cal=cal
 
     nspec = 16L*n_elements(a5)
     edat = reform(a5.data,64L*nspec)
+    evar = reform(a5.var,64L*nspec)
     eswp = reform(swe_swp[*,0] # replicate(1.,nspec), 64L*nspec)
     etime = dblarr(64L,nspec)
 
@@ -111,7 +114,7 @@ pro swe_engy_timing, cal=cal
 
     etime = reform(etime,64L*nspec)
       
-    store_data,'edat_arc',data={x:etime, y:edat}
+    store_data,'edat_arc',data={x:etime, y:edat, dy:sqrt(evar)}
     options,'edat_arc','ytitle','Engy Arc Timing'
     options,'edat_arc','psym',1
     ylim,'edat_arc',-10,300,0

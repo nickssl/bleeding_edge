@@ -4,7 +4,10 @@
 ; SYNTAX:
 ;   MVN_SWE_MAKECDF_SPEC, DATA, FILE = FILE, VERSION = VERSION
 ; PURPOSE:
-;   Routine to produce CDF file from SWEA spec data structures
+;   Routine to produce CDF file from SWEA spec data structures.
+;   This routine has been updated to produce Version 5 of the CDF files.
+;   Version 5 is backward compatible with the version 4 reader.
+;
 ; INPUT:
 ;   DATA: Structure with which to populate the CDF file
 ;         (nominally created by mvn_swe_getspec.pro)
@@ -21,10 +24,11 @@
 ;   Added directory keyword, and deletion of old files, jmm, 2014-11-14
 ;   Read version number from common block; MOF: 2015-01-30
 ;   ISTP compliance scrub; DLM: 2016-04-08
+;   Code for data version 5; DLM: 2023-08
 ; VERSION:
 ;   $LastChangedBy: dmitchell $
-;   $LastChangedDate: 2023-08-18 10:21:25 -0700 (Fri, 18 Aug 2023) $
-;   $LastChangedRevision: 32031 $
+;   $LastChangedDate: 2024-01-14 17:10:01 -0800 (Sun, 14 Jan 2024) $
+;   $LastChangedRevision: 32362 $
 ;   $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/swea/mvn_swe_makecdf_spec.pro $
 ;
 ;-
@@ -97,7 +101,7 @@ pro mvn_swe_makecdf_spec, data, file = file, version = version, directory = dire
       path = '/disks/data/maven/data/sci/swe/l2/' + yyyy + '/' + mm + '/'
     if (n_elements(file_search(path)) Eq 0) then file_mkdir2, path, mode = '0775'o
 
-; Ceate file name using SIS convention
+; Create file name using SIS convention
 
     file = 'mvn_swe_l2_' + tag + 'spec_' + yyyymmdd
 
@@ -149,9 +153,15 @@ pro mvn_swe_makecdf_spec, data, file = file, version = version, directory = dire
   cdf_leap_second_init
 
 ; get date ranges (for CDF files)
+;    Launch       2013-11-18 UT
+;    Nominal EOM  2032-01-01 UT
 
-  date_range = time_double(['2013-11-18/00:00', '2030-12-31/23:59'])
-  met_range = date_range - date_range[0]
+  date_range = time_double(['2013-11-18','2033-01-01'])
+
+; nominal conversion from UT to MET (note that MET is not zero at launch)
+
+  met_range = date_range - time_double('2000-01-01/12:00') ; JH
+
   epoch_range = time_epoch(date_range)
   tt2000_range = long64((add_tt2000_offset(date_range) $
                  - time_double('2000-01-01/12:00'))*1e9)
@@ -188,7 +198,7 @@ pro mvn_swe_makecdf_spec, data, file = file, version = version, directory = dire
   varlist = ['epoch', 'time_tt2000', 'time_met', 'time_unix', $
              'num_accum', 'counts', 'diff_en_fluxes', 'weight_factor', $
              'geom_factor', 'g_engy', 'de_over_e', 'accum_time', 'energy', $
-             'num_spec','en_label']
+             'num_spec', 'en_label', 'quality', 'variance', 'secondary']
 
   id0  = cdf_attcreate(fileid, 'TITLE',                      /global_scope)
   id1  = cdf_attcreate(fileid, 'Project',                    /global_scope)
@@ -295,91 +305,96 @@ pro mvn_swe_makecdf_spec, data, file = file, version = version, directory = dire
 
 ; *** epoch *** (Actually time_tt2000)
 
-  varid = cdf_varcreate(fileid, varlist[0], /CDF_TIME_TT2000, /REC_VARY, /ZVARIABLE)
+  vndx = (where(varlist eq 'epoch'))[0]
+  tndx = (where(varlist eq 'time_tt2000'))[0]
+  varid = cdf_varcreate(fileid, varlist[vndx], /CDF_TIME_TT2000, /REC_VARY, /ZVARIABLE)
 
-  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[1],                   /ZVARIABLE
+  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[tndx],                /ZVARIABLE
   cdf_attput, fileid, 'FORMAT',       varid, 'I22',                        /ZVARIABLE
-  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[1],                   /ZVARIABLE
+  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[tndx],                /ZVARIABLE
   cdf_attput, fileid, 'VAR_TYPE',     varid, 'support_data',               /ZVARIABLE
   cdf_attput, fileid, 'FILLVAL',      varid, long64(-9223372036854775808), /ZVARIABLE, /CDF_EPOCH
   cdf_attput, fileid, 'DISPLAY_TYPE', varid, 'time_series',                /ZVARIABLE
 
-  cdf_attput, fileid, 'VALIDMIN',  'epoch', tt2000_range[0], /ZVARIABLE, /CDF_EPOCH
-  cdf_attput, fileid, 'VALIDMAX',  'epoch', tt2000_range[1], /ZVARIABLE, /CDF_EPOCH
-  cdf_attput, fileid, 'SCALEMIN',  'epoch', tt2000[0],       /ZVARIABLE, /CDF_EPOCH
-  cdf_attput, fileid, 'SCALEMAX',  'epoch', tt2000[nrec-1],  /ZVARIABLE, /CDF_EPOCH
-  cdf_attput, fileid, 'TIME_BASE', 'epoch', 'J2000',         /ZVARIABLE
-  cdf_attput, fileid, 'UNITS',     'epoch', 'ns',            /ZVARIABLE
-  cdf_attput, fileid, 'MONOTON',   'epoch', 'INCREASE',      /ZVARIABLE
-  cdf_attput, fileid, 'CATDESC',   'epoch', $
+  cdf_attput, fileid, 'VALIDMIN',  varlist[vndx], tt2000_range[0], /ZVARIABLE, /CDF_EPOCH
+  cdf_attput, fileid, 'VALIDMAX',  varlist[vndx], tt2000_range[1], /ZVARIABLE, /CDF_EPOCH
+  cdf_attput, fileid, 'SCALEMIN',  varlist[vndx], tt2000[0],       /ZVARIABLE, /CDF_EPOCH
+  cdf_attput, fileid, 'SCALEMAX',  varlist[vndx], tt2000[nrec-1],  /ZVARIABLE, /CDF_EPOCH
+  cdf_attput, fileid, 'TIME_BASE', varlist[vndx], 'J2000',         /ZVARIABLE
+  cdf_attput, fileid, 'UNITS',     varlist[vndx], 'ns',            /ZVARIABLE
+  cdf_attput, fileid, 'MONOTON',   varlist[vndx], 'INCREASE',      /ZVARIABLE
+  cdf_attput, fileid, 'CATDESC',   varlist[vndx], $
     'Time, center of sample, in TT2000 time base', /ZVARIABLE
 
-  cdf_varput, fileid, 'epoch', tt2000
+  cdf_varput, fileid, varlist[vndx], tt2000
 
 ; *** MET ***
 
-  varid = cdf_varcreate(fileid, varlist[2], /CDF_DOUBLE, /REC_VARY, /ZVARIABLE)
+  vndx = (where(varlist eq 'time_met'))[0]
+  varid = cdf_varcreate(fileid, varlist[vndx], /CDF_DOUBLE, /REC_VARY, /ZVARIABLE)
 
-  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[2],     /ZVARIABLE
+  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'FORMAT',       varid, 'F25.6',        /ZVARIABLE
-  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[2],     /ZVARIABLE
+  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'VAR_TYPE',     varid, 'support_data', /ZVARIABLE
-  cdf_attput, fileid, 'FILLVAL',      varid, -1.d31,        /ZVARIABLE
+  cdf_attput, fileid, 'FILLVAL',      varid, -1.d31,         /ZVARIABLE
   cdf_attput, fileid, 'DISPLAY_TYPE', varid, 'time_series',  /ZVARIABLE
 
-  cdf_attput, fileid, 'VALIDMIN', 'time_met', met_range[0],     /ZVARIABLE
-  cdf_attput, fileid, 'VALIDMAX', 'time_met', met_range[1],     /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMIN', 'time_met', data[0].met,      /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMAX', 'time_met', data[nrec-1].met, /ZVARIABLE
-  cdf_attput, fileid, 'UNITS',    'time_met', 's',              /ZVARIABLE
-  cdf_attput, fileid, 'MONOTON',  'time_met', 'INCREASE',       /ZVARIABLE
-  cdf_attput, fileid, 'CATDESC',  'time_met', $
-    'Time, center of sample, in raw mission elapsed time', /ZVARIABLE
-  cdf_attput, fileid, 'DEPEND_0', 'time_met', 'epoch'    , /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMIN', varlist[vndx], met_range[0],     /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMAX', varlist[vndx], met_range[1],     /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMIN', varlist[vndx], data[0].met,      /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMAX', varlist[vndx], data[nrec-1].met, /ZVARIABLE
+  cdf_attput, fileid, 'UNITS',    varlist[vndx], 's',              /ZVARIABLE
+  cdf_attput, fileid, 'MONOTON',  varlist[vndx], 'INCREASE',       /ZVARIABLE
+  cdf_attput, fileid, 'CATDESC',  varlist[vndx], $
+    'Time, center of sample, in raw mission elapsed time',         /ZVARIABLE
+  cdf_attput, fileid, 'DEPEND_0', varlist[vndx], 'epoch' ,         /ZVARIABLE
 
-  cdf_varput, fileid, 'time_met', data.met
+  cdf_varput, fileid, varlist[vndx], data.met
 
 ; *** time_unix ***
 
-  varid = cdf_varcreate(fileid, varlist[3], /CDF_DOUBLE, /REC_VARY, /ZVARIABLE)
+  vndx = (where(varlist eq 'time_unix'))[0]
+  varid = cdf_varcreate(fileid, varlist[vndx], /CDF_DOUBLE, /REC_VARY, /ZVARIABLE)
 
-  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[3],     /ZVARIABLE
+  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'FORMAT',       varid, 'F25.6',        /ZVARIABLE
-  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[3],     /ZVARIABLE
+  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'VAR_TYPE',     varid, 'support_data', /ZVARIABLE
-  cdf_attput, fileid, 'FILLVAL',      varid, -1.d31,        /ZVARIABLE
+  cdf_attput, fileid, 'FILLVAL',      varid, -1.d31,         /ZVARIABLE
   cdf_attput, fileid, 'DISPLAY_TYPE', varid, 'time_series',  /ZVARIABLE
 
-  cdf_attput, fileid, 'VALIDMIN', 'time_unix', date_range[0],     /ZVARIABLE
-  cdf_attput, fileid, 'VALIDMAX', 'time_unix', date_range[1],     /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMIN', 'time_unix', data[0].time,      /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMAX', 'time_unix', data[nrec-1].time, /ZVARIABLE
-  cdf_attput, fileid, 'UNITS',    'time_unix', 's',               /ZVARIABLE
-  cdf_attput, fileid, 'MONOTON',  'time_unix', 'INCREASE',        /ZVARIABLE
-  cdf_attput, fileid, 'CATDESC',  'time_unix', $
-    'Time, center of sample, in Unix time', /ZVARIABLE
-  cdf_attput, fileid, 'DEPEND_0', 'time_unix', 'epoch'    , /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMIN', varlist[vndx], date_range[0],     /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMAX', varlist[vndx], date_range[1],     /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMIN', varlist[vndx], data[0].time,      /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMAX', varlist[vndx], data[nrec-1].time, /ZVARIABLE
+  cdf_attput, fileid, 'UNITS',    varlist[vndx], 's',               /ZVARIABLE
+  cdf_attput, fileid, 'MONOTON',  varlist[vndx], 'INCREASE',        /ZVARIABLE
+  cdf_attput, fileid, 'CATDESC',  varlist[vndx], $
+    'Time, center of sample, in Unix time',                         /ZVARIABLE
+  cdf_attput, fileid, 'DEPEND_0', varlist[vndx], 'epoch',           /ZVARIABLE
 
-  cdf_varput, fileid, 'time_unix', data.time
+  cdf_varput, fileid, varlist[vndx], data.time
 
 ; *** num_accum ***
 
-  varid = cdf_varcreate(fileid, varlist[4], /CDF_INT2, /REC_VARY, /ZVARIABLE)
+  vndx = (where(varlist eq 'num_accum'))[0]
+  varid = cdf_varcreate(fileid, varlist[vndx], /CDF_INT2, /REC_VARY, /ZVARIABLE)
 
-  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[4],     /ZVARIABLE
-  cdf_attput, fileid, 'FORMAT',       varid, 'I7',           /ZVARIABLE
-  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[4],     /ZVARIABLE
-  cdf_attput, fileid, 'VAR_TYPE',     varid, 'support_data', /ZVARIABLE
-  cdf_attput, fileid, 'FILLVAL',      varid, fix(-32768),    /ZVARIABLE
-  cdf_attput, fileid, 'DISPLAY_TYPE', varid, 'time_series',  /ZVARIABLE
+  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[vndx],   /ZVARIABLE
+  cdf_attput, fileid, 'FORMAT',       varid, 'I7',            /ZVARIABLE
+  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[vndx],   /ZVARIABLE
+  cdf_attput, fileid, 'VAR_TYPE',     varid, 'support_data',  /ZVARIABLE
+  cdf_attput, fileid, 'FILLVAL',      varid, fix(-32768),     /ZVARIABLE
+  cdf_attput, fileid, 'DISPLAY_TYPE', varid, 'time_series',   /ZVARIABLE
 
-  cdf_attput, fileid, 'VALIDMIN', 'num_accum', 1,             /ZVARIABLE
-  cdf_attput, fileid, 'VALIDMAX', 'num_accum', 100,           /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMIN', 'num_accum', 1,             /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMAX', 'num_accum', 10,            /ZVARIABLE
-  cdf_attput, fileid, 'CATDESC',  'num_accum', $
-    'Number of two-second accumulations per energy spectrum', /ZVARIABLE
-  cdf_attput, fileid, 'DEPEND_0', 'num_accum', 'epoch',       /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMIN', varlist[vndx], 1,            /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMAX', varlist[vndx], 100,          /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMIN', varlist[vndx], 1,            /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMAX', varlist[vndx], 10,           /ZVARIABLE
+  cdf_attput, fileid, 'CATDESC',  varlist[vndx], $
+    'Number of two-second accumulations per energy spectrum',  /ZVARIABLE
+  cdf_attput, fileid, 'DEPEND_0', varlist[vndx], 'epoch',      /ZVARIABLE
 
   num_accum = lonarr(nrec)
 
@@ -390,29 +405,30 @@ pro mvn_swe_makecdf_spec, data, file = file, version = version, directory = dire
     if (a4[i/16].smode EQ 0) then num_accum[i] = 1 $
     else num_accum[i] = 2^a4[i/16].period
 
-  cdf_varput, fileid, 'num_accum', fix(num_accum)
+  cdf_varput, fileid, varlist[vndx], fix(num_accum)
 
 ; *** counts ***
 
   dim_vary = [1]
   dim = [64]  
-  varid = cdf_varcreate(fileid, varlist[5], /CDF_FLOAT, dim_vary, DIM = dim, /REC_VARY, /ZVARIABLE) 
+  vndx = (where(varlist eq 'counts'))[0]
+  varid = cdf_varcreate(fileid, varlist[vndx], /CDF_FLOAT, dim_vary, DIM = dim, /REC_VARY, /ZVARIABLE) 
 
-  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[5],     /ZVARIABLE
+  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'FORMAT',       varid, 'F15.1',        /ZVARIABLE
-  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[5],     /ZVARIABLE
+  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'VAR_TYPE',     varid, 'support_data', /ZVARIABLE
   cdf_attput, fileid, 'FILLVAL',      varid, -1.e31,         /ZVARIABLE
   cdf_attput, fileid, 'DISPLAY_TYPE', varid, 'time_series',  /ZVARIABLE
 
-  cdf_attput, fileid, 'VALIDMIN', 'counts', 0.,                      /ZVARIABLE
-  cdf_attput, fileid, 'VALIDMAX', 'counts', 1.e10,                   /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMIN', 'counts', 0.,                      /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMAX', 'counts', 1.e6,                    /ZVARIABLE
-  cdf_attput, fileid, 'UNITS',    'counts', 'counts',                /ZVARIABLE
-  cdf_attput, fileid, 'CATDESC',  'counts', 'Raw Instrument Counts', /ZVARIABLE
-  cdf_attput, fileid, 'DEPEND_0', 'counts', 'epoch',                 /ZVARIABLE
-  cdf_attput, fileid, 'DEPEND_1', 'counts', 'energy',                /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMIN', varlist[vndx], 0.,                      /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMAX', varlist[vndx], 1.e10,                   /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMIN', varlist[vndx], 0.,                      /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMAX', varlist[vndx], 1.e6,                    /ZVARIABLE
+  cdf_attput, fileid, 'UNITS',    varlist[vndx], 'counts',                /ZVARIABLE
+  cdf_attput, fileid, 'CATDESC',  varlist[vndx], 'Raw Instrument Counts', /ZVARIABLE
+  cdf_attput, fileid, 'DEPEND_0', varlist[vndx], 'epoch',                 /ZVARIABLE
+  cdf_attput, fileid, 'DEPEND_1', varlist[vndx], 'energy',                /ZVARIABLE
 
 ; Convert to units of raw counts
 
@@ -428,212 +444,310 @@ pro mvn_swe_makecdf_spec, data, file = file, version = version, directory = dire
   scale = geom_factor/gf_i      ; unity except on days when MCP bias is adjusted
   scale = replicate(1.,64) # scale
 
-  cdf_varput, fileid, 'counts', data.data * scale
+  cdf_varput, fileid, varlist[vndx], data.data * scale
 
 ; *** diff_en_fluxes -- Differential energy fluxes ***
 
   dim_vary = [1]
   dim = [64]  
-  varid = cdf_varcreate(fileid, varlist[6], /CDF_FLOAT, dim_vary, DIM = dim, /REC_VARY, $
+  vndx = (where(varlist eq 'diff_en_fluxes'))[0]
+  varid = cdf_varcreate(fileid, varlist[vndx], /CDF_FLOAT, dim_vary, DIM = dim, /REC_VARY, $
     /ZVARIABLE) 
 
-  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[6],    /ZVARIABLE
+  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[vndx], /ZVARIABLE
   cdf_attput, fileid, 'FORMAT',       varid, 'E15.7',       /ZVARIABLE
-  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[6],    /ZVARIABLE
+  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[vndx], /ZVARIABLE
   cdf_attput, fileid, 'VAR_TYPE',     varid, 'data',        /ZVARIABLE
   cdf_attput, fileid, 'FILLVAL',      varid, -1.e31,        /ZVARIABLE
   cdf_attput, fileid, 'DISPLAY_TYPE', varid, 'time_series', /ZVARIABLE
 
-  cdf_attput, fileid, 'VALIDMIN', 'diff_en_fluxes', 0.,      /ZVARIABLE
-  cdf_attput, fileid, 'VALIDMAX', 'diff_en_fluxes', 1.e14,   /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMIN', 'diff_en_fluxes', 0.,      /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMAX', 'diff_en_fluxes', 1.e11,   /ZVARIABLE
-  cdf_attput, fileid, 'UNITS',    'diff_en_fluxes', $
-    'eV/[eV cm^2 sr s]', /ZVARIABLE
-  cdf_attput, fileid, 'VAR_TYPE', 'diff_en_fluxes', 'data',  /ZVARIABLE
-  cdf_attput, fileid, 'CATDESC',  'diff_en_fluxes', $
-    'Calibrated differential energy flux', /ZVARIABLE
-  cdf_attput, fileid, 'DEPEND_0',   'diff_en_fluxes', 'epoch',    /ZVARIABLE
-  cdf_attput, fileid, 'DEPEND_1',   'diff_en_fluxes', 'energy',   /ZVARIABLE
-  cdf_attput, fileid, 'LABL_PTR_1', 'diff_en_fluxes', 'en_label', /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMIN', varlist[vndx], 0.,        /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMAX', varlist[vndx], 1.e14,     /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMIN', varlist[vndx], 0.,        /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMAX', varlist[vndx], 1.e11,     /ZVARIABLE
+  cdf_attput, fileid, 'UNITS',    varlist[vndx], $
+    'eV/[eV cm^2 sr s]',                                    /ZVARIABLE
+  cdf_attput, fileid, 'VAR_TYPE', varlist[vndx], 'data',    /ZVARIABLE
+  cdf_attput, fileid, 'CATDESC',  varlist[vndx], $
+    'Calibrated differential energy flux',                  /ZVARIABLE
+  cdf_attput, fileid, 'DEPEND_0',   varlist[vndx], 'epoch',    /ZVARIABLE
+  cdf_attput, fileid, 'DEPEND_1',   varlist[vndx], 'energy',   /ZVARIABLE
+  cdf_attput, fileid, 'LABL_PTR_1', varlist[vndx], 'en_label', /ZVARIABLE
 
 ; convert to units of energy flux
 
   mvn_swe_convert_units, data, 'eflux'
-  cdf_varput, fileid, 'diff_en_fluxes', data.data
+  cdf_varput, fileid, varlist[vndx], data.data
+
+; *** variance -- in units of (differential energy flux)^2 ***
+;   Note: I'm including this since it's not at all obvious how to account
+;         for digitization noise starting from raw counts.  It is assumed
+;         that the user will know that data and sqrt(variance) should have
+;         the same units.
+
+  dim_vary = [1]
+  dim = [64]  
+  vndx = (where(varlist eq 'variance'))[0]
+  varid = cdf_varcreate(fileid, varlist[vndx], /CDF_FLOAT, dim_vary, DIM = dim, /REC_VARY, $
+    /ZVARIABLE) 
+
+  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[vndx], /ZVARIABLE
+  cdf_attput, fileid, 'FORMAT',       varid, 'E15.7',       /ZVARIABLE
+  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[vndx], /ZVARIABLE
+  cdf_attput, fileid, 'VAR_TYPE',     varid, 'data',        /ZVARIABLE
+  cdf_attput, fileid, 'FILLVAL',      varid, -1.e31,        /ZVARIABLE
+  cdf_attput, fileid, 'DISPLAY_TYPE', varid, 'time_series', /ZVARIABLE
+
+  cdf_attput, fileid, 'VALIDMIN', varlist[vndx], 0.,        /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMAX', varlist[vndx], 1.e14,     /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMIN', varlist[vndx], 0.,        /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMAX', varlist[vndx], 1.e11,     /ZVARIABLE
+  cdf_attput, fileid, 'UNITS',    varlist[vndx], $
+    '(eV/[eV cm^2 sr s])^2',                                /ZVARIABLE
+  cdf_attput, fileid, 'VAR_TYPE', varlist[vndx], 'data',    /ZVARIABLE
+  cdf_attput, fileid, 'CATDESC',  varlist[vndx], $
+    'Variance of differential energy flux',                    /ZVARIABLE
+  cdf_attput, fileid, 'DEPEND_0',   varlist[vndx], 'epoch',    /ZVARIABLE
+  cdf_attput, fileid, 'DEPEND_1',   varlist[vndx], 'energy',   /ZVARIABLE
+  cdf_attput, fileid, 'LABL_PTR_1', varlist[vndx], 'en_label', /ZVARIABLE
+
+; units are (energy flux)^2 from the previous variable
+
+  cdf_varput, fileid, varlist[vndx], data.var
+
+; *** secondary electrons -- in units of differential energy flux ***
+
+  dim_vary = [1]
+  dim = [64]  
+  vndx = (where(varlist eq 'secondary'))[0]
+  varid = cdf_varcreate(fileid, varlist[vndx], /CDF_FLOAT, dim_vary, DIM = dim, /REC_VARY, $
+    /ZVARIABLE) 
+
+  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[vndx], /ZVARIABLE
+  cdf_attput, fileid, 'FORMAT',       varid, 'E15.7',       /ZVARIABLE
+  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[vndx], /ZVARIABLE
+  cdf_attput, fileid, 'VAR_TYPE',     varid, 'data',        /ZVARIABLE
+  cdf_attput, fileid, 'FILLVAL',      varid, -1.e31,        /ZVARIABLE
+  cdf_attput, fileid, 'DISPLAY_TYPE', varid, 'time_series', /ZVARIABLE
+
+  cdf_attput, fileid, 'VALIDMIN', varlist[vndx], 0.,        /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMAX', varlist[vndx], 1.e14,     /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMIN', varlist[vndx], 0.,        /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMAX', varlist[vndx], 1.e11,     /ZVARIABLE
+  cdf_attput, fileid, 'UNITS',    varlist[vndx], $
+    'eV/[eV cm^2 sr s]',                                    /ZVARIABLE
+  cdf_attput, fileid, 'VAR_TYPE', varlist[vndx], 'data',    /ZVARIABLE
+  cdf_attput, fileid, 'CATDESC',  varlist[vndx], $
+    'Secondary electron contamination',                        /ZVARIABLE
+  cdf_attput, fileid, 'DEPEND_0',   varlist[vndx], 'epoch',    /ZVARIABLE
+  cdf_attput, fileid, 'DEPEND_1',   varlist[vndx], 'energy',   /ZVARIABLE
+  cdf_attput, fileid, 'LABL_PTR_1', varlist[vndx], 'en_label', /ZVARIABLE
+
+  cdf_varput, fileid, varlist[vndx], data.bkg  ; units are energy flux
 
 ; *** weight_factor -- Weighting factor ***
 
-  varid = cdf_varcreate(fileid, varlist[7], /CDF_FLOAT, /REC_NOVARY, /ZVARIABLE)
+  vndx = (where(varlist eq 'weight_factor'))[0]
+  varid = cdf_varcreate(fileid, varlist[vndx], /CDF_FLOAT, /REC_NOVARY, /ZVARIABLE)
 
-  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[7],     /ZVARIABLE
+  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'FORMAT',       varid, 'F15.7',        /ZVARIABLE
-  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[7],     /ZVARIABLE
+  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'VAR_TYPE',     varid, 'support_data', /ZVARIABLE
   cdf_attput, fileid, 'FILLVAL',      varid, -1.e31,         /ZVARIABLE
   cdf_attput, fileid, 'DISPLAY_TYPE', varid, 'time_series',  /ZVARIABLE
 
-  cdf_attput, fileid, 'VALIDMIN', 'weight_factor', 0., /ZVARIABLE
-  cdf_attput, fileid, 'VALIDMAX', 'weight_factor', 1., /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMIN', 'weight_factor', 0., /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMAX', 'weight_factor', 1., /ZVARIABLE
-  cdf_attput, fileid, 'CATDESC',  'weight_factor', $
+  cdf_attput, fileid, 'VALIDMIN', varlist[vndx], 0.,         /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMAX', varlist[vndx], 1.,         /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMIN', varlist[vndx], 0.,         /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMAX', varlist[vndx], 1.,         /ZVARIABLE
+  cdf_attput, fileid, 'CATDESC',  varlist[vndx], $
     'Weighting factor for converting raw counts to raw count rate', /ZVARIABLE
 
   weight_factor = total(swe_hsk[0].dsf)/6.
-  cdf_varput, fileid, 'weight_factor', weight_factor
+  cdf_varput, fileid, varlist[vndx], weight_factor
 
 ; *** geom_factor -- Geometric factor ***
 
-  varid = cdf_varcreate(fileid, varlist[8], /CDF_FLOAT, /REC_NOVARY, /ZVARIABLE)
+  vndx = (where(varlist eq 'geom_factor'))[0]
+  varid = cdf_varcreate(fileid, varlist[vndx], /CDF_FLOAT, /REC_NOVARY, /ZVARIABLE)
 
-  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[8],     /ZVARIABLE
+  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'FORMAT',       varid, 'F15.7',        /ZVARIABLE
-  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[8],     /ZVARIABLE
+  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'VAR_TYPE',     varid, 'support_data', /ZVARIABLE
   cdf_attput, fileid, 'FILLVAL',      varid, -1.e31,         /ZVARIABLE
   cdf_attput, fileid, 'DISPLAY_TYPE', varid, 'time_series',  /ZVARIABLE
 
-  cdf_attput, fileid, 'VALIDMIN', 'geom_factor', 0.,              /ZVARIABLE
-  cdf_attput, fileid, 'VALIDMAX', 'geom_factor', 1.,              /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMIN', 'geom_factor', 0.,              /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMAX', 'geom_factor', 1.e-2,           /ZVARIABLE
-  cdf_attput, fileid, 'UNITS',    'geom_factor', 'cm^2 sr eV/eV', /ZVARIABLE
-  cdf_attput, fileid, 'CATDESC',  'geom_factor', $
-    'Full sensor geometric factor (per anode) at 1.4 keV', /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMIN', varlist[vndx], 0.,              /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMAX', varlist[vndx], 1.,              /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMIN', varlist[vndx], 0.,              /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMAX', varlist[vndx], 1.e-2,           /ZVARIABLE
+  cdf_attput, fileid, 'UNITS',    varlist[vndx], 'cm^2 sr eV/eV', /ZVARIABLE
+  cdf_attput, fileid, 'CATDESC',  varlist[vndx], $
+    'Full sensor geometric factor (per anode) at 1.4 keV',        /ZVARIABLE
 
-  cdf_varput, fileid, 'geom_factor', geom_factor
+  cdf_varput, fileid, varlist[vndx], geom_factor
 
 ; *** g_engy -- Relative sensitivity as a function of energy ***
 
   dim_vary = [1]
   dim = 64
-  varid = cdf_varcreate(fileid, varlist[9], /CDF_FLOAT, dim_vary, DIM = dim, /REC_NOVARY, $
+  vndx = (where(varlist eq 'g_engy'))[0]
+  varid = cdf_varcreate(fileid, varlist[vndx], /CDF_FLOAT, dim_vary, DIM = dim, /REC_NOVARY, $
     /ZVARIABLE)
 
-  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[9],     /ZVARIABLE
+  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'FORMAT',       varid, 'F15.7',        /ZVARIABLE
-  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[9],     /ZVARIABLE
+  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'VAR_TYPE',     varid, 'support_data', /ZVARIABLE
   cdf_attput, fileid, 'FILLVAL',      varid, -1.e31,         /ZVARIABLE
   cdf_attput, fileid, 'DISPLAY_TYPE', varid, 'time_series',  /ZVARIABLE
 
-  cdf_attput, fileid, 'VALIDMIN', 'g_engy', 0.0, /ZVARIABLE
-  cdf_attput, fileid, 'VALIDMAX', 'g_engy', 2.0, /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMIN', 'g_engy', 0.0, /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMAX', 'g_engy', 0.2, /ZVARIABLE
-  cdf_attput, fileid, 'CATDESC',  'g_engy', $
-    'Relative sensitivity as a function of energy', /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMIN', varlist[vndx], 0.0,        /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMAX', varlist[vndx], 2.0,        /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMIN', varlist[vndx], 0.0,        /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMAX', varlist[vndx], 0.2,        /ZVARIABLE
+  cdf_attput, fileid, 'CATDESC',  varlist[vndx], $
+    'Relative sensitivity as a function of energy',          /ZVARIABLE
 
   g_engy = data[mid].eff*data[mid].gf/geom_factor ; [64]
-  cdf_varput, fileid, 'g_engy', g_engy
+  cdf_varput, fileid, varlist[vndx], g_engy
 
 ; *** de_over_e -- DE/E ***
 
   dim_vary = [1]
   dim = 64
-  varid = cdf_varcreate(fileid, varlist[10], /CDF_FLOAT, dim_vary, DIM = dim, /REC_NOVARY, $
+  vndx = (where(varlist eq 'de_over_e'))[0]
+  varid = cdf_varcreate(fileid, varlist[vndx], /CDF_FLOAT, dim_vary, DIM = dim, /REC_NOVARY, $
     /ZVARIABLE)
 
-  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[10],    /ZVARIABLE
+  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'FORMAT',       varid, 'F15.7',        /ZVARIABLE
-  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[10],    /ZVARIABLE
+  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'VAR_TYPE',     varid, 'support_data', /ZVARIABLE
   cdf_attput, fileid, 'FILLVAL',      varid, -1.e31,         /ZVARIABLE
   cdf_attput, fileid, 'DISPLAY_TYPE', varid, 'time_series',  /ZVARIABLE
 
-  cdf_attput, fileid, 'VALIDMIN', 'de_over_e', 0.0,               /ZVARIABLE
-  cdf_attput, fileid, 'VALIDMAX', 'de_over_e', 1.0,               /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMIN', 'de_over_e', 0.0,               /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMAX', 'de_over_e', 0.3,               /ZVARIABLE
-  cdf_attput, fileid, 'UNITS',    'de_over_e', 'eV/eV',           /ZVARIABLE
-  cdf_attput, fileid, 'CATDESC',  'de_over_e', 'DeltaE/E (FWHM)', /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMIN', varlist[vndx], 0.0,               /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMAX', varlist[vndx], 1.0,               /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMIN', varlist[vndx], 0.0,               /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMAX', varlist[vndx], 0.3,               /ZVARIABLE
+  cdf_attput, fileid, 'UNITS',    varlist[vndx], 'eV/eV',           /ZVARIABLE
+  cdf_attput, fileid, 'CATDESC',  varlist[vndx], 'DeltaE/E (FWHM)', /ZVARIABLE
 
-  cdf_varput, fileid, 'de_over_e', data[mid].denergy/data[mid].energy ; [64]
+  cdf_varput, fileid, varlist[vndx], data[mid].denergy/data[mid].energy ; [64]
 
 ; *** accum_time -- Accumulation Time ***
 
-  varid = cdf_varcreate(fileid, varlist[11], /CDF_FLOAT, /REC_NOVARY, /ZVARIABLE)
+  vndx = (where(varlist eq 'accum_time'))[0]
+  varid = cdf_varcreate(fileid, varlist[vndx], /CDF_FLOAT, /REC_NOVARY, /ZVARIABLE)
 
-  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[11],    /ZVARIABLE
+  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'FORMAT',       varid, 'F15.7',        /ZVARIABLE
-  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[11],    /ZVARIABLE
+  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'VAR_TYPE',     varid, 'support_data', /ZVARIABLE
   cdf_attput, fileid, 'FILLVAL',      varid, -1.e31,         /ZVARIABLE
   cdf_attput, fileid, 'DISPLAY_TYPE', varid, 'time_series',  /ZVARIABLE
 
-  cdf_attput, fileid, 'VALIDMIN', 'accum_time', 0.0,                 /ZVARIABLE
-  cdf_attput, fileid, 'VALIDMAX', 'accum_time', 1.0,                 /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMIN', 'accum_time', 0.0,                 /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMAX', 'accum_time', 0.1,                 /ZVARIABLE
-  cdf_attput, fileid, 'UNITS',    'accum_time', 's',                 /ZVARIABLE
-  cdf_attput, fileid, 'CATDESC',  'accum_time', 'Accumulation Time', /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMIN', varlist[vndx], 0.0,                 /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMAX', varlist[vndx], 1.0,                 /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMIN', varlist[vndx], 0.0,                 /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMAX', varlist[vndx], 0.1,                 /ZVARIABLE
+  cdf_attput, fileid, 'UNITS',    varlist[vndx], 's',                 /ZVARIABLE
+  cdf_attput, fileid, 'CATDESC',  varlist[vndx], 'Accumulation Time', /ZVARIABLE
 
 ; should be 96*4*1.09 ms -- data.integ_t is 4*1.09 ms
 
-  cdf_varput, fileid, 'accum_time', 96.*data[mid].integ_t
+  cdf_varput, fileid, varlist[vndx], 96.*data[mid].integ_t
 
 ; *** energy ***
 
   dim_vary = [1]
   dim = 64
-  varid = cdf_varcreate(fileid, varlist[12], /CDF_FLOAT, dim_vary, DIM = dim, /REC_NOVARY, $
+  vndx = (where(varlist eq 'energy'))[0]
+  varid = cdf_varcreate(fileid, varlist[vndx], /CDF_FLOAT, dim_vary, DIM = dim, /REC_NOVARY, $
     /ZVARIABLE)
 
-  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[12],    /ZVARIABLE
+  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'FORMAT',       varid, 'F15.7',        /ZVARIABLE
-  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[12],    /ZVARIABLE
+  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[vndx],  /ZVARIABLE
   cdf_attput, fileid, 'VAR_TYPE',     varid, 'support_data', /ZVARIABLE
   cdf_attput, fileid, 'FILLVAL',      varid, -1.e31,         /ZVARIABLE
   cdf_attput, fileid, 'DISPLAY_TYPE', varid, 'time_series',  /ZVARIABLE
 
-  cdf_attput, fileid, 'VALIDMIN', 'energy', 0.,         /ZVARIABLE
-  cdf_attput, fileid, 'VALIDMAX', 'energy', 5.e4,       /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMIN', 'energy', 0.,         /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMAX', 'energy', 5.e3,       /ZVARIABLE
-  cdf_attput, fileid, 'UNITS',    'energy', 'eV',       /ZVARIABLE
-  cdf_attput, fileid, 'CATDESC',  'energy', 'Energies', /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMIN', varlist[vndx], 0.,         /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMAX', varlist[vndx], 5.e4,       /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMIN', varlist[vndx], 0.,         /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMAX', varlist[vndx], 5.e3,       /ZVARIABLE
+  cdf_attput, fileid, 'UNITS',    varlist[vndx], 'eV',       /ZVARIABLE
+  cdf_attput, fileid, 'CATDESC',  varlist[vndx], 'Energies', /ZVARIABLE
 
-  cdf_varput, fileid, 'energy', data[mid].energy ; [64]
+  cdf_varput, fileid, varlist[vndx], data[mid].energy ; [64]
+
+; *** quality flag ***
+
+  vndx = (where(varlist eq 'quality'))[0]
+  varid = cdf_varcreate(fileid, varlist[vndx], /CDF_UINT1, /REC_VARY, /ZVARIABLE)
+
+  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[vndx],   /ZVARIABLE
+  cdf_attput, fileid, 'FORMAT',       varid, 'I1',            /ZVARIABLE
+  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[vndx],   /ZVARIABLE
+  cdf_attput, fileid, 'VAR_TYPE',     varid, 'support_data',  /ZVARIABLE
+  cdf_attput, fileid, 'FILLVAL',      varid, 255B,            /ZVARIABLE
+  cdf_attput, fileid, 'DISPLAY_TYPE', varid, 'time_series',   /ZVARIABLE
+
+  cdf_attput, fileid, 'VALIDMIN', varlist[vndx], 0B,               /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMAX', varlist[vndx], 2B,               /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMIN', varlist[vndx], 0,                /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMAX', varlist[vndx], 3,                /ZVARIABLE
+  cdf_attput, fileid, 'CATDESC',  varlist[vndx], $
+    'Quality flag: 0 = low-energy anomaly, 1 = unknown, 2 = good', /ZVARIABLE
+  cdf_attput, fileid, 'DEPEND_0', varlist[vndx], 'epoch',          /ZVARIABLE
+
+  cdf_varput, fileid, varlist[vndx], data.quality
 
 ; *** Energy Label
 
   dim_vary = [1]
   dim = 64
 
-  varid = cdf_varcreate(fileid, varlist[14], dim_vary, DIM = dim, /CDF_CHAR, /REC_NOVARY,/ZVARIABLE,numelem=3)
-  cdf_attput, fileid, 'FIELDNAM', varid, varlist[14], /ZVARIABLE
-  cdf_attput, fileid, 'FORMAT',   varid, 'A3',        /ZVARIABLE
-  cdf_attput, fileid, 'VAR_TYPE', varid, 'metadata',  /ZVARIABLE
-  cdf_attput, fileid, 'FILLVAL',  varid, " ",         /ZVARIABLE
-  cdf_attput, fileid, 'CATDESC', 'en_label','Energy Axis Label for CDF compatibility',/ZVARIABLE
+  vndx = (where(varlist eq 'en_label'))[0]
+  varid = cdf_varcreate(fileid, varlist[vndx], dim_vary, DIM = dim, /CDF_CHAR, /REC_NOVARY,/ZVARIABLE,numelem=3)
+
+  cdf_attput, fileid, 'FIELDNAM', varid, varlist[vndx], /ZVARIABLE
+  cdf_attput, fileid, 'FORMAT',   varid, 'A3',          /ZVARIABLE
+  cdf_attput, fileid, 'VAR_TYPE', varid, 'metadata',    /ZVARIABLE
+  cdf_attput, fileid, 'FILLVAL',  varid, " ",           /ZVARIABLE
+  cdf_attput, fileid, 'CATDESC', 'en_label', 'Energy Axis Label for CDF compatibility', /ZVARIABLE
 
   labs = 'E' + strcompress(string(indgen(64)),/rem)
   len = strlen(labs)
   w = where(len lt 3)
   if (w[0] ne -1) then labs(w) = ' ' + labs(w)
 
-  cdf_varput, fileid, 'en_label', labs
+  cdf_varput, fileid, varlist[vndx], labs
 
 ; *** num_spec -- Number of Spectra ***
 
-  varid = cdf_varcreate(fileid, varlist[13], /CDF_INT4, /REC_NOVARY, /ZVARIABLE)
+  vndx = (where(varlist eq 'num_spec'))[0]
+  varid = cdf_varcreate(fileid, varlist[vndx], /CDF_INT4, /REC_NOVARY, /ZVARIABLE)
 
-  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[13],       /ZVARIABLE
+  cdf_attput, fileid, 'FIELDNAM',     varid, varlist[vndx],     /ZVARIABLE
   cdf_attput, fileid, 'FORMAT',       varid, 'I12',             /ZVARIABLE
-  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[13],       /ZVARIABLE
+  cdf_attput, fileid, 'LABLAXIS',     varid, varlist[vndx],     /ZVARIABLE
   cdf_attput, fileid, 'VAR_TYPE',     varid, 'support_data',    /ZVARIABLE
   cdf_attput, fileid, 'FILLVAL',      varid, long(-2147483648), /ZVARIABLE
   cdf_attput, fileid, 'DISPLAY_TYPE', varid, 'time_series',     /ZVARIABLE
 
-  cdf_attput, fileid, 'VALIDMIN', 'num_spec', 0L,     /ZVARIABLE
-  cdf_attput, fileid, 'VALIDMAX', 'num_spec', 43200L, /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMIN', 'num_spec', 0L,     /ZVARIABLE
-  cdf_attput, fileid, 'SCALEMAX', 'num_spec', 43200L, /ZVARIABLE
-  cdf_attput, fileid, 'CATDESC',  'num_spec', $
-  'Number of energy spectra in file', /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMIN', varlist[vndx], 0L,     /ZVARIABLE
+  cdf_attput, fileid, 'VALIDMAX', varlist[vndx], 43200L, /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMIN', varlist[vndx], 0L,     /ZVARIABLE
+  cdf_attput, fileid, 'SCALEMAX', varlist[vndx], 43200L, /ZVARIABLE
+  cdf_attput, fileid, 'CATDESC',  varlist[vndx], $
+  'Number of energy spectra in file',                    /ZVARIABLE
 
-  cdf_varput, fileid, 'num_spec', nrec
+  cdf_varput, fileid, varlist[vndx], nrec
 
   cdf_close,fileid
 

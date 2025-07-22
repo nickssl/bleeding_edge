@@ -8,8 +8,8 @@
 ;   (add, split/combine,etc) to the FOM/BAK structure file. 
 ; 
 ; $LastChangedBy: moka $
-; $LastChangedDate: 2023-08-21 20:46:44 -0700 (Mon, 21 Aug 2023) $
-; $LastChangedRevision: 32050 $
+; $LastChangedDate: 2024-07-11 12:49:49 -0700 (Thu, 11 Jul 2024) $
+; $LastChangedRevision: 32735 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/mms/sitl/eva/source/cw_sitl/eva_sitl_strct_update.pro $
 ;
 PRO eva_sitl_strct_update, segSelect, user_flag=user_flag, BAK=BAK, OVERRIDE=OVERRIDE
@@ -153,6 +153,8 @@ PRO eva_sitl_strct_update, segSelect, user_flag=user_flag, BAK=BAK, OVERRIDE=OVE
       ;update yrange
       eva_sitl_strct_yrange,'mms_stlm_output_fom'
       eva_sitl_strct_yrange,'mms_stlm_fomstr'
+
+      eva_sitl_copy_fomstr
       
     endif else begin; No segment
       if ~keyword_set(override) then begin

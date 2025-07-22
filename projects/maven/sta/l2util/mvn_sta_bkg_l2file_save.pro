@@ -22,8 +22,8 @@
 ;HISTORY:
 ; 22-jul-2014, jmm, jimm@ssl.berkeley.edu
 ; $LastChangedBy: jimm $
-; $LastChangedDate: 2020-08-25 10:49:37 -0700 (Tue, 25 Aug 2020) $
-; $LastChangedRevision: 29076 $
+; $LastChangedDate: 2023-09-26 17:09:08 -0700 (Tue, 26 Sep 2023) $
+; $LastChangedRevision: 32136 $
 ; $URL: svn+ssh://thmsvn@ambrosia.ssl.berkeley.edu/repos/spdsoft/trunk/projects/maven/sta/l2util/mvn_sta_bkg_l2file_save.pro $
 ;-
 Pro mvn_sta_bkg_l2file_save, otp_struct, fullfile0, temp_dir = temp_dir, $
@@ -77,15 +77,18 @@ Pro mvn_sta_bkg_l2file_save, otp_struct, fullfile0, temp_dir = temp_dir, $
 
 ;move the files to the output directory
   dir = file_dirname(fullfile)
+;check for previous existence of files to allow for chmod or chgrp commands
+  If(is_string(file_search(fullfile))) Then fullfile_chmod = 0B Else fullfile_chmod = 1B
   print, 'Moving: '+fullfilex+' To: '+fullfile
   file_move, fullfilex, fullfile, /overwrite
 ;delete temporary directory
   file_delete, tdir_out, /recursive
-
+  If(fullfile_chmod) Then Begin
 ;chmod to g+w for the files
-  spawn, 'chmod g+w '+fullfile
+     spawn, 'chmod g+w '+fullfile
 ;And group maven
-  spawn, 'chgrp maven '+fullfile
+     spawn, 'chgrp maven '+fullfile
+  Endif
 
   Return
 End
